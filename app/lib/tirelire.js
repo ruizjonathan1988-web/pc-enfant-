@@ -122,7 +122,7 @@ function tic(etatEntree, config, demande, maintenant, actif) {
 }
 
 // Changements demandés depuis le panneau parent : appliqués seulement avec le bon code.
-const CLES_PARENT = ['jetonsSemaine', 'maxParSeance', 'aDeuxMaxMinutes', 'sites', 'jeux', 'logiciels', 'niveau'];
+const CLES_PARENT = ['jetonsSemaine', 'maxParSeance', 'aDeuxMaxMinutes', 'sites', 'jeux', 'logiciels', 'niveau', 'interdits'];
 function appliquerParent(config, etat, requete) {
   if (!requete || !pinValide(config, requete.pin)) return { ok: false, config, etat };
   const c = JSON.parse(JSON.stringify(config));

@@ -32,6 +32,7 @@ function dossiers() {
   return {
     exposes: path.join(docs, 'Mes exposés'),
     carnets: path.join(docs, 'Mes carnets'),
+    textes: path.join(docs, 'Mes textes'),
     creations: path.join(docs, 'Mes créations'),
     photos: path.join(app.getPath('pictures'), 'Mes photos'),
     musique: app.getPath('music'),
@@ -52,7 +53,7 @@ function configPublique() {
   const c = config();
   // Le sel et l'empreinte du code servent à vérifier le code à l'écran ; ce qui compte vraiment
   // (temps à deux, réglages) est revérifié par le gardien, que l'enfant ne peut pas contourner.
-  return { niveau: c.niveau || 1, enfant: { prenom: c.enfant && c.enfant.prenom }, jetonsSemaine: c.jetonsSemaine, maxParSeance: c.maxParSeance, aDeuxMaxMinutes: c.aDeuxMaxMinutes, sites: c.sites, jeux: c.jeux || [], pinSel: c.pinSel, pinHash: c.pinHash };
+  return { niveau: c.niveau || 1, enfant: { prenom: c.enfant && c.enfant.prenom }, jetonsSemaine: c.jetonsSemaine, maxParSeance: c.maxParSeance, aDeuxMaxMinutes: c.aDeuxMaxMinutes, sites: c.sites, jeux: c.jeux || [], interdits: c.interdits || [], pinSel: c.pinSel, pinHash: c.pinHash };
 }
 
 function creerFenetre() {
@@ -128,8 +129,25 @@ app.on('web-contents-created', (_e, wc) => {
     if (CAT.urlAutorisee(url, domaines())) wc.loadURL(url); else if (fen) fen.webContents.send('site-refuse', url);
     return { action: 'deny' };
   });
-  wc.session.on('will-download', (e) => e.preventDefault());
+  // Une seule fois par session de navigation (tous les sites partagent la même).
+  if (!sessionsSurveillees.has(wc.session)) { sessionsSurveillees.add(wc.session); wc.session.on('will-download', rangerTelechargement); }
 });
+
+// Téléchargements : seules ses créations passent (image, son, MIDI, projet Scratch, PDF, texte), rangées dans
+// « Mes créations », d'où elles arrivent dans sa galerie. Tout le reste (programmes, archives…) est refusé.
+const sessionsSurveillees = new Set();
+const CREATIONS_PERMISES = /\.(png|jpe?g|gif|webp|svg|mp3|wav|ogg|m4a|mid|midi|sb3|pdf|txt)$/i;
+function rangerTelechargement(e, item) {
+  const nom = path.basename(item.getFilename() || 'creation').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
+  if (!CREATIONS_PERMISES.test(nom)) { e.preventDefault(); if (fen) fen.webContents.send('telechargement', { ok: false, nom }); return; }
+  const dossier = dossiers().creations;
+  try { fs.mkdirSync(dossier, { recursive: true }); } catch (x) { /* rien */ }
+  const ext = path.extname(nom); const base = path.basename(nom, ext);
+  let cible = path.join(dossier, nom);
+  for (let i = 2; fs.existsSync(cible); i++) cible = path.join(dossier, `${base} (${i})${ext}`);
+  item.setSavePath(cible);
+  item.once('done', (_x, etat) => { if (fen) fen.webContents.send('telechargement', { ok: etat === 'completed', nom: path.basename(cible) }); });
+}
 
 // Permissions des sites : tout est refusé, sauf la caméra pour les sites qui en ont besoin (Teachable Machine).
 function permisCamera(url) {
@@ -159,11 +177,13 @@ app.on('web-contents-created', (_e, wc) => {
 function developper(p) { return p.replace(/%([^%]+)%/g, (_, v) => process.env[v] || process.env[v.toUpperCase()] || ''); }
 const cacheMenu = {};
 
-function idDemarrer(nom) {
+function idDemarrer(nom, exact) {
   return new Promise((ok) => {
     if (cacheMenu[nom]) return ok(cacheMenu[nom]);
     if (process.platform !== 'win32') return ok(null);
-    const cmd = "Get-StartApps | Where-Object { $_.Name -like '*" + nom.replace(/'/g, "''") + "*' } | Select-Object -First 1 -ExpandProperty AppID";
+    // Le nom exact d'abord, sinon le plus court qui le contient : « GCompris » et non « GCompris Teachers ».
+    const n = nom.replace(/'/g, "''");
+    const cmd = "$l = @(Get-StartApps | Where-Object { $_.Name -like '*" + n + "*' }); $e = $l | Where-Object { $_.Name -eq '" + n + "' } | Select-Object -First 1; " + (exact ? '' : "if (-not $e) { $e = $l | Sort-Object { $_.Name.Length } | Select-Object -First 1 }; ") + "if ($e) { $e.AppID }";
     execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], { windowsHide: true, timeout: 15000 }, (err, out) => {
       const id = String(out || '').trim();
       if (id) cacheMenu[nom] = id;
@@ -172,17 +192,39 @@ function idDemarrer(nom) {
   });
 }
 
+// Journal des lancements (%APPDATA%\Flocon\lancements.log) : pour comprendre, sur le vrai PC, pourquoi un logiciel ne s'ouvre pas.
+const JOURNAL_LANCEMENTS = path.join(DOSSIER_PROFIL, 'lancements.log');
+function noterLancement(texte) {
+  try {
+    if (fs.existsSync(JOURNAL_LANCEMENTS) && fs.statSync(JOURNAL_LANCEMENTS).size > 200000) fs.renameSync(JOURNAL_LANCEMENTS, JOURNAL_LANCEMENTS + '.ancien');
+    fs.appendFileSync(JOURNAL_LANCEMENTS, new Date().toISOString() + ' ' + texte + '\r\n');
+  } catch (e) { /* rien */ }
+}
+// Un logiciel qui se ferme en erreur dans les 20 secondes : l'enfant est prévenue au lieu d'attendre devant rien.
+// (calc.exe rend la main aussitôt à la Calculatrice de Windows avec le code 0 : ce n'est pas une erreur.)
+function surveiller(proc, nom, chemin) {
+  const debut = Date.now();
+  proc.once('error', (e) => { noterLancement(`ÉCHEC ${nom} (${chemin}) : ${e.message}`); if (fen) fen.webContents.send('logiciel-echec', { nom }); });
+  proc.once('exit', (code) => {
+    const s = Math.round((Date.now() - debut) / 1000);
+    noterLancement(`${nom} fermé après ${s} s (code ${code})`);
+    if (code && s < 20 && fen) fen.webContents.send('logiciel-echec', { nom, code });
+  });
+  proc.unref();
+}
 async function lancerLogiciel(ref) {
   const l = CAT.LOGICIELS[ref] || (config().logiciels || {})[ref];
   if (!l) return { ok: false, raison: 'inconnu' };
-  if (l.uri) { await shell.openExternal(l.uri); return { ok: true }; }
+  if (l.uri) { noterLancement(`${l.nom} : ${l.uri}`); await shell.openExternal(l.uri); return { ok: true }; }
   for (const c of (l.chemins || []).map(developper)) {
-    if (fs.existsSync(c)) { spawn(c, [], { detached: true, stdio: 'ignore', cwd: path.dirname(c) }).unref(); return { ok: true }; }
+    if (fs.existsSync(c)) { noterLancement(`${l.nom} : ${c}`); surveiller(spawn(c, [], { detached: true, stdio: 'ignore', cwd: path.dirname(c) }), l.nom, c); return { ok: true }; }
   }
   for (const m of (l.menus || (l.menu ? [l.menu] : []))) {
-    const id = await idDemarrer(m);
-    if (id) { spawn('explorer.exe', ['shell:AppsFolder\\' + id], { detached: true, stdio: 'ignore' }).unref(); return { ok: true }; }
+    const id = await idDemarrer(m, l.menuExact);
+    // explorer.exe rend la main tout de suite, souvent avec le code 1 : pas de surveillance possible ici.
+    if (id) { noterLancement(`${l.nom} : menu Démarrer ${id}`); spawn('explorer.exe', ['shell:AppsFolder\\' + id], { detached: true, stdio: 'ignore' }).unref(); return { ok: true }; }
   }
+  noterLancement(`${l.nom} : introuvable (chemins : ${(l.chemins || []).map(developper).join(' ; ') || 'aucun'})`);
   return { ok: false, raison: 'absent', nom: l.nom };
 }
 
@@ -299,21 +341,40 @@ poser('fermer', () => {
   if (!fen || (config().niveau || 1) < 4 || pleinEcran) return false;
   fen.setClosable(true); fen.close(); return true;
 });
+// Fabrique (ou refait) le .docx d'un document de l'enfant. Sans marque (document d'une version précédente)
+// ou retouché dans Writer depuis : on ne l'écrase jamais, on rend celui qui existe.
+function fabriquerDocx(docx, contenu) {
+  const marques = lireJson(FICHIER_DOCUMENTS, {}) || {};
+  let garde = fs.existsSync(docx) && !(marques[docx] && Math.abs(fs.statSync(docx).mtimeMs - marques[docx]) < 2000);
+  if (!garde) {
+    try {
+      fs.writeFileSync(docx, contenu());
+      marques[docx] = fs.statSync(docx).mtimeMs; ecrireJson(FICHIER_DOCUMENTS, marques);
+    } catch (e) { garde = fs.existsSync(docx); if (!garde) throw e; } // ouvert dans Writer : on l'ouvre tel quel
+  }
+  return garde;
+}
+function ouvrirDansWriter(docx) {
+  const writer = (CAT.LOGICIELS.writer.chemins || []).map(developper).find((c) => fs.existsSync(c));
+  if (writer) spawn(writer, [docx], { detached: true, stdio: 'ignore' }).unref(); else shell.openPath(docx);
+}
 poser('documentExpose', (fichier) => {
   const { p } = sur('exposes', fichier);
   const x = lireJson(p, null); if (!x) return { ok: false };
   const docx = p.replace(/\.json$/, '.docx');
-  const marques = lireJson(FICHIER_DOCUMENTS, {}) || {};
-  // Sans marque (document d'une version précédente) ou retouché depuis : on ne l'écrase jamais.
-  let garde = fs.existsSync(docx) && !(marques[docx] && Math.abs(fs.statSync(docx).mtimeMs - marques[docx]) < 2000);
-  if (!garde) {
-    try {
-      fs.writeFileSync(docx, require('./lib/docx').exposeDocx(x, CAT.EXPOSE_ETAPES));
-      marques[docx] = fs.statSync(docx).mtimeMs; ecrireJson(FICHIER_DOCUMENTS, marques);
-    } catch (e) { garde = fs.existsSync(docx); if (!garde) throw e; } // ouvert dans Writer : on l'ouvre tel quel
-  }
-  const writer = (CAT.LOGICIELS.writer.chemins || []).map(developper).find((c) => fs.existsSync(c));
-  if (writer) spawn(writer, [docx], { detached: true, stdio: 'ignore' }).unref(); else shell.openPath(docx);
+  const garde = fabriquerDocx(docx, () => require('./lib/docx').exposeDocx(x, CAT.EXPOSE_ETAPES));
+  ouvrirDansWriter(docx);
+  return { ok: true, chemin: docx, garde };
+});
+// Un texte du cahier : « imprimer » (par le logiciel qui ouvre les .docx) ou « ouvrir » dans Writer.
+poser('documentTexte', (fichier, action) => {
+  const { p } = sur('textes', fichier);
+  const x = lireJson(p, null); if (!x) return { ok: false };
+  const docx = p.replace(/\.json$/, '.docx');
+  const garde = fabriquerDocx(docx, () => require('./lib/docx').texteDocx(x));
+  if (action === 'imprimer') {
+    if (process.platform === 'win32') spawn('powershell.exe', ['-NoProfile', '-Command', 'Start-Process -FilePath $args[0] -Verb Print', docx], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+  } else ouvrirDansWriter(docx);
   return { ok: true, chemin: docx, garde };
 });
 poser('imprimer', (chemin) => {

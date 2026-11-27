@@ -168,7 +168,9 @@ Etape 'Verrous réels dans le registre de Test (niveaux 1 et 3)' {
     $dr = & $liste "$pol\Explorer\DisallowRun"
     foreach ($x in 'chrome.exe', 'firefox.exe', 'msedge.exe', 'powershell.exe', 'cmd.exe', 'regedit.exe') { Vrai ($dr -contains $x) "$x non bloqué au niveau 1" }
     Vrai (-not (Test-Path $edge)) 'stratégies Edge présentes au niveau 1'
+    foreach ($v in 'NoDesktop', 'NoControlPanel', 'NoStartMenuMorePrograms') { Vrai ((Get-ItemProperty "$pol\Explorer").$v -eq 1) "$v absent au niveau 1" }
     & $poser 3
+    foreach ($v in 'NoDesktop', 'NoControlPanel', 'NoStartMenuMorePrograms') { Vrai ($null -eq (Get-ItemProperty "$pol\Explorer").$v) "$v resté au niveau 3" }
     $dr = & $liste "$pol\Explorer\DisallowRun"
     Vrai (-not ($dr -contains 'msedge.exe')) 'Edge encore interdit au niveau 3'
     Vrai ($dr -contains 'chrome.exe') 'Chrome autorisé au niveau 3'
@@ -179,6 +181,14 @@ Etape 'Verrous réels dans le registre de Test (niveaux 1 et 3)' {
     & $poser 1
     Vrai (-not (Test-Path $edge)) 'stratégies Edge restées après retour au niveau 1'
     Vrai ((& $liste "$pol\Explorer\DisallowRun") -contains 'msedge.exe') 'Edge pas réinterdit au retour au niveau 1'
+    # La commande qu'utilise l'installateur, avec les vrais réglages de Test (niveau 4 et AmeliPro.exe, posés par le robot).
+    $env:ELECTRON_RUN_AS_NODE = '1'
+    try { $o = & $Exe $Gardien verrous Test | Out-String; $c = $LASTEXITCODE } finally { Remove-Item Env:ELECTRON_RUN_AS_NODE }
+    Vrai ($c -eq 0) "gardien.js verrous Test : code $c $o"
+    $dr = & $liste "$pol\Explorer\DisallowRun"
+    Vrai ($dr -contains 'AmeliPro.exe') 'programme interdit par le parent absent'
+    Vrai (-not ($dr -contains 'msedge.exe')) 'Edge interdit au niveau 4'
+    Vrai ($null -eq (Get-ItemProperty "$pol\Explorer").NoDesktop) 'bureau masqué au niveau 4'
   } finally { [GC]::Collect(); Start-Sleep -Seconds 1; if (-not $charge) { reg unload "HKU\$sid" | Out-Null } }
 }
 

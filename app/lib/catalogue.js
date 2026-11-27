@@ -8,34 +8,40 @@ const LAD = '%LOCALAPPDATA%';
 
 const LOGICIELS = {
   scratch: { nom: 'Scratch', chemins: [PF + '\\Scratch 3\\Scratch 3.exe', PF86 + '\\Scratch 3\\Scratch 3.exe', LAD + '\\Programs\\Scratch 3\\Scratch 3.exe'], menu: 'Scratch' },
-  stopmotion: { nom: 'Stop Motion Studio', chemins: [], menu: 'Stop Motion' },
-  mypaint: { nom: 'MyPaint', chemins: [PF + '\\MyPaint\\mingw64\\bin\\mypaint.exe', PF + '\\MyPaint\\mingw64\\bin\\mypaint-w64.exe', PF + '\\MyPaint\\mypaint.exe'], menus: ['MyPaint'] },
+  stopmotion: { nom: 'Stop Motion Studio', chemins: [], menu: 'Stop Motion', store: true },
+  mypaint: { nom: 'MyPaint', chemins: [PF + '\\mypaint-w64\\mypaint.exe', PF + '\\MyPaint\\mingw64\\bin\\mypaint.exe', PF + '\\MyPaint\\mingw64\\bin\\mypaint-w64.exe', PF + '\\MyPaint\\mypaint.exe'], menus: ['MyPaint'] },
+  // Pensés pour son âge : Tux Paint (dessin, 3-12 ans), GCompris (activités du primaire), le Magnétophone de Windows.
+  tuxpaint: { nom: 'Tux Paint', chemins: [PF + '\\TuxPaint\\tuxpaint.exe', PF86 + '\\TuxPaint\\tuxpaint.exe'], menu: 'Tux Paint' },
+  // Installé à la main depuis gcompris.net : le paquet winget KDE.GCompris n'installe que « GCompris Teachers » (relevé par le testeur).
+  gcompris: { nom: 'GCompris', manuel: 'depuis gcompris.net (le paquet winget n’installe que l’outil des enseignants)', menuExact: true, chemins: [PF + '\\GCompris-Qt\\bin\\gcompris-qt.exe', PF + '\\GCompris\\bin\\gcompris-qt.exe', PF + '\\KDE\\GCompris\\bin\\gcompris-qt.exe'], menu: 'GCompris' },
+  magneto: { nom: 'Magnétophone', windows11: true, chemins: [], menus: ['Magnétophone', 'Enregistreur audio', 'Enregistreur vocal', 'Sound Recorder'] },
   krita: { nom: 'Krita', chemins: [PF + '\\Krita (x64)\\bin\\krita.exe', PF + '\\Krita\\bin\\krita.exe'], menu: 'Krita' },
   writer: { nom: 'LibreOffice Writer', chemins: [PF + '\\LibreOffice\\program\\swriter.exe'], menu: 'LibreOffice Writer' },
   impress: { nom: 'LibreOffice Impress', chemins: [PF + '\\LibreOffice\\program\\simpress.exe'], menu: 'LibreOffice Impress' },
-  audacity: { nom: 'Audacity', chemins: [PF + '\\Audacity\\Audacity.exe'], menu: 'Audacity' },
+  audacity: { nom: 'Audacity', chemins: [PF + '\\Audacity 4\\bin\\Audacity4.exe', PF + '\\Audacity\\Audacity.exe'], menu: 'Audacity' },
   calculatrice: { nom: 'Calculatrice', chemins: ['%SystemRoot%\\System32\\calc.exe'], menu: 'Calculatrice' },
   camera: { nom: 'Caméra', uri: 'microsoft.windows.camera:' },
   explorateur: { nom: 'Explorateur de fichiers', chemins: ['%SystemRoot%\\explorer.exe'] },
   edge: { nom: 'Internet', chemins: [PF86 + '\\Microsoft\\Edge\\Application\\msedge.exe', PF + '\\Microsoft\\Edge\\Application\\msedge.exe'], menu: 'Microsoft Edge' },
-  minecraft: { nom: 'Minecraft', chemins: [PF86 + '\\Minecraft Launcher\\MinecraftLauncher.exe', PF + '\\Minecraft Launcher\\MinecraftLauncher.exe'], menu: 'Minecraft Launcher' },
-  // RapidTyping s'il a été installé (à la main, depuis rapidtyping.com), sinon Klavaro.
-  klavaro: { nom: 'Le clavier', chemins: [PF + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\Klavaro\\bin\\klavaro.exe', PF + '\\Klavaro\\bin\\klavaro.exe'], menus: ['RapidTyping', 'Klavaro'] }
+  minecraft: { nom: 'Minecraft', chemins: [PF86 + '\\Minecraft Launcher\\MinecraftLauncher.exe', PF + '\\Minecraft Launcher\\MinecraftLauncher.exe'], menus: ['Minecraft Launcher', 'Minecraft pour Windows', 'Minecraft for Windows', 'Minecraft Bedrock', 'Minecraft'] }, // Bedrock seul (sans lanceur) : trouvé par le menu Démarrer
+  // RapidTyping, installé à la main (rapidtyping.com). Klavaro n'est plus installé : sa version Windows plante au démarrage
+  // (0xC0000374, relevé par le testeur des logiciels) ; il reste en secours s'il est déjà là.
+  klavaro: { nom: 'Le clavier', manuel: 'RapidTyping, à installer à la main (rapidtyping.com)', chemins: [PF + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\Klavaro\\bin\\klavaro.exe', PF + '\\Klavaro\\bin\\klavaro.exe'], menus: ['RapidTyping', 'Klavaro'] }
 };
 
 // domaines : adresses autorisées en navigation (sous-domaines compris).
 const SITES = {
-  vikidia: { nom: 'Vikidia', url: 'https://fr.vikidia.org', domaines: ['vikidia.org'] },
+  vikidia: { nom: 'Vikidia', url: 'https://fr.vikidia.org', domaines: ['vikidia.org'], recherche: 'https://fr.vikidia.org/w/index.php?search=' },
   wikimini: { nom: 'Wikimini', url: 'https://fr.wikimini.org', domaines: ['wikimini.org'] },
   unjour: { nom: '1jour1actu', url: 'https://www.1jour1actu.com', domaines: ['1jour1actu.com'] },
   terre: { nom: 'Le monde', url: 'https://earth.google.com/web/', domaines: ['earth.google.com'] },
-  etoiles: { nom: 'Les étoiles', url: 'https://stellarium-web.org', domaines: ['stellarium-web.org'] },
+  etoiles: { nom: 'Les étoiles', url: 'https://stellarium.com/sky', domaines: ['stellarium.com', 'stellarium-web.org'] },
   vinz: { nom: 'Vinz et Lou', url: 'https://www.vinzetlou.net', domaines: ['vinzetlou.net'] },
   lumni: { nom: 'Lumni', url: 'https://www.lumni.fr/primaire', domaines: ['lumni.fr'] },
   lama: { nom: 'La Classe du Lama', url: 'https://laclassedulama.fr', domaines: ['laclassedulama.fr'] },
   khan: { nom: 'Khan Academy', url: 'https://fr.khanacademy.org', domaines: ['khanacademy.org'] },
-  fondamentaux: { nom: 'Les Fondamentaux', url: 'https://lesfondamentaux.reseau-canope.fr', domaines: ['lesfondamentaux.reseau-canope.fr'] },
-  calcul: { nom: 'Calcul mental', url: 'https://calculatice.ac-lille.fr', domaines: ['calculatice.ac-lille.fr'] },
+  fondamentaux: { nom: 'Les Fondamentaux', url: 'https://lesfondamentaux.reseau-canope.fr/accueil.html', domaines: ['reseau-canope.fr'] },
+  calcul: { nom: 'Calcul mental', url: 'https://calculatice.ac-lille.fr/exercices/', domaines: ['calculatice.ac-lille.fr'] },
   dicoado: { nom: 'Dicoado', url: 'https://www.dicoado.org', domaines: ['dicoado.org'] },
   songmaker: { nom: 'Mélodies', url: 'https://musiclab.chromeexperiments.com/Song-Maker/', domaines: ['musiclab.chromeexperiments.com'] },
   teachable: { nom: 'Teachable Machine', url: 'https://teachablemachine.withgoogle.com/train/image', domaines: ['teachablemachine.withgoogle.com'], camera: true },
@@ -84,12 +90,15 @@ const RUBRIQUES = [
     { type: 'interne', ref: 'galerie', nom: 'Ma galerie', sous: 'Et la première en famille', icone: I.photo, couleur: '#E0457B' },
     { type: 'logiciel', ref: 'scratch', nom: 'Scratch', sous: 'Jeux et animations', icone: I.code, couleur: '#F28C28' },
     { type: 'logiciel', ref: 'stopmotion', nom: 'Mon film', sous: 'Stop Motion Studio', icone: I.film, couleur: '#E0457B' },
-    { type: 'logiciel', ref: 'mypaint', nom: 'Dessin', sous: 'MyPaint', icone: I.pinceau, couleur: '#FF7A45' },
+    { type: 'logiciel', ref: 'tuxpaint', nom: 'Dessin', sous: 'Tux Paint', icone: I.pinceau, couleur: '#FF7A45' },
+    { type: 'logiciel', ref: 'mypaint', nom: 'Peinture', sous: 'MyPaint, des vrais pinceaux', icone: I.pinceau, couleur: '#E8692A', niveau: 2 },
     { type: 'logiciel', ref: 'krita', nom: 'Atelier de peinture', sous: 'Krita, pour aller plus loin', icone: I.pinceau, couleur: '#C2410C', niveau: 3 },
     { type: 'site', ref: 'incredibox', nom: 'Mes beats', sous: 'Incredibox', icone: I.beat, couleur: '#7C5CFA' },
     { type: 'site', ref: 'songmaker', nom: 'Mélodies', sous: 'Song Maker', icone: I.note, couleur: '#2B7BD6' },
-    { type: 'logiciel', ref: 'writer', nom: 'Écrire', sous: 'Histoires et lettres', icone: I.texte, couleur: '#1F5FA8' },
-    { type: 'logiciel', ref: 'audacity', nom: 'Ma voix', sous: 'Audacity', icone: I.micro, couleur: '#5B3FD6' },
+    { type: 'interne', ref: 'cahier', nom: 'Mon cahier', sous: 'Histoires et lettres', icone: I.texte, couleur: '#1F5FA8' },
+    { type: 'logiciel', ref: 'writer', nom: 'Mise en page', sous: 'LibreOffice Writer', icone: I.texte, couleur: '#174A85', niveau: 2 },
+    { type: 'logiciel', ref: 'magneto', nom: 'Ma voix', sous: 'Le Magnétophone', icone: I.micro, couleur: '#5B3FD6' },
+    { type: 'logiciel', ref: 'audacity', nom: 'Studio son', sous: 'Audacity, pour monter', icone: I.micro, couleur: '#3F2BA8', niveau: 3 },
     { type: 'logiciel', ref: 'camera', nom: 'Photomaton', sous: 'La caméra', icone: I.camera, couleur: '#13A39F' },
     { type: 'projet', ref: 'radio', nom: 'Ma radio', sous: 'Une émission à faire écouter', icone: I.micro, couleur: '#B0471B' },
     { type: 'projet', ref: 'livre', nom: 'Mon livre', sous: 'Écrire, illustrer, imprimer', icone: I.livre, couleur: '#2FA36B' },
@@ -112,6 +121,7 @@ const RUBRIQUES = [
   { id: 'apprendre', nom: 'J’apprends', tuiles: [
     { type: 'interne', ref: 'exposes', nom: 'Mes exposés', sous: 'De l’idée à l’oral', icone: I.diapo, couleur: '#1F5FA8' },
     { type: 'interne', ref: 'pourquoi', nom: 'Grand Pourquoi', sous: 'Mes questions', icone: I.question, couleur: '#7C5CFA' },
+    { type: 'logiciel', ref: 'gcompris', nom: 'Jeux pour apprendre', sous: 'GCompris : maths, lecture, sciences', icone: I.chapeau, couleur: '#2FA36B' },
     { type: 'site', ref: 'blockly', nom: 'Blockly Games', sous: 'Après Scratch : coder pas à pas', icone: I.code, couleur: '#F28C28' },
     { type: 'projet', ref: 'ia', nom: 'J\u2019apprends à l\u2019ordinateur', sous: 'Comprendre l\u2019IA, à deux', icone: I.cube, couleur: '#7C5CFA' },
     { type: 'logiciel', ref: 'klavaro', nom: 'Taper au clavier', sous: 'Avec les dix doigts', icone: I.texte, couleur: '#13A39F' },
@@ -144,8 +154,11 @@ const RUBRIQUES = [
 const PREMIERS_PAS = {
   scratch: ['Clique sur un bloc pour voir ce qu\u2019il fait.', 'Glisse les blocs les uns sous les autres : c\u2019est ton programme.', 'Le drapeau vert lance tout. Pour garder ton travail : Fichier, puis « Enregistrer sur ton ordinateur », dans Mes créations.'],
   stopmotion: ['Pose la caméra bien stable : elle ne doit plus bouger.', 'Bouge ton personnage tout doucement, une photo à chaque fois.', 'Exporte ton film dans Documents, Mes créations : il ira dans ta galerie.'],
+  tuxpaint: ['Les outils sont à gauche, les couleurs en bas : essaie les « Magie », ils font des choses surprenantes.', 'Défaire (la flèche) annule ton dernier geste : tu peux tout essayer.', 'Enregistrer garde ton dessin dans Tux Paint ; pour le mettre dans ta galerie, demande « Exporter » à un adulte la première fois.'],
+  gcompris: ['Chaque activité est une petite île : clique dessus, puis sur la flèche pour commencer.', 'Les étoiles en haut, c\u2019est le niveau : monte quand c\u2019est trop facile.', 'La maison en bas te ramène au menu.'],
+  magneto: ['Le gros bouton rond enregistre, le carré arrête.', 'Approche-toi du micro, mais pas trop : parle comme à quelqu\u2019un assis en face de toi.', 'Ton enregistrement est rangé tout seul dans Documents, Enregistrements audio.'],
   mypaint: ['Choisis un pinceau dans la colonne de droite, et ta couleur sur la roue.', 'Ctrl+Z annule ton dernier trait : tu peux tout essayer.', 'Pour garder ton dessin : Fichier, Exporter, choisis le format PNG et range-le dans Documents, Mes créations.'],
-  minecraft: ['La toute première fois, un adulte connecte ton compte Minecraft avec toi.', 'Choisis « Minecraft: Java Edition », puis Jouer, puis Solo.', 'Le jeu peut mettre une à deux minutes à démarrer : patiente, ne clique pas plusieurs fois.'],
+  minecraft: ['La toute première fois, un adulte connecte ton compte Minecraft avec toi.', 'Choisis « Minecraft pour Windows » (l\u2019édition Bedrock), puis Jouer, puis Créer un monde.', 'Le jeu peut mettre une à deux minutes à démarrer : patiente, ne clique pas plusieurs fois.'],
   krita: ['Choisis un pinceau à gauche et une couleur à droite.', 'Ctrl+Z annule ton dernier trait : tu peux tout essayer.', 'Fichier, puis Exporter en PNG, dans Documents, Mes créations.'],
   writer: ['Écris d\u2019abord, la mise en forme viendra après.', 'Pour un titre, sélectionne-le et choisis « Titre 1 ».', 'Fichier, puis Enregistrer sous : choisis bien ton dossier, et donne un nom qui veut dire quelque chose.'],
   impress: ['Une diapo = une idée et une image.', 'Insertion, puis Image, pour ajouter un dessin ou une photo.', 'F5 lance le diaporama, Échap l\u2019arrête.'],
@@ -231,8 +244,15 @@ const INTENTIONS = [
   { id: 'ecouter', texte: 'Écouter de la musique' }
 ];
 
+// Sites autorisés : toujours ceux du catalogue de Flocon (une nouvelle version peut en ajouter ou suivre un site qui
+// déménage), plus ceux que le parent ajoute. Avant la 1.4.8 le panneau enregistrait la liste entière, qui figeait le catalogue.
+function domainesCatalogue() { return Object.values(SITES).flatMap((s) => s.domaines); }
+function sitesAjoutes(sitesConfig) {
+  const cat = new Set(domainesAutorises([]));
+  return domainesAutorises(sitesConfig).filter((d) => !cat.has(d));
+}
 function domainesAutorises(sitesConfig) {
-  const base = sitesConfig && Array.isArray(sitesConfig) ? sitesConfig : Object.values(SITES).flatMap((s) => s.domaines);
+  const base = domainesCatalogue().concat(Array.isArray(sitesConfig) ? sitesConfig : []);
   return Array.from(new Set(base.map((d) => String(d).trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '')).filter(Boolean)));
 }
 
@@ -242,4 +262,4 @@ function urlAutorisee(url, domaines) {
   return domaines.some((d) => h === d || h.endsWith('.' + d));
 }
 
-module.exports = { LOGICIELS, SITES, RUBRIQUES, EXPOSE_ETAPES, PREMIERS_PAS, IDEES, PROJETS, PERMIS, INTENTIONS, ICONES: I, domainesAutorises, urlAutorisee };
+module.exports = { LOGICIELS, SITES, RUBRIQUES, EXPOSE_ETAPES, PREMIERS_PAS, IDEES, PROJETS, PERMIS, INTENTIONS, ICONES: I, domainesAutorises, sitesAjoutes, urlAutorisee };

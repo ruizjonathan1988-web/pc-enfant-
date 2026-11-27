@@ -37,6 +37,18 @@ function exposeDocx(x, etapes) {
     const lignes = notes.split(/\r?\n/).filter((l) => l.trim());
     (lignes.length ? lignes : ['…']).forEach((l) => corps.push(para(l)));
   });
+  return paquet(corps);
+}
+
+// Un texte du cahier : son titre, puis ses paragraphes (une ligne vide les sépare, un retour à la ligne aussi).
+function texteDocx(x) {
+  const corps = [para(x.titre || 'Mon texte', 'Title')];
+  const lignes = String(x.texte || '').split(/\r?\n/);
+  (lignes.some((l) => l.trim()) ? lignes : ['…']).forEach((l) => corps.push(para(l)));
+  return paquet(corps);
+}
+
+function paquet(corps) {
   const document = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${corps.join('')}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1417" w:right="1417" w:bottom="1417" w:left="1417" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
   const style = (id, nom, taille, gras, couleur) => `<w:style w:type="paragraph" w:styleId="${id}"><w:name w:val="${nom}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:before="240" w:after="120"/></w:pPr><w:rPr>${gras ? '<w:b/>' : ''}<w:color w:val="${couleur}"/><w:sz w:val="${taille}"/></w:rPr></w:style>`;
   const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="24"/><w:lang w:val="fr-FR"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="80"/></w:pPr></w:style>${style('Title', 'Title', 56, true, '1E2A4A')}${style('Subtitle', 'Subtitle', 28, false, '56607A')}${style('Heading1', 'heading 1', 32, true, '1F5FA8')}</w:styles>`;
@@ -49,4 +61,4 @@ function exposeDocx(x, etapes) {
   ]);
 }
 
-module.exports = { exposeDocx, zip, crc32 };
+module.exports = { exposeDocx, texteDocx, zip, crc32 };

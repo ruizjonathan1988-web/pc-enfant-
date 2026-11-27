@@ -1,0 +1,21 @@
+name: Testeur des logiciels
+# Installe vraiment les logiciels (par l'installateur de Flocon, via winget) et vérifie que Flocon les trouve.
+# Une fois par semaine : un éditeur peut changer son installateur ou son dossier sans prévenir.
+on:
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+  push:
+    paths: [app/lib/catalogue.js, installer/installer.ps1, tests/windows/logiciels.*, .github/workflows/logiciels.yml]
+jobs:
+  logiciels:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: winget sur la machine de test
+        shell: powershell
+        run: .\tests\windows\logiciels.ps1 -Etape winget
+      - name: Installer Flocon avec les logiciels, puis vérifier
+        shell: powershell
+        run: .\tests\windows\logiciels.ps1 -Etape installer

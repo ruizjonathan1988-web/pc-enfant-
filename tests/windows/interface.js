@@ -163,7 +163,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await page.fill('[data-in="noteExpose"]', 'Changement à ne pas écrire.'); await pause(1200);
     await clic('[data-a="documentWord"]'); await page.waitForSelector('text=retouché dans Writer');
     assert.ok(!texteDocx(f).includes('Changement'), 'son travail dans Writer est gardé');
-    await clic('[data-a="fermerVue"]');
+    await clic('[data-a="fermerVue"]'); await page.waitForSelector('[data-in="nouveauSujet"]'); await clic('[data-a="fermerVue"]');
   });
   await etape('Carnets : lecture, journal, Grand Pourquoi', async () => {
     await rubrique('Mes lectures'); await tuile('Mon carnet de lecture');
@@ -226,6 +226,73 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.strictEqual(n, 1, 'aucune nouvelle fenêtre');
     await clic('#site-fermer');
   });
+  await etape('Vikidia : chercher depuis la barre de Flocon', async () => {
+    await rubrique('Je découvre'); await tuile('Vikidia');
+    await page.waitForSelector('#site-q');
+    await page.fill('#site-q', 'loup'); await page.press('#site-q', 'Enter');
+    await page.waitForFunction(() => { const w = document.querySelector('#vue-site'); try { return /vikidia\.org/.test(w.getURL()) && /loup/i.test(decodeURIComponent(w.getURL()) + w.getTitle()) && !w.isLoading(); } catch (e) { return false; } }, null, { timeout: 45000 });
+  });
+  await etape('Téléchargement : une musique est rangée dans Mes créations', async () => {
+    const f = path.join(os.homedir(), 'Documents', 'Mes créations', 'ma-melodie.mid');
+    try { fs.unlinkSync(f); } catch (e) { /* rien */ }
+    await page.evaluate(() => document.querySelector('#vue-site').executeJavaScript("{ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['MThd'], { type: 'audio/midi' })); a.download = 'ma-melodie.mid'; document.body.appendChild(a); a.click(); }", true));
+    await page.waitForSelector('text=est rangé dans Mes créations', { timeout: 15000 });
+    assert.ok(fs.existsSync(f), 'fichier dans Mes créations');
+  });
+  await etape('Téléchargement : un programme est refusé', async () => {
+    try {
+    await page.evaluate(() => document.querySelector('#vue-site').executeJavaScript("{ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['MZ'])); a.download = 'jeu-gratuit.exe'; document.body.appendChild(a); a.click(); }", true));
+    await page.waitForSelector('text=ne peut pas être enregistré', { timeout: 15000 });
+    assert.ok(!fs.existsSync(path.join(os.homedir(), 'Documents', 'Mes créations', 'jeu-gratuit.exe')), 'aucun .exe enregistré');
+    } finally { if (await page.locator('#site-fermer').count()) await clic('#site-fermer'); }
+  });
+  for (const [nomTuile, domaine] of [['Les étoiles', /stellarium/], ['Les Fondamentaux', /reseau-canope\.fr/]]) {
+    await etape(nomTuile + ' : le site s’ouvre (adresse suivie jusqu’au bout)', async () => {
+      await rubrique(nomTuile === 'Les étoiles' ? 'Je découvre' : 'J’apprends');
+      const refusAvant = await page.locator('text=pas dans la liste autorisée').count();
+      await tuile(nomTuile);
+      await page.waitForFunction((d) => { const w = document.querySelector('#vue-site'); try { return new RegExp(d).test(w.getURL()) && !w.isLoading(); } catch (e) { return false; } }, domaine.source, { timeout: 45000 });
+      await pause(3000);
+      assert.strictEqual(await page.locator('text=pas dans la liste autorisée').count(), refusAvant, 'aucune page refusée en chemin');
+      await clic('#site-fermer');
+    });
+  }
+  await etape('Journal : un code secret choisi par l’enfant', async () => {
+    await rubrique('Mes lectures'); await tuile('Mon journal');
+    await clic('[data-a="mettreCodeJournal"]'); await code('1357'); await code('1357');
+    await page.waitForSelector('[data-a="enleverCodeJournal"]');
+    assert.ok(lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json')).codeJournal.hash, 'code enregistré (empreinte seulement)');
+    await clic('[data-a="fermerVue"]');
+  });
+  await etape('Mon cahier : écrire un texte, enregistré tout seul', async () => {
+    await rubrique('Je crée'); await tuile('Mon cahier');
+    await page.fill('[data-in="nouveauTexte"]', 'Le renard des neiges'); await clic('[data-a="creerTexte"]');
+    await page.fill('[data-in="texteCorps"]', 'Il était une fois un renard tout blanc.\nIl aimait la neige.'); await pause(1200);
+    assert.strictEqual(await page.textContent('.cahier .entete .etiquette'), '12 mots');
+    const d = path.join(os.homedir(), 'Documents', 'Mes textes');
+    const f = fs.readdirSync(d).find((x) => x.endsWith('.json'));
+    const x = lire(path.join(d, f));
+    assert.strictEqual(x.titre, 'Le renard des neiges'); assert.ok(x.texte.includes('renard tout blanc'), 'texte enregistré');
+    assert.strictEqual(await page.locator('[data-a="texteWriter"]').count(), 0, 'Writer seulement à partir du niveau 2');
+  });
+  await etape('Mon cahier : imprimer prépare un vrai document', async () => {
+    await clic('[data-a="texteImprimer"]'); await page.waitForSelector('text=part à l’imprimante');
+    const d = path.join(os.homedir(), 'Documents', 'Mes textes');
+    const f = path.join(d, fs.readdirSync(d).find((x) => x.endsWith('.docx')));
+    const xml = texteDocx(f);
+    assert.ok(xml.includes('Le renard des neiges') && xml.includes('Il aimait la neige'), 'titre et texte dans le document');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Badges : un site utilisé donne « Je découvre »', async () => {
+    const p = lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json'));
+    assert.ok(p.badges && p.badges['site:vikidia'] && p.badges['site:vikidia'].jours.length === 1, 'jour noté pour Vikidia');
+    await rubrique('Je découvre');
+    await page.waitForSelector('[data-a="tuile"]:has-text("Vikidia") .badge-tuile');
+    await rubrique('Mes outils'); await tuile('Mon permis');
+    await page.waitForSelector('.badge:has-text("Vikidia"):has-text("Je découvre")');
+    await page.waitForSelector('text=Encore 3 jours pour « Je me débrouille »');
+    await clic('[data-a="fermerVue"]');
+  });
   await etape('Espace parent : mauvais code refusé', async () => {
     await rubrique('Mon style'); await clic('[data-a="espaceParent"]');
     await code('9999'); await page.waitForSelector('text=Ce n’est pas le bon code');
@@ -236,9 +303,11 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await clic('[data-a="pNiveau"][data-n="3"]');
     const sites = await page.inputValue('[data-in="pSites"]');
     await page.fill('[data-in="pSites"]', sites + '\nexample.org');
+    await page.fill('[data-in="pInterdits"]', 'C:\\Program Files\\Ameli\\AmeliPro.exe\nn’importe quoi');
     await clic('[data-a="pEnregistrer"]');
     tic();
     const t = enfant('Test');
+    assert.deepStrictEqual(t.interdits, ['AmeliPro.exe'], 'programme interdit enregistré, sans son chemin');
     assert.strictEqual(t.jetonsSemaine, 6); assert.strictEqual(t.niveau, 3); assert.ok(t.sites.includes('example.org'), 'site ajouté');
     const b = enfant('Brune'); assert.strictEqual(b.jetonsSemaine, 8, 'jetons de Brune inchangés'); assert.deepStrictEqual(b.sites, ['vikidia.org'], 'sites de Brune inchangés');
   });
@@ -318,6 +387,13 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.ok(!(await fenetre()).kiosk, 'au bureau, pas en plein écran');
     const avant = etat().session.id; tic();
     assert.strictEqual(etat().session.id, avant, 'même séance, aucune nouvelle prise de jetons');
+  });
+  await etape('Journal : après une relance, le code secret est demandé', async () => {
+    await rubrique('Mes lectures'); await tuile('Mon journal');
+    await page.waitForSelector('text=Le code secret de ton journal');
+    await code('0000'); await page.waitForSelector('text=Ce n’est pas le bon code');
+    await code('1357'); await page.waitForSelector('[data-in="pageJournal"]');
+    await clic('[data-a="fermerVue"]');
   });
   await etape('Espace parent : refaire l’atelier', async () => {
     await rubrique('Mon style'); await clic('[data-a="espaceParent"]'); await code('1234');

@@ -154,3 +154,15 @@ console.log('grâce après fin du temps : ok');
   fs.rmSync(C.base, { recursive: true, force: true });
   console.log('gardien, plusieurs enfants : ok');
 }
+
+// Programmes interdits : la base, Edge selon le niveau, ceux du parent (noms .exe seulement).
+{
+  const assert = require('assert');
+  const { listeInterdits } = require('../app/gardien');
+  const l1 = listeInterdits({ niveau: 1, interdits: ['AmeliPro.exe', 'C:\\x\\y.exe', 'rm -rf', 'CMD.exe'] });
+  assert.ok(l1.includes('msedge.exe') && l1.includes('AmeliPro.exe'));
+  assert.ok(!l1.some((x) => x.includes('\\') || x.includes('rm')), 'pas de chemin ni de commande');
+  assert.strictEqual(l1.filter((x) => x.toLowerCase() === 'cmd.exe').length, 1, 'sans doublon');
+  assert.ok(!listeInterdits({ niveau: 3 }).includes('msedge.exe'), 'Edge permis au niveau 3');
+  console.log('programmes interdits : ok');
+}
