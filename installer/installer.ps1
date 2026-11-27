@@ -208,8 +208,25 @@ $obtenu = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLower()
 if (-not $attendu -or $attendu.Trim().ToLower() -ne $obtenu) { Remove-Item $zip -Force; throw "Empreinte incorrecte : le téléchargement est corrompu. Relancez l'installation." }
 Ok 'Téléchargement vérifié.'
 
-Get-Process Flocon -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-if (Test-Path $Dest) { Remove-Item -Recurse -Force $Dest }
+# Avant de remplacer les fichiers : le gardien (chaque minute) et le lancement automatique relanceraient Flocon.exe
+# pendant la suppression, ce qui verrouille le fichier. On met les tâches en pause, on arrête Flocon dans toutes
+# les sessions, puis on supprime en réessayant. Les tâches sont réactivées (ou recréées plus bas) quoi qu'il arrive.
+$tachesFlocon = @(Get-ScheduledTask -TaskPath '\Flocon\' -ErrorAction SilentlyContinue)
+$tachesFlocon | ForEach-Object { Stop-ScheduledTask -InputObject $_ -ErrorAction SilentlyContinue; Disable-ScheduledTask -InputObject $_ -ErrorAction SilentlyContinue | Out-Null }
+try {
+  if (Test-Path $Dest) {
+    $supprime = $false
+    for ($essai = 1; $essai -le 15 -and -not $supprime; $essai++) {
+      cmd.exe /d /c "taskkill /F /T /IM Flocon.exe >nul 2>&1"
+      Start-Sleep -Seconds 1
+      try { Remove-Item -Recurse -Force $Dest -ErrorAction Stop; $supprime = $true }
+      catch { if ($essai -eq 15) { throw "Impossible de remplacer $Dest : un fichier reste utilisé ($($_.Exception.Message)). Redémarrez l'ordinateur puis relancez l'installation." } Start-Sleep -Seconds 2 }
+    }
+  }
+} catch {
+  $tachesFlocon | ForEach-Object { Enable-ScheduledTask -InputObject $_ -ErrorAction SilentlyContinue | Out-Null }
+  throw
+}
 New-Item -ItemType Directory -Force -Path $Dest | Out-Null
 $tar = Get-Command tar.exe -ErrorAction SilentlyContinue
 if ($tar) { & $tar.Source -xf $zip -C $Dest } else { Expand-Archive -Path $zip -DestinationPath $Dest -Force }
