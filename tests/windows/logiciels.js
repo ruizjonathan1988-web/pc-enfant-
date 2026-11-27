@@ -30,8 +30,20 @@ function chercher(exe) {
 
 // Les logiciels que les tuiles de Flocon proposent vraiment.
 const refs = new Set(CAT.RUBRIQUES.flatMap((r) => r.tuiles).filter((t) => t.type === 'logiciel').map((t) => t.ref).concat(['minecraft']));
+// Lance vraiment le logiciel, comme Flocon, et regarde s'il tient 20 secondes.
+// Un programme qui rend la main avec le code 0 (calc.exe ouvre la Calculatrice de Windows) n'est pas en échec.
+function essayer(chemin) {
+  return new Promise((ok) => {
+    const p = require('child_process').spawn(chemin, [], { detached: true, stdio: 'ignore', cwd: path.dirname(chemin) });
+    let fini = false;
+    p.once('error', (e) => { fini = true; ok('ne démarre pas : ' + e.message); });
+    p.once('exit', (code) => { if (fini) return; fini = true; ok(code === 0 ? 'rend la main (code 0)' : 'SE FERME aussitôt (code ' + code + ')'); });
+    setTimeout(() => { if (fini) return; fini = true; ok('s’ouvre et tient'); try { execFileSync('taskkill', ['/F', '/T', '/PID', String(p.pid)], { stdio: 'ignore' }); } catch (e) { /* rien */ } }, 20000);
+  });
+}
 const lignes = ['| Logiciel | Résultat |', '|---|---|'];
 let manquants = 0;
+(async () => {
 for (const ref of refs) {
   const l = CAT.LOGICIELS[ref];
   if (l.uri) { lignes.push(`| ${l.nom} | adresse ${l.uri} (application Windows) |`); continue; }
@@ -39,7 +51,11 @@ for (const ref of refs) {
   const chemin = (l.chemins || []).map(developper).find((c) => fs.existsSync(c));
   const noms = l.menus || (l.menu ? [l.menu] : []);
   const entree = !chemin && noms.map((n) => menu.find((m) => m.Name && m.Name.toLowerCase().includes(n.toLowerCase()))).find(Boolean);
-  if (chemin) lignes.push(`| ${l.nom} | trouvé : ${chemin} |`);
+  if (chemin) {
+    const r = ref === 'explorateur' ? 'non lancé' : await essayer(chemin);
+    if (/SE FERME|ne démarre pas/.test(r)) manquants++;
+    lignes.push(`| ${l.nom} | trouvé : ${chemin} ; ${r} |`);
+  }
   else if (entree) {
     // Trouvé seulement par le menu : le chemin du catalogue est faux, on cherche le vrai pour le corriger.
     const exes = Array.from(new Set((l.chemins || []).map((c) => path.basename(c)).concat(l.exe || [])));
@@ -57,3 +73,4 @@ const texte = lignes.join('\n');
 console.log(texte);
 if (process.argv[2]) fs.writeFileSync(process.argv[2], texte + '\n');
 process.exit(manquants ? 1 : 0);
+})();

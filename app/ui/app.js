@@ -74,7 +74,26 @@ async function pinOk(pin) {
   if (!S.config.pinHash) return D.dev; // sans code configuré, seul le mode test laisse passer
   return (await empreinte(pin, S.config.pinSel)) === S.config.pinHash;
 }
-function demanderPin(titre, suite) { S.voile = { type: 'pin', titre, saisie: '', suite, erreur: false }; render(); }
+function demanderPin(titre, suite, options) { S.voile = Object.assign({ type: 'pin', titre, saisie: '', suite, erreur: false }, options || {}); render(); }
+
+// ---------- code secret du journal (choisi par l'enfant) ----------
+// Il cache le journal dans Flocon à qui passe devant l'écran ; le fichier lui-même n'est pas chiffré.
+function demanderCodeJournal(suite) {
+  demanderPin('Le code secret de ton journal', suite, {
+    verifier: async (c) => (await empreinte(c, S.profil.codeJournal.sel)) === S.profil.codeJournal.hash,
+    oubli: true
+  });
+}
+function choisirCodeJournal() {
+  demanderPin('Choisis ton code secret (4 chiffres)', (premier) => {
+    demanderPin('Tape-le encore une fois', async () => {
+      const sel = Array.from(crypto.getRandomValues(new Uint8Array(8))).map((b) => b.toString(16).padStart(2, '0')).join('');
+      S.profil.codeJournal = { sel, hash: await empreinte(premier, sel) }; S.journalOuvert = true;
+      await sauverProfil(); await ouvrirVue('journal');
+      toast('Ton journal a maintenant un code secret. Ne le note nulle part !', 6000);
+    }, { verifier: async (c) => c === premier });
+  }, { verifier: async () => true });
+}
 
 // ---------- temps ----------
 function resteMinutes() {
@@ -416,7 +435,8 @@ function vueLectures() {
 
 function vueJournal() {
   const d = S.docs.journal || { pages: [] };
-  return `<div class="section">${entete('Mon journal', '<span class="etiquette">rien que pour moi</span>')}
+  const code = S.profil.codeJournal ? '<button class="btn doux petit" data-a="enleverCodeJournal">Enlever mon code secret</button>' : '<button class="btn doux petit" data-a="mettreCodeJournal">Mettre un code secret</button>';
+  return `<div class="section">${entete('Mon journal', '<span class="etiquette">rien que pour moi</span> ' + code)}
     <div class="panneau"><textarea class="champ" style="min-height:160px" data-in="pageJournal" placeholder="Aujourd’hui…">${esc(S.vue.texte || '')}</textarea><div class="rang fin"><button class="btn" data-a="ajouterPage">Ranger cette page</button></div></div>
     <div class="liste">${d.pages.slice().reverse().map((p) => `<div class="panneau"><span class="muet">${esc(new Date(p.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }))}</span><span style="white-space:pre-wrap;line-height:1.5">${esc(p.texte)}</span></div>`).join('')}</div></div>`;
 }
@@ -470,7 +490,7 @@ function vueVoile() {
   const v = S.voile;
   if (v.type === 'pin') {
     const cases = Array.from({ length: 4 }, (_, i) => `<span>${v.saisie[i] ? '•' : ''}</span>`).join('');
-    return `<div class="voile"><div class="carte verre" style="width:380px;align-items:center"><h2 style="text-align:center">${esc(v.titre)}</h2><div class="code">${cases}</div>${v.erreur ? '<p style="color:#C0392B;margin:0">Ce n’est pas le bon code.</p>' : ''}<div class="pave">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((k) => `<button data-a="pin" data-k="${k}">${k}</button>`).join('')}<button data-a="pinAnnuler" style="font-size:14px">Annuler</button><button data-a="pin" data-k="0">0</button><button data-a="pinEffacer">⌫</button></div></div></div>`;
+    return `<div class="voile"><div class="carte verre" style="width:380px;align-items:center"><h2 style="text-align:center">${esc(v.titre)}</h2><div class="code">${cases}</div>${v.erreur ? '<p style="color:#C0392B;margin:0">Ce n’est pas le bon code.</p>' : ''}<div class="pave">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((k) => `<button data-a="pin" data-k="${k}">${k}</button>`).join('')}<button data-a="pinAnnuler" style="font-size:14px">Annuler</button><button data-a="pin" data-k="0">0</button><button data-a="pinEffacer">⌫</button></div>${v.oubli ? '<button class="btn doux petit" data-a="codeJournalOublie">J’ai oublié mon code</button>' : ''}</div></div>`;
   }
   if (v.type === 'premiersPas') {
     const pas = D.catalogue.PREMIERS_PAS[v.t.ref] || [];
@@ -486,7 +506,7 @@ function vueVoile() {
     return `<div class="voile"><div class="carte verre" style="width:min(760px,94vw)"><div class="entete"><h2>Espace parent</h2><button class="btn doux petit" data-a="fermerVoile">Fermer</button></div>
       <div class="panneau"><h3>Tirelire</h3><div class="rang"><label>Jetons par semaine <input class="champ" style="width:90px" type="number" min="0" max="40" data-in="pJetons" value="${v.jetonsSemaine}"></label><label>Maximum par séance <input class="champ" style="width:90px" type="number" min="1" max="8" data-in="pMax" value="${v.maxParSeance}"></label><label>Ajouter tout de suite <input class="champ" style="width:90px" type="number" min="0" max="20" data-in="pAjout" value="${v.ajouter || 0}"></label></div><p class="muet" style="margin:0">Il reste ${jetonsRestants()} jetons cette semaine. Un jeton = 15 minutes.</p></div>
       <div class="panneau"><h3>Ses jeux</h3>${steam.length ? `<div class="rang">${steam.map((j) => `<button class="puce ${jeuxOn.has(j.id) ? 'on' : ''}" data-a="pJeu" data-id="${esc(j.id)}" data-nom="${esc(j.nom)}">${esc(j.nom)}</button>`).join('')}</div>` : '<p class="muet" style="margin:0">Aucun jeu Steam trouvé sur cet ordinateur. Installez-les depuis Steam (Steam Families), puis revenez ici.</p>'}</div>
-      <div class="panneau"><h3>Sites autorisés</h3><p class="muet" style="margin:0">Un domaine par ligne. Rien d’autre ne s’ouvre, et les autres navigateurs sont bloqués sur sa session.</p><textarea class="champ" data-in="pSites" rows="7">${esc(sites)}</textarea></div>
+      <div class="panneau"><h3>Sites en plus</h3><p class="muet" style="margin:0">Les sites des tuiles de Flocon sont toujours permis. Ajoutez ici d’autres sites, un domaine par ligne (par exemple « monecole.fr »). Rien d’autre ne s’ouvre, et les autres navigateurs sont bloqués sur sa session.</p><textarea class="champ" data-in="pSites" rows="4" placeholder="monecole.fr">${esc(sites)}</textarea></div>
       <div class="panneau"><h3>Permis</h3><div class="rang">${D.catalogue.PERMIS.map((x) => `<button class="puce ${Number(v.niveau) === x.n ? 'on' : ''}" data-a="pNiveau" data-n="${x.n}">${x.n}. ${esc(x.nom)}</button>`).join('')}</div><p class="muet" style="margin:0">Au niveau 3, Edge s’ouvre sur sa session, limité aux sites autorisés. Au niveau 4, elle peut fermer Flocon et la fin de séance laisse cinq minutes.</p></div>
       <div class="panneau"><h3>Programmes interdits</h3><p class="muet" style="margin:0">Les navigateurs et l’invite de commandes le sont déjà. Ajoutez ici, un par ligne, le nom des programmes à bloquer sur sa session (par exemple les logiciels professionnels de la famille). Pour trouver un nom : clic droit sur le raccourci, Propriétés, la cible se termine par « nom.exe ».</p><textarea class="champ" data-in="pInterdits" rows="3" placeholder="exemple.exe">${esc(v.interdits || '')}</textarea></div>
       <div class="panneau"><h3>Atelier de première connexion</h3><div class="rang entre"><span class="muet">Pour que ${esc(prenom() || 'votre enfant')} choisisse elle-même ou lui-même son compagnon, son monde et son portrait. Ses créations et sa tirelire ne bougent pas.</span><button class="btn doux petit" data-a="pRefaireAtelier">Refaire l’atelier</button></div></div>
@@ -562,6 +582,7 @@ let minuterieSauver = null;
 function sauverPlusTard(fn) { clearTimeout(minuterieSauver); minuterieSauver = setTimeout(fn, 600); }
 
 async function ouvrirVue(ref) {
+  if (ref === 'journal' && S.profil.codeJournal && !S.journalOuvert) return demanderCodeJournal(() => { S.journalOuvert = true; ouvrirVue('journal'); });
   S.vue = { ref };
   if (ref === 'exposes') S.docs.exposes = await F.listerDocs('exposes');
   if (ref === 'pourquoi') await chargerDoc('pourquoi', 'grand-pourquoi.json', { questions: [] });
@@ -605,16 +626,21 @@ function vueOuverture() {
     <button class="btn doux" data-a="finOuverture">D’accord</button></div></div>`;
 }
 
-async function ouvrirSite(url, nom) {
+async function ouvrirSite(url, nom, recherche) {
   if (!(await F.urlAutorisee(url))) { toast('Ce site n’est pas dans la liste autorisée.'); return; }
+  // Un site qui a une recherche (Vikidia) : un champ dans la barre de Flocon, plus parlant que celui caché dans la page.
+  recherche = recherche || (Object.values(D.catalogue.SITES).find((x) => x.recherche && url.startsWith(x.url)) || {}).recherche;
   const s = $('#site');
-  s.innerHTML = `<div class="outils"><button class="btn doux petit" id="site-retour">‹ Page précédente</button><span class="adresse" id="site-adresse">${esc(nom)}</span><button class="btn petit" id="site-fermer">Fermer ${esc(nom)}</button></div><webview id="vue-site" src="${esc(url)}" partition="persist:sites" allowpopups="false"></webview>`;
+  s.innerHTML = `<div class="outils"><button class="btn doux petit" id="site-retour">‹ Page précédente</button><button class="btn doux petit" id="site-accueil">Accueil</button>${recherche ? `<form id="site-cherche" class="cherche"><input class="champ" id="site-q" placeholder="Que cherches-tu ? Par exemple : les loups" autocomplete="off"><button class="btn petit">Chercher</button></form>` : ''}<span class="adresse" id="site-adresse">${esc(nom)}</span><button class="btn petit" id="site-fermer">Fermer ${esc(nom)}</button></div><webview id="vue-site" src="${esc(url)}" partition="persist:sites" allowpopups="false"></webview>`;
   s.classList.add('ouvert');
   const w = $('#vue-site');
   $('#site-retour').onclick = () => { if (w.canGoBack()) w.goBack(); };
+  $('#site-accueil').onclick = () => w.loadURL(url);
   $('#site-fermer').onclick = fermerSite;
+  if (recherche) $('#site-cherche').onsubmit = (e) => { e.preventDefault(); const q = $('#site-q').value.trim(); if (q) w.loadURL(recherche + encodeURIComponent(q)); };
   w.addEventListener('did-navigate', (e) => { try { $('#site-adresse').textContent = nom + ' · ' + new URL(e.url).hostname; } catch (x) { /* rien */ } });
 }
+
 function fermerSite() { const s = $('#site'); s.classList.remove('ouvert'); s.innerHTML = ''; }
 
 async function commencer() {
@@ -740,7 +766,7 @@ const A = {
   dossierExposes: () => F.ouvrirDossier('exposes'),
   // carnets
   ajouterQuestion: async () => { const q = (S.vue.q || '').trim(); if (!q) return; S.docs.pourquoi.questions.unshift({ q, r: '', date: new Date().toISOString() }); S.vue.q = ''; await ecrireCarnet('pourquoi', 'grand-pourquoi.json'); render(); },
-  chercherVikidia: (d) => { const q = S.docs.pourquoi.questions[Number(d.i)].q; ouvrirSite('https://fr.vikidia.org/w/index.php?search=' + encodeURIComponent(q), 'Vikidia'); },
+  chercherVikidia: (d) => { const q = S.docs.pourquoi.questions[Number(d.i)].q; ouvrirSite('https://fr.vikidia.org/w/index.php?search=' + encodeURIComponent(q), 'Vikidia', 'https://fr.vikidia.org/w/index.php?search='); },
   noteLivre: (d) => { S.vue.n = Object.assign({}, S.vue.n, { note: Number(d.k) }); render(); },
   ajouterLivre: async () => { const n = S.vue.n || {}; if (!(n.titre || '').trim()) return toast('Écris au moins le titre.'); S.docs.lectures.livres.push(Object.assign({ date: new Date().toISOString() }, n)); S.vue.n = {}; await ecrireCarnet('lectures', 'lectures.json'); dire('Super, un livre de plus dans ton carnet !'); render(); },
   ajouterPage: async () => { const t = (S.vue.texte || '').trim(); if (!t) return; S.docs.journal.pages.push({ date: new Date().toISOString(), texte: t }); S.vue.texte = ''; await ecrireCarnet('journal', 'journal.json'); render(); },
@@ -765,16 +791,22 @@ const A = {
     const v = S.voile; if (v.saisie.length >= 4) return;
     v.saisie += d.k; v.erreur = false;
     if (v.saisie.length === 4) {
-      if (await pinOk(v.saisie)) { const suite = v.suite; const pin = v.saisie; S.voile = null; render(); suite(pin); }
+      if (await (v.verifier ? v.verifier(v.saisie) : pinOk(v.saisie))) { const suite = v.suite; const pin = v.saisie; S.voile = null; render(); suite(pin); }
       else { v.saisie = ''; v.erreur = true; render(); }
     } else render();
   },
+  mettreCodeJournal: () => choisirCodeJournal(),
+  enleverCodeJournal: async () => { delete S.profil.codeJournal; await sauverProfil(); render(); toast('Ton journal n’a plus de code secret.'); },
+  // Code oublié : un adulte l'efface avec son code, sans lire le journal.
+  codeJournalOublie: () => demanderPin('Code de l’adulte : effacer le code du journal', async () => { delete S.profil.codeJournal; S.journalOuvert = false; await sauverProfil(); toast('Le code du journal est effacé. Tu peux en choisir un nouveau.', 6000); }),
   pinEffacer: () => { S.voile.saisie = S.voile.saisie.slice(0, -1); render(); },
   pinAnnuler: () => { S.voile = null; render(); },
   fermerVoile: () => { S.voile = null; render(); },
   espaceParent: () => demanderPin('Espace parent', async (pin) => {
     const steam = await F.jeuxSteam();
-    const sitesActuels = S.config.sites || Array.from(new Set(Object.values(D.catalogue.SITES).flatMap((s) => s.domaines)));
+    // Le panneau ne montre que les sites ajoutés : ceux de Flocon sont toujours permis.
+    const cat = new Set(Object.values(D.catalogue.SITES).flatMap((s) => s.domaines));
+    const sitesActuels = (S.config.sites || []).map((d) => String(d).toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '')).filter((d) => d && !cat.has(d));
     S.voile = { type: 'parent', pin, steam: Array.isArray(steam) ? steam : [], jeux: (S.config.jeux || []).slice(), jetonsSemaine: S.config.jetonsSemaine, maxParSeance: S.config.maxParSeance, niveau: niveau(), ajouter: 0, sites: sitesActuels.join('\n'), interdits: (S.config.interdits || []).join('\n'), nouveauPin: '' };
     render();
   }),
@@ -872,6 +904,8 @@ async function demarrer() {
   if (!S.profil.atelierFait) F.demande({ atelier: true });
   F.surFenetreQuittee(() => { if (S.ouverture && Date.now() - S.ouverture.depuis > 800) finOuverture(); });
   F.surSiteRefuse(() => toast('Cette page n’est pas dans la liste autorisée : elle ne s’ouvre pas.', 5000));
+  F.surLogicielEchec((r) => { finOuverture(); dire(`${r.nom} n’a pas réussi à s’ouvrir. Ce n’est pas ta faute : demande à un adulte de regarder (il trouvera des indices dans le journal de Flocon).`); });
+  F.surTelechargement((r) => toast(r.ok ? `C’est enregistré : « ${r.nom} » est rangé dans Mes créations.` : `« ${r.nom} » ne peut pas être enregistré ici : seules tes créations (images, sons, musiques, projets) le peuvent.`, 7000));
   const reprise = seanceAReprendre();
   if (reprise) {
     // Flocon rouvert pendant une séance (niveau 4, plantage, relance) : on reprend au bureau, sans reprendre de jetons.

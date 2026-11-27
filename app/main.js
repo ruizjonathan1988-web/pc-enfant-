@@ -128,8 +128,25 @@ app.on('web-contents-created', (_e, wc) => {
     if (CAT.urlAutorisee(url, domaines())) wc.loadURL(url); else if (fen) fen.webContents.send('site-refuse', url);
     return { action: 'deny' };
   });
-  wc.session.on('will-download', (e) => e.preventDefault());
+  // Une seule fois par session de navigation (tous les sites partagent la même).
+  if (!sessionsSurveillees.has(wc.session)) { sessionsSurveillees.add(wc.session); wc.session.on('will-download', rangerTelechargement); }
 });
+
+// Téléchargements : seules ses créations passent (image, son, MIDI, projet Scratch, PDF, texte), rangées dans
+// « Mes créations », d'où elles arrivent dans sa galerie. Tout le reste (programmes, archives…) est refusé.
+const sessionsSurveillees = new Set();
+const CREATIONS_PERMISES = /\.(png|jpe?g|gif|webp|svg|mp3|wav|ogg|m4a|mid|midi|sb3|pdf|txt)$/i;
+function rangerTelechargement(e, item) {
+  const nom = path.basename(item.getFilename() || 'creation').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
+  if (!CREATIONS_PERMISES.test(nom)) { e.preventDefault(); if (fen) fen.webContents.send('telechargement', { ok: false, nom }); return; }
+  const dossier = dossiers().creations;
+  try { fs.mkdirSync(dossier, { recursive: true }); } catch (x) { /* rien */ }
+  const ext = path.extname(nom); const base = path.basename(nom, ext);
+  let cible = path.join(dossier, nom);
+  for (let i = 2; fs.existsSync(cible); i++) cible = path.join(dossier, `${base} (${i})${ext}`);
+  item.setSavePath(cible);
+  item.once('done', (_x, etat) => { if (fen) fen.webContents.send('telechargement', { ok: etat === 'completed', nom: path.basename(cible) }); });
+}
 
 // Permissions des sites : tout est refusé, sauf la caméra pour les sites qui en ont besoin (Teachable Machine).
 function permisCamera(url) {
@@ -172,17 +189,39 @@ function idDemarrer(nom) {
   });
 }
 
+// Journal des lancements (%APPDATA%\Flocon\lancements.log) : pour comprendre, sur le vrai PC, pourquoi un logiciel ne s'ouvre pas.
+const JOURNAL_LANCEMENTS = path.join(DOSSIER_PROFIL, 'lancements.log');
+function noterLancement(texte) {
+  try {
+    if (fs.existsSync(JOURNAL_LANCEMENTS) && fs.statSync(JOURNAL_LANCEMENTS).size > 200000) fs.renameSync(JOURNAL_LANCEMENTS, JOURNAL_LANCEMENTS + '.ancien');
+    fs.appendFileSync(JOURNAL_LANCEMENTS, new Date().toISOString() + ' ' + texte + '\r\n');
+  } catch (e) { /* rien */ }
+}
+// Un logiciel qui se ferme en erreur dans les 20 secondes : l'enfant est prévenue au lieu d'attendre devant rien.
+// (calc.exe rend la main aussitôt à la Calculatrice de Windows avec le code 0 : ce n'est pas une erreur.)
+function surveiller(proc, nom, chemin) {
+  const debut = Date.now();
+  proc.once('error', (e) => { noterLancement(`ÉCHEC ${nom} (${chemin}) : ${e.message}`); if (fen) fen.webContents.send('logiciel-echec', { nom }); });
+  proc.once('exit', (code) => {
+    const s = Math.round((Date.now() - debut) / 1000);
+    noterLancement(`${nom} fermé après ${s} s (code ${code})`);
+    if (code && s < 20 && fen) fen.webContents.send('logiciel-echec', { nom, code });
+  });
+  proc.unref();
+}
 async function lancerLogiciel(ref) {
   const l = CAT.LOGICIELS[ref] || (config().logiciels || {})[ref];
   if (!l) return { ok: false, raison: 'inconnu' };
-  if (l.uri) { await shell.openExternal(l.uri); return { ok: true }; }
+  if (l.uri) { noterLancement(`${l.nom} : ${l.uri}`); await shell.openExternal(l.uri); return { ok: true }; }
   for (const c of (l.chemins || []).map(developper)) {
-    if (fs.existsSync(c)) { spawn(c, [], { detached: true, stdio: 'ignore', cwd: path.dirname(c) }).unref(); return { ok: true }; }
+    if (fs.existsSync(c)) { noterLancement(`${l.nom} : ${c}`); surveiller(spawn(c, [], { detached: true, stdio: 'ignore', cwd: path.dirname(c) }), l.nom, c); return { ok: true }; }
   }
   for (const m of (l.menus || (l.menu ? [l.menu] : []))) {
     const id = await idDemarrer(m);
-    if (id) { spawn('explorer.exe', ['shell:AppsFolder\\' + id], { detached: true, stdio: 'ignore' }).unref(); return { ok: true }; }
+    // explorer.exe rend la main tout de suite, souvent avec le code 1 : pas de surveillance possible ici.
+    if (id) { noterLancement(`${l.nom} : menu Démarrer ${id}`); spawn('explorer.exe', ['shell:AppsFolder\\' + id], { detached: true, stdio: 'ignore' }).unref(); return { ok: true }; }
   }
+  noterLancement(`${l.nom} : introuvable (chemins : ${(l.chemins || []).map(developper).join(' ; ') || 'aucun'})`);
   return { ok: false, raison: 'absent', nom: l.nom };
 }
 

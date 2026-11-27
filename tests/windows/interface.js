@@ -226,6 +226,43 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.strictEqual(n, 1, 'aucune nouvelle fenêtre');
     await clic('#site-fermer');
   });
+  await etape('Vikidia : chercher depuis la barre de Flocon', async () => {
+    await rubrique('Je découvre'); await tuile('Vikidia');
+    await page.waitForSelector('#site-q');
+    await page.fill('#site-q', 'loup'); await page.press('#site-q', 'Enter');
+    await page.waitForFunction(() => { const w = document.querySelector('#vue-site'); try { return /vikidia\.org/.test(w.getURL()) && /loup/i.test(decodeURIComponent(w.getURL()) + w.getTitle()) && !w.isLoading(); } catch (e) { return false; } }, null, { timeout: 45000 });
+  });
+  await etape('Téléchargement : une musique est rangée dans Mes créations', async () => {
+    const f = path.join(os.homedir(), 'Documents', 'Mes créations', 'ma-melodie.mid');
+    try { fs.unlinkSync(f); } catch (e) { /* rien */ }
+    await page.evaluate(() => document.querySelector('#vue-site').executeJavaScript("const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['MThd'], { type: 'audio/midi' })); a.download = 'ma-melodie.mid'; document.body.appendChild(a); a.click();", true));
+    await page.waitForSelector('text=est rangé dans Mes créations', { timeout: 15000 });
+    assert.ok(fs.existsSync(f), 'fichier dans Mes créations');
+  });
+  await etape('Téléchargement : un programme est refusé', async () => {
+    await page.evaluate(() => document.querySelector('#vue-site').executeJavaScript("const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['MZ'])); a.download = 'jeu-gratuit.exe'; document.body.appendChild(a); a.click();", true));
+    await page.waitForSelector('text=ne peut pas être enregistré', { timeout: 15000 });
+    assert.ok(!fs.existsSync(path.join(os.homedir(), 'Documents', 'Mes créations', 'jeu-gratuit.exe')), 'aucun .exe enregistré');
+    await clic('#site-fermer');
+  });
+  for (const [nomTuile, domaine] of [['Les étoiles', /stellarium/], ['Les Fondamentaux', /reseau-canope\.fr/]]) {
+    await etape(nomTuile + ' : le site s’ouvre (adresse suivie jusqu’au bout)', async () => {
+      await rubrique(nomTuile === 'Les étoiles' ? 'Je découvre' : 'J’apprends');
+      const refusAvant = await page.locator('text=pas dans la liste autorisée').count();
+      await tuile(nomTuile);
+      await page.waitForFunction((d) => { const w = document.querySelector('#vue-site'); try { return new RegExp(d).test(w.getURL()) && !w.isLoading(); } catch (e) { return false; } }, domaine.source, { timeout: 45000 });
+      await pause(3000);
+      assert.strictEqual(await page.locator('text=pas dans la liste autorisée').count(), refusAvant, 'aucune page refusée en chemin');
+      await clic('#site-fermer');
+    });
+  }
+  await etape('Journal : un code secret choisi par l’enfant', async () => {
+    await rubrique('Mes lectures'); await tuile('Mon journal');
+    await clic('[data-a="mettreCodeJournal"]'); await code('1357'); await code('1357');
+    await page.waitForSelector('[data-a="enleverCodeJournal"]');
+    assert.ok(lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json')).codeJournal.hash, 'code enregistré (empreinte seulement)');
+    await clic('[data-a="fermerVue"]');
+  });
   await etape('Espace parent : mauvais code refusé', async () => {
     await rubrique('Mon style'); await clic('[data-a="espaceParent"]');
     await code('9999'); await page.waitForSelector('text=Ce n’est pas le bon code');
@@ -320,6 +357,13 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.ok(!(await fenetre()).kiosk, 'au bureau, pas en plein écran');
     const avant = etat().session.id; tic();
     assert.strictEqual(etat().session.id, avant, 'même séance, aucune nouvelle prise de jetons');
+  });
+  await etape('Journal : après une relance, le code secret est demandé', async () => {
+    await rubrique('Mes lectures'); await tuile('Mon journal');
+    await page.waitForSelector('text=Le code secret de ton journal');
+    await code('0000'); await page.waitForSelector('text=Ce n’est pas le bon code');
+    await code('1357'); await page.waitForSelector('[data-in="pageJournal"]');
+    await clic('[data-a="fermerVue"]');
   });
   await etape('Espace parent : refaire l’atelier', async () => {
     await rubrique('Mon style'); await clic('[data-a="espaceParent"]'); await code('1234');

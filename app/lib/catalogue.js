@@ -25,16 +25,16 @@ const LOGICIELS = {
 
 // domaines : adresses autorisées en navigation (sous-domaines compris).
 const SITES = {
-  vikidia: { nom: 'Vikidia', url: 'https://fr.vikidia.org', domaines: ['vikidia.org'] },
+  vikidia: { nom: 'Vikidia', url: 'https://fr.vikidia.org', domaines: ['vikidia.org'], recherche: 'https://fr.vikidia.org/w/index.php?search=' },
   wikimini: { nom: 'Wikimini', url: 'https://fr.wikimini.org', domaines: ['wikimini.org'] },
   unjour: { nom: '1jour1actu', url: 'https://www.1jour1actu.com', domaines: ['1jour1actu.com'] },
   terre: { nom: 'Le monde', url: 'https://earth.google.com/web/', domaines: ['earth.google.com'] },
-  etoiles: { nom: 'Les étoiles', url: 'https://stellarium-web.org', domaines: ['stellarium-web.org'] },
+  etoiles: { nom: 'Les étoiles', url: 'https://stellarium.com/sky', domaines: ['stellarium.com', 'stellarium-web.org'] },
   vinz: { nom: 'Vinz et Lou', url: 'https://www.vinzetlou.net', domaines: ['vinzetlou.net'] },
   lumni: { nom: 'Lumni', url: 'https://www.lumni.fr/primaire', domaines: ['lumni.fr'] },
   lama: { nom: 'La Classe du Lama', url: 'https://laclassedulama.fr', domaines: ['laclassedulama.fr'] },
   khan: { nom: 'Khan Academy', url: 'https://fr.khanacademy.org', domaines: ['khanacademy.org'] },
-  fondamentaux: { nom: 'Les Fondamentaux', url: 'https://lesfondamentaux.reseau-canope.fr', domaines: ['lesfondamentaux.reseau-canope.fr'] },
+  fondamentaux: { nom: 'Les Fondamentaux', url: 'https://lesfondamentaux.reseau-canope.fr/accueil.html', domaines: ['reseau-canope.fr'] },
   calcul: { nom: 'Calcul mental', url: 'https://calculatice.ac-lille.fr', domaines: ['calculatice.ac-lille.fr'] },
   dicoado: { nom: 'Dicoado', url: 'https://www.dicoado.org', domaines: ['dicoado.org'] },
   songmaker: { nom: 'Mélodies', url: 'https://musiclab.chromeexperiments.com/Song-Maker/', domaines: ['musiclab.chromeexperiments.com'] },
@@ -231,8 +231,15 @@ const INTENTIONS = [
   { id: 'ecouter', texte: 'Écouter de la musique' }
 ];
 
+// Sites autorisés : toujours ceux du catalogue de Flocon (une nouvelle version peut en ajouter ou suivre un site qui
+// déménage), plus ceux que le parent ajoute. Avant la 1.4.8 le panneau enregistrait la liste entière, qui figeait le catalogue.
+function domainesCatalogue() { return Object.values(SITES).flatMap((s) => s.domaines); }
+function sitesAjoutes(sitesConfig) {
+  const cat = new Set(domainesAutorises([]));
+  return domainesAutorises(sitesConfig).filter((d) => !cat.has(d));
+}
 function domainesAutorises(sitesConfig) {
-  const base = sitesConfig && Array.isArray(sitesConfig) ? sitesConfig : Object.values(SITES).flatMap((s) => s.domaines);
+  const base = domainesCatalogue().concat(Array.isArray(sitesConfig) ? sitesConfig : []);
   return Array.from(new Set(base.map((d) => String(d).trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '')).filter(Boolean)));
 }
 
@@ -242,4 +249,4 @@ function urlAutorisee(url, domaines) {
   return domaines.some((d) => h === d || h.endsWith('.' + d));
 }
 
-module.exports = { LOGICIELS, SITES, RUBRIQUES, EXPOSE_ETAPES, PREMIERS_PAS, IDEES, PROJETS, PERMIS, INTENTIONS, ICONES: I, domainesAutorises, urlAutorisee };
+module.exports = { LOGICIELS, SITES, RUBRIQUES, EXPOSE_ETAPES, PREMIERS_PAS, IDEES, PROJETS, PERMIS, INTENTIONS, ICONES: I, domainesAutorises, sitesAjoutes, urlAutorisee };
