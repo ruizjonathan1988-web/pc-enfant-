@@ -15,7 +15,8 @@ const LOGICIELS = {
   audacity: { nom: 'Audacity', chemins: [PF + '\\Audacity\\Audacity.exe'], menu: 'Audacity' },
   calculatrice: { nom: 'Calculatrice', chemins: ['%SystemRoot%\\System32\\calc.exe'], menu: 'Calculatrice' },
   camera: { nom: 'Caméra', uri: 'microsoft.windows.camera:' },
-  minecraft: { nom: 'Minecraft', chemins: [], menu: 'Minecraft' }
+  minecraft: { nom: 'Minecraft', chemins: [PF86 + '\\Minecraft Launcher\\MinecraftLauncher.exe', PF + '\\Minecraft Launcher\\MinecraftLauncher.exe'], menu: 'Minecraft Launcher' },
+  klavaro: { nom: 'Klavaro', chemins: [PF86 + '\\Klavaro\\bin\\klavaro.exe', PF + '\\Klavaro\\bin\\klavaro.exe'], menu: 'Klavaro' }
 };
 
 // domaines : adresses autorisées en navigation (sous-domaines compris).
@@ -33,6 +34,7 @@ const SITES = {
   calcul: { nom: 'Calcul mental', url: 'https://calculatice.ac-lille.fr', domaines: ['calculatice.ac-lille.fr'] },
   dicoado: { nom: 'Dicoado', url: 'https://www.dicoado.org', domaines: ['dicoado.org'] },
   songmaker: { nom: 'Mélodies', url: 'https://musiclab.chromeexperiments.com/Song-Maker/', domaines: ['musiclab.chromeexperiments.com'] },
+  blockly: { nom: 'Blockly Games', url: 'https://blockly.games/?lang=fr', domaines: ['blockly.games'] },
   incredibox: { nom: 'Mes beats', url: 'https://www.incredibox.com/demo/', domaines: ['incredibox.com'] }
 };
 
@@ -81,7 +83,8 @@ const RUBRIQUES = [
   ] },
   { id: 'lire', nom: 'Mes lectures', tuiles: [
     { type: 'interne', ref: 'carnetLecture', nom: 'Mon carnet de lecture', sous: 'Les livres que j’ai lus', icone: I.livre, couleur: '#B0471B' },
-    { type: 'interne', ref: 'journal', nom: 'Mon journal', sous: 'Rien que pour moi', icone: I.coeur, couleur: '#D4537E' }
+    { type: 'interne', ref: 'journal', nom: 'Mon journal', sous: 'Rien que pour moi', icone: I.coeur, couleur: '#D4537E' },
+    { type: 'interne', ref: 'livresAudio', nom: 'Mes livres audio', sous: 'À écouter sur mon casque', icone: I.casque, couleur: '#5B3FD6' }
   ] },
   { id: 'decouvrir', nom: 'Je découvre', tuiles: [
     { type: 'site', ref: 'vikidia', nom: 'Vikidia', sous: 'L’encyclopédie des 8-13 ans', icone: I.loupe, couleur: '#13A39F' },
@@ -94,6 +97,8 @@ const RUBRIQUES = [
   { id: 'apprendre', nom: 'J’apprends', tuiles: [
     { type: 'interne', ref: 'exposes', nom: 'Mes exposés', sous: 'De l’idée à l’oral', icone: I.diapo, couleur: '#1F5FA8' },
     { type: 'interne', ref: 'pourquoi', nom: 'Grand Pourquoi', sous: 'Mes questions', icone: I.question, couleur: '#7C5CFA' },
+    { type: 'site', ref: 'blockly', nom: 'Blockly Games', sous: 'Après Scratch : coder pas à pas', icone: I.code, couleur: '#F28C28' },
+    { type: 'logiciel', ref: 'klavaro', nom: 'Taper au clavier', sous: 'Avec les dix doigts', icone: I.texte, couleur: '#13A39F' },
     { type: 'site', ref: 'lama', nom: 'Classe du Lama', sous: 'Jeux de français et maths', icone: I.lama, couleur: '#E0457B' },
     { type: 'site', ref: 'khan', nom: 'Khan Academy', sous: 'Leçons et exercices', icone: I.chapeau, couleur: '#2FA36B' },
     { type: 'site', ref: 'fondamentaux', nom: 'Les Fondamentaux', sous: 'Petits films pour comprendre', icone: I.film, couleur: '#E8892A' },

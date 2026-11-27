@@ -50,7 +50,7 @@ $jetons = Read-Host '  Jetons de 15 minutes par semaine [8 = 2 h]'
 if ($jetons -notmatch '^\d+$') { $jetons = 8 } else { $jetons = [int]$jetons }
 $max = Read-Host '  Maximum de jetons par séance [5 = 1 h 15]'
 if ($max -notmatch '^\d+$') { $max = 5 } else { $max = [int]$max }
-$avecLogiciels = Read-Host '  Installer aussi les logiciels (Scratch, Krita, LibreOffice, Audacity, Steam, Minecraft) ? [O/n]'
+$avecLogiciels = Read-Host '  Installer aussi les logiciels (Scratch, Krita, LibreOffice, Audacity, Steam, Minecraft, Klavaro) ? [O/n]'
 $avecLogiciels = -not ($avecLogiciels -match '^[nN]')
 
 # ------------------------------------------------------------------ compte enfant
@@ -87,7 +87,8 @@ if ($avecLogiciels) {
       @{ id = 'TheDocumentFoundation.LibreOffice'; nom = 'LibreOffice' },
       @{ id = 'Audacity.Audacity'; nom = 'Audacity' },
       @{ id = 'Valve.Steam'; nom = 'Steam' },
-      @{ id = 'Mojang.MinecraftLauncher'; nom = 'Minecraft Launcher' }
+      @{ id = 'Mojang.MinecraftLauncher'; nom = 'Minecraft Launcher' },
+      @{ id = 'FelipeEFdeCastro.Klavaro'; nom = 'Klavaro (clavier)' }
     )
     foreach ($p in $paquets) {
       Info "Installation de $($p.nom)…"
@@ -214,7 +215,7 @@ if ($profil -and (Test-Path (Join-Path $profil 'NTUSER.DAT'))) {
   reg add "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableRegistryTools /t REG_DWORD /d 1 /f | Out-Null
   reg add "$ruche\Software\Policies\Microsoft\Windows\System" /v DisableCMD /t REG_DWORD /d 1 /f | Out-Null
   reg add "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v DisallowRun /t REG_DWORD /d 1 /f | Out-Null
-  $i = 1; foreach ($x in 'powershell.exe','pwsh.exe','powershell_ise.exe','wt.exe','cmd.exe','regedit.exe','taskmgr.exe','mmc.exe','msedge.exe','chrome.exe','firefox.exe','brave.exe','opera.exe') { reg add "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\DisallowRun" /v $i /t REG_SZ /d $x /f | Out-Null; $i++ }
+  $i = 1; foreach ($x in 'powershell.exe','pwsh.exe','powershell_ise.exe','wt.exe','cmd.exe','regedit.exe','taskmgr.exe','mmc.exe','msedge.exe','chrome.exe','firefox.exe','brave.exe','opera.exe','Minecraft.Windows.exe') { reg add "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\DisallowRun" /v $i /t REG_SZ /d $x /f | Out-Null; $i++ }
   if (-not $charge) { [GC]::Collect(); Start-Sleep -Milliseconds 500; reg unload 'HKU\FloconEnfant' | Out-Null }
   Ok 'Verrous posés sur sa session (Gestionnaire des tâches, invite de commandes, navigateurs).'
 } else {

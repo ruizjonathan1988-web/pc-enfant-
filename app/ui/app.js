@@ -232,7 +232,7 @@ function tuileHtml(t, i) {
 function tuilesRubrique(r) {
   if (r.id === 'jeux') {
     const jeux = (S.config.jeux || []).map((j) => ({ type: 'jeu', ref: j.id, nom: j.nom, sous: 'Choisi avec un adulte', icone: D.catalogue.ICONES.manette, couleur: '#5B3FD6' }));
-    return [{ type: 'logiciel', ref: 'minecraft', nom: 'Minecraft', sous: 'En solo', icone: D.catalogue.ICONES.cube, couleur: '#2FA36B' }].concat(jeux);
+    return [{ type: 'logiciel', ref: 'minecraft', nom: 'Minecraft', sous: 'Édition Java, en solo', icone: D.catalogue.ICONES.cube, couleur: '#2FA36B' }].concat(jeux);
   }
   return r.tuiles;
 }
@@ -261,7 +261,7 @@ function entete(titre, extra) { return `<div class="entete"><button class="retou
 
 function vueInterne() {
   const v = S.vue;
-  const fn = { exposes: vueExposes, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: vueMusique, films: vueFilms, minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
+  const fn = { exposes: vueExposes, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
   return fn ? fn() : entete('Bientôt');
 }
 
@@ -315,11 +315,11 @@ function vuePhotos() {
     <div class="galerie">${l.map((p) => `<img src="${esc(p.url)}" alt="${esc(p.nom)}" loading="lazy">`).join('') || '<p class="muet">Pas encore de photo.</p>'}</div></div>`;
 }
 
-function vueMusique() {
+function vueMusique(titre, dossier, vide) {
   const l = S.docs.musique || []; const sel = S.vue.sel || {};
-  return `<div class="section">${entete('Ma musique', `<button class="btn petit" data-a="copierCasque" ${Object.values(sel).some(Boolean) ? '' : 'disabled'}>Copier sur mon casque</button><button class="btn doux petit" data-a="ouvrirDossier" data-d="musique">Ouvrir le dossier</button>`)}
+  return `<div class="section">${entete(titre, `<button class="btn petit" data-a="copierCasque" ${Object.values(sel).some(Boolean) ? '' : 'disabled'}>Copier sur mon casque</button><button class="btn doux petit" data-a="ouvrirDossier" data-d="${dossier}">Ouvrir le dossier</button>`)}
     <audio id="lecteur" controls ${S.vue.joue ? `src="${esc(S.vue.joue)}" autoplay` : ''}></audio>
-    <div class="liste">${l.map((m, i) => `<div class="ligne"><button class="coche ${sel[i] ? 'on' : ''}" style="padding:0;background:none" data-a="choisirMorceau" data-i="${i}" aria-label="choisir"><span class="case">${sel[i] ? '✓' : ''}</span></button><button class="grow" style="text-align:left" data-a="jouer" data-i="${i}">${esc(m.nom)}</button></div>`).join('') || '<p class="muet">Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.</p>'}</div></div>`;
+    <div class="liste">${l.map((m, i) => `<div class="ligne"><button class="coche ${sel[i] ? 'on' : ''}" style="padding:0;background:none" data-a="choisirMorceau" data-i="${i}" aria-label="choisir"><span class="case">${sel[i] ? '✓' : ''}</span></button><button class="grow" style="text-align:left" data-a="jouer" data-i="${i}">${esc(m.nom)}</button></div>`).join('') || `<p class="muet">${esc(vide)}</p>`}</div></div>`;
 }
 
 function vueFilms() {
@@ -337,7 +337,7 @@ function vueMinuteur() {
 }
 
 function vueDossiers() {
-  const d = [['creations', 'Mes créations'], ['exposes', 'Mes exposés'], ['carnets', 'Mes carnets'], ['photos', 'Mes photos'], ['musique', 'Ma musique'], ['films', 'Mes films']];
+  const d = [['creations', 'Mes créations'], ['exposes', 'Mes exposés'], ['carnets', 'Mes carnets'], ['photos', 'Mes photos'], ['musique', 'Ma musique'], ['livresAudio', 'Mes livres audio'], ['films', 'Mes films']];
   return `<div class="section">${entete('Mes dossiers')}<p class="muet" style="margin:0">C’est le vrai explorateur de Windows : tu peux y ranger, renommer et créer des dossiers.</p><div class="tuiles">${d.map(([id, n]) => `<button class="tuile" data-a="ouvrirDossier" data-d="${id}"><span class="ic" style="background:#F2B33D">${ic(D.catalogue.ICONES.dossier)}</span><span class="n">${n}</span></button>`).join('')}</div></div>`;
 }
 
@@ -443,6 +443,7 @@ async function ouvrirVue(ref) {
   if (ref === 'journal') await chargerDoc('journal', 'journal.json', { pages: [] });
   if (ref === 'photos') S.docs.photos = await F.photos();
   if (ref === 'musique') S.docs.musique = await F.musique();
+  if (ref === 'livresAudio') S.docs.musique = await F.livresAudio();
   if (ref === 'films') S.docs.films = await F.films();
   render();
 }

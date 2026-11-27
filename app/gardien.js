@@ -51,7 +51,7 @@ function verrous(sid) {
     [base + '\\Software\\Policies\\Microsoft\\Windows\\System', 'DisableCMD', '1'],
     [base + '\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer', 'DisallowRun', '1']
   ];
-  const interdits = ['powershell.exe', 'pwsh.exe', 'powershell_ise.exe', 'wt.exe', 'cmd.exe', 'regedit.exe', 'taskmgr.exe', 'mmc.exe', 'msedge.exe', 'chrome.exe', 'firefox.exe', 'brave.exe', 'opera.exe'];
+  const interdits = ['powershell.exe', 'pwsh.exe', 'powershell_ise.exe', 'wt.exe', 'cmd.exe', 'regedit.exe', 'taskmgr.exe', 'mmc.exe', 'msedge.exe', 'chrome.exe', 'firefox.exe', 'brave.exe', 'opera.exe', 'Minecraft.Windows.exe'];
   try {
     execFileSync('reg', ['query', base], { windowsHide: true, stdio: 'ignore' });
   } catch (e) { return; } // ruche non chargée : l'enfant n'est pas connectée

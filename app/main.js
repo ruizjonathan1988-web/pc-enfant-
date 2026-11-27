@@ -26,6 +26,7 @@ function dossiers() {
     creations: path.join(docs, 'Mes créations'),
     photos: path.join(app.getPath('pictures'), 'Mes photos'),
     musique: app.getPath('music'),
+    livresAudio: path.join(app.getPath('music'), 'Mes livres audio'),
     films: path.join(app.getPath('videos'), 'Mes films')
   };
 }
@@ -260,6 +261,7 @@ poser('listerDocs', (dossier) => { const { d } = sur(dossier, ''); try { return 
 poser('ouvrirDossier', (dossier) => { const { d } = sur(dossier, ''); fs.mkdirSync(d, { recursive: true }); return shell.openPath(d); });
 poser('photos', () => listerRecursif(dossiers().photos, EXT_IMG, 300));
 poser('musique', () => listerRecursif(dossiers().musique, EXT_SON, 400));
+poser('livresAudio', () => listerRecursif(dossiers().livresAudio, EXT_SON, 400));
 poser('films', () => listerRecursif(dossiers().films, EXT_VID, 200));
 poser('importerPhotos', () => importerPhotos());
 poser('casque', () => ({ dossier: dossierCasque() }));
