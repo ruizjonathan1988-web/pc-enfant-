@@ -199,6 +199,16 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await clic('[data-a="pasOuvrir"]');
     await page.waitForSelector('text=pas encore installé');
   });
+  await etape('Logiciel présent : message d’attente, puis retour à Flocon', async () => {
+    await rubrique('Mes outils'); await tuile('Calculatrice');
+    if (await page.locator('[data-a="pasOuvrir"]').count()) await clic('[data-a="pasOuvrir"]');
+    await page.waitForSelector('text=Calculatrice s’ouvre');
+    // La calculatrice prend le premier plan (le message part seul) ; sinon le bouton D’accord le ferme.
+    await page.waitForFunction(() => !document.body.innerText.includes('Calculatrice s’ouvre'), null, { timeout: 30000 }).catch(async () => { await clic('[data-a="finOuverture"]'); });
+    assert.ok(!(await page.locator('text=Calculatrice s’ouvre').count()), 'message d’attente resté affiché');
+    try { execFileSync('taskkill', ['/F', '/IM', 'CalculatorApp.exe', '/IM', 'calc.exe'], { stdio: 'ignore' }); } catch (e) { /* déjà fermée */ }
+    await appli.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].focus());
+  });
   await etape('Site autorisé : Vikidia s’ouvre', async () => {
     await rubrique('Je découvre'); await tuile('Vikidia');
     await page.waitForFunction(() => { const w = document.querySelector('#vue-site'); try { return w && /vikidia\.org/.test(w.getURL()) && !w.isLoading(); } catch (e) { return false; } }, null, { timeout: 45000 });

@@ -65,6 +65,8 @@ function creerFenetre() {
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: false, webviewTag: true, spellcheck: false }
   });
   fen.setMenu(null);
+  // Quand un logiciel lancé apparaît, il prend le premier plan : Flocon perd le focus et retire son message d'attente.
+  fen.on('blur', () => { if (fen && !fen.isDestroyed()) fen.webContents.send('fenetre-quittee'); });
   screen.on('display-metrics-changed', caler);
   fen.on('leave-full-screen', () => { if (!pleinEcran) caler(); });
   screen.on('display-added', caler);

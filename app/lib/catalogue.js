@@ -9,6 +9,7 @@ const LAD = '%LOCALAPPDATA%';
 const LOGICIELS = {
   scratch: { nom: 'Scratch', chemins: [PF + '\\Scratch 3\\Scratch 3.exe', PF86 + '\\Scratch 3\\Scratch 3.exe', LAD + '\\Programs\\Scratch 3\\Scratch 3.exe'], menu: 'Scratch' },
   stopmotion: { nom: 'Stop Motion Studio', chemins: [], menu: 'Stop Motion' },
+  mypaint: { nom: 'MyPaint', chemins: [PF + '\\MyPaint\\mingw64\\bin\\mypaint.exe', PF + '\\MyPaint\\mingw64\\bin\\mypaint-w64.exe', PF + '\\MyPaint\\mypaint.exe'], menus: ['MyPaint'] },
   krita: { nom: 'Krita', chemins: [PF + '\\Krita (x64)\\bin\\krita.exe', PF + '\\Krita\\bin\\krita.exe'], menu: 'Krita' },
   writer: { nom: 'LibreOffice Writer', chemins: [PF + '\\LibreOffice\\program\\swriter.exe'], menu: 'LibreOffice Writer' },
   impress: { nom: 'LibreOffice Impress', chemins: [PF + '\\LibreOffice\\program\\simpress.exe'], menu: 'LibreOffice Impress' },
@@ -83,7 +84,8 @@ const RUBRIQUES = [
     { type: 'interne', ref: 'galerie', nom: 'Ma galerie', sous: 'Et la première en famille', icone: I.photo, couleur: '#E0457B' },
     { type: 'logiciel', ref: 'scratch', nom: 'Scratch', sous: 'Jeux et animations', icone: I.code, couleur: '#F28C28' },
     { type: 'logiciel', ref: 'stopmotion', nom: 'Mon film', sous: 'Stop Motion Studio', icone: I.film, couleur: '#E0457B' },
-    { type: 'logiciel', ref: 'krita', nom: 'Dessin', sous: 'Krita', icone: I.pinceau, couleur: '#FF7A45' },
+    { type: 'logiciel', ref: 'mypaint', nom: 'Dessin', sous: 'MyPaint', icone: I.pinceau, couleur: '#FF7A45' },
+    { type: 'logiciel', ref: 'krita', nom: 'Atelier de peinture', sous: 'Krita, pour aller plus loin', icone: I.pinceau, couleur: '#C2410C', niveau: 3 },
     { type: 'site', ref: 'incredibox', nom: 'Mes beats', sous: 'Incredibox', icone: I.beat, couleur: '#7C5CFA' },
     { type: 'site', ref: 'songmaker', nom: 'Mélodies', sous: 'Song Maker', icone: I.note, couleur: '#2B7BD6' },
     { type: 'logiciel', ref: 'writer', nom: 'Écrire', sous: 'Histoires et lettres', icone: I.texte, couleur: '#1F5FA8' },
@@ -142,6 +144,8 @@ const RUBRIQUES = [
 const PREMIERS_PAS = {
   scratch: ['Clique sur un bloc pour voir ce qu\u2019il fait.', 'Glisse les blocs les uns sous les autres : c\u2019est ton programme.', 'Le drapeau vert lance tout. Pour garder ton travail : Fichier, puis « Enregistrer sur ton ordinateur », dans Mes créations.'],
   stopmotion: ['Pose la caméra bien stable : elle ne doit plus bouger.', 'Bouge ton personnage tout doucement, une photo à chaque fois.', 'Exporte ton film dans Documents, Mes créations : il ira dans ta galerie.'],
+  mypaint: ['Choisis un pinceau dans la colonne de droite, et ta couleur sur la roue.', 'Ctrl+Z annule ton dernier trait : tu peux tout essayer.', 'Pour garder ton dessin : Fichier, Exporter, choisis le format PNG et range-le dans Documents, Mes créations.'],
+  minecraft: ['La toute première fois, un adulte connecte ton compte Minecraft avec toi.', 'Choisis « Minecraft: Java Edition », puis Jouer, puis Solo.', 'Le jeu peut mettre une à deux minutes à démarrer : patiente, ne clique pas plusieurs fois.'],
   krita: ['Choisis un pinceau à gauche et une couleur à droite.', 'Ctrl+Z annule ton dernier trait : tu peux tout essayer.', 'Fichier, puis Exporter en PNG, dans Documents, Mes créations.'],
   writer: ['Écris d\u2019abord, la mise en forme viendra après.', 'Pour un titre, sélectionne-le et choisis « Titre 1 ».', 'Fichier, puis Enregistrer sous : choisis bien ton dossier, et donne un nom qui veut dire quelque chose.'],
   impress: ['Une diapo = une idée et une image.', 'Insertion, puis Image, pour ajouter un dessin ou une photo.', 'F5 lance le diaporama, Échap l\u2019arrête.'],
@@ -175,10 +179,10 @@ const PROJETS = {
   livre: { titre: 'Mon livre', chapo: 'Une histoire écrite et illustrée par toi, imprimée en vrai petit livre.', etapes: [
     ['Écris ton histoire', 'Un début, un problème, une fin. Courte, c\u2019est très bien.'],
     ['Découpe-la en pages', 'Une ou deux phrases par page, pour laisser de la place aux dessins.'],
-    ['Dessine les illustrations', 'Sur papier puis en photo, ou directement dans Krita.'],
+    ['Dessine les illustrations', 'Sur papier puis en photo, ou directement dans MyPaint.'],
     ['Mets en page', 'Une image et son texte par page, dans LibreOffice Writer.'],
     ['Imprime en livret', 'Fichier, Imprimer, puis choisis « Brochure » : tu n\u2019as plus qu\u2019à plier et agrafer.']
-  ], outils: [['logiciel', 'writer', 'Écrire'], ['logiciel', 'krita', 'Dessiner']] },
+  ], outils: [['logiciel', 'writer', 'Écrire'], ['logiciel', 'mypaint', 'Dessiner']] },
   ia: { titre: 'J\u2019apprends à l\u2019ordinateur', chapo: 'Une intelligence artificielle ne sait que ce qu\u2019on lui a montré. Pour le comprendre, entraîne la tienne. La première fois, fais-le avec un adulte : le site est en anglais.', etapes: [
     ['Ouvre Teachable Machine', 'Un projet d\u2019images : la caméra va servir d\u2019yeux à l\u2019ordinateur.'],
     ['Crée trois catégories', 'Pierre, Feuille, Ciseaux. Ce sont les seules choses que ta machine pourra reconnaître.'],
@@ -191,8 +195,8 @@ const PROJETS = {
     ['Dessine sur papier', 'Avec un feutre bien noir, des traits nets.'],
     ['Prends-le en photo', 'Bien à plat, à la lumière du jour, sans ombre.'],
     ['Importe tes photos', 'Branche l\u2019appareil et va dans Mes photos.'],
-    ['Donne-lui vie', 'Colorie-le dans Krita, ou anime-le image par image dans Stop Motion.']
-  ], outils: [['interne', 'photos', 'Mes photos'], ['logiciel', 'krita', 'Colorier'], ['logiciel', 'stopmotion', 'Animer']] }
+    ['Donne-lui vie', 'Colorie-le dans MyPaint, ou anime-le image par image dans Stop Motion.']
+  ], outils: [['interne', 'photos', 'Mes photos'], ['logiciel', 'mypaint', 'Colorier'], ['logiciel', 'stopmotion', 'Animer']] }
 };
 
 // Le permis : quatre niveaux. On passe au suivant quand les missions sont acquises, avec un adulte, jamais avec du temps d'écran.
@@ -201,7 +205,7 @@ const PERMIS = [
   { n: 2, nom: 'J\u2019explore', ouvre: 'L\u2019explorateur de fichiers dans tes outils, pour ranger, copier sur une clé et imprimer toute seule.', missions: [
     'Je crée un dossier dans « Mes créations » et je lui donne un nom.', 'Je renomme un fichier sans perdre son extension.', 'J\u2019enregistre un dessin au bon endroit, du premier coup.',
     'Je retrouve un fichier avec la recherche de Windows.', 'Je copie une création sur une clé USB, puis je l\u2019éjecte proprement.', 'J\u2019imprime une page toute seule.'] },
-  { n: 3, nom: 'Je navigue', ouvre: 'Un vrai navigateur, avec sa barre d\u2019adresse et ses onglets, mais seulement sur les sites autorisés. La recherche passe par Vikidia.', missions: [
+  { n: 3, nom: 'Je navigue', ouvre: 'Un vrai navigateur, avec sa barre d\u2019adresse et ses onglets, mais seulement sur les sites autorisés (la recherche passe par Vikidia). Et Krita, un vrai atelier de peinture.', missions: [
     'Je tape une phrase avec mes dix doigts, sans regarder le clavier.', 'Je mets en forme un texte : un titre, du gras, une image.', 'Je fais une capture d\u2019écran (Windows + Maj + S).',
     'Je vérifie une information dans deux sources différentes.', 'Je cite mes sources à la fin d\u2019un exposé.', 'Je sais ce que je ne donne jamais sur Internet : nom, adresse, école, photos.'] },
   { n: 4, nom: 'En autonomie', ouvre: 'Tu peux fermer Flocon quand tu veux. Quand ton temps est fini, tu as cinq minutes pour terminer tranquillement.', missions: [
