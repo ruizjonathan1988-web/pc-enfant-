@@ -55,7 +55,7 @@ for (const ref of refs) {
   const chemin = (l.chemins || []).map(developper).find((c) => fs.existsSync(c));
   const noms = l.menus || (l.menu ? [l.menu] : []);
   // Même règle que Flocon : le nom exact, sinon le plus court qui le contient.
-  const choisir = (n) => { const l = menu.filter((m) => m.Name && m.Name.toLowerCase().includes(n.toLowerCase())); return l.find((m) => m.Name.toLowerCase() === n.toLowerCase()) || l.sort((a, b) => a.Name.length - b.Name.length)[0]; };
+  const choisir = (n) => { const c = menu.filter((m) => m.Name && m.Name.toLowerCase().includes(n.toLowerCase())); return c.find((m) => m.Name.toLowerCase() === n.toLowerCase()) || (l.menuExact ? null : c.sort((a, b) => a.Name.length - b.Name.length)[0]); };
   const entree = !chemin && noms.map(choisir).find(Boolean);
   if (chemin) {
     let r = ref === 'explorateur' ? 'non lancé' : await essayer(chemin);

@@ -177,13 +177,13 @@ app.on('web-contents-created', (_e, wc) => {
 function developper(p) { return p.replace(/%([^%]+)%/g, (_, v) => process.env[v] || process.env[v.toUpperCase()] || ''); }
 const cacheMenu = {};
 
-function idDemarrer(nom) {
+function idDemarrer(nom, exact) {
   return new Promise((ok) => {
     if (cacheMenu[nom]) return ok(cacheMenu[nom]);
     if (process.platform !== 'win32') return ok(null);
     // Le nom exact d'abord, sinon le plus court qui le contient : « GCompris » et non « GCompris Teachers ».
     const n = nom.replace(/'/g, "''");
-    const cmd = "$l = @(Get-StartApps | Where-Object { $_.Name -like '*" + n + "*' }); $e = $l | Where-Object { $_.Name -eq '" + n + "' } | Select-Object -First 1; if (-not $e) { $e = $l | Sort-Object { $_.Name.Length } | Select-Object -First 1 }; if ($e) { $e.AppID }";
+    const cmd = "$l = @(Get-StartApps | Where-Object { $_.Name -like '*" + n + "*' }); $e = $l | Where-Object { $_.Name -eq '" + n + "' } | Select-Object -First 1; " + (exact ? '' : "if (-not $e) { $e = $l | Sort-Object { $_.Name.Length } | Select-Object -First 1 }; ") + "if ($e) { $e.AppID }";
     execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], { windowsHide: true, timeout: 15000 }, (err, out) => {
       const id = String(out || '').trim();
       if (id) cacheMenu[nom] = id;
@@ -220,7 +220,7 @@ async function lancerLogiciel(ref) {
     if (fs.existsSync(c)) { noterLancement(`${l.nom} : ${c}`); surveiller(spawn(c, [], { detached: true, stdio: 'ignore', cwd: path.dirname(c) }), l.nom, c); return { ok: true }; }
   }
   for (const m of (l.menus || (l.menu ? [l.menu] : []))) {
-    const id = await idDemarrer(m);
+    const id = await idDemarrer(m, l.menuExact);
     // explorer.exe rend la main tout de suite, souvent avec le code 1 : pas de surveillance possible ici.
     if (id) { noterLancement(`${l.nom} : menu Démarrer ${id}`); spawn('explorer.exe', ['shell:AppsFolder\\' + id], { detached: true, stdio: 'ignore' }).unref(); return { ok: true }; }
   }

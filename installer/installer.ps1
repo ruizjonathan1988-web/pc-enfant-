@@ -137,7 +137,7 @@ if ($mode -eq 'neuf') {
   $enfants.Clear()
   Titre '2. Votre enfant'
   [void]$enfants.Add((DemanderEnfant $enfants))
-  $r = Demander '  Installer aussi les logiciels (Scratch, Tux Paint, GCompris, MyPaint, Krita, LibreOffice, Audacity, Steam, Minecraft) ? [O/n]' 'logiciels'
+  $r = Demander '  Installer aussi les logiciels (Scratch, Tux Paint, MyPaint, Krita, LibreOffice, Audacity, Steam, Minecraft) ? [O/n]' 'logiciels'
   $avecLogiciels = -not ($r -match '^[nN]')
 } else {
   $pinSel = $ancien.pinSel; $pinHash = $ancien.pinHash
@@ -173,7 +173,6 @@ if ($avecLogiciels) {
     $paquets = @(
       @{ id = 'MITMediaLab.Scratch.3'; nom = 'Scratch' },
       @{ id = 'NewBreedSoftware.TuxPaint'; nom = 'Tux Paint (dessin)' },
-      @{ id = 'KDE.GCompris'; nom = 'GCompris (jeux pour apprendre)' },
       @{ id = 'MyPaint.MyPaint'; nom = 'MyPaint (peinture)' },
       @{ id = 'KDE.Krita'; nom = 'Krita' },
       @{ id = 'TheDocumentFoundation.LibreOffice'; nom = 'LibreOffice' },
@@ -190,6 +189,7 @@ if ($avecLogiciels) {
       if ($LASTEXITCODE -eq 0) { Ok "$($p.nom) installé." } else { Attention "$($p.nom) : échec (code $LASTEXITCODE). Vous pourrez l'installer plus tard." }
     }
     Info 'Stop Motion Studio vient du Microsoft Store : il s''installe par compte. Voir la notice, étape « Stop Motion Studio ».'
+    Info 'GCompris s''installe à la main depuis gcompris.net (le paquet winget n''installe que l''outil des enseignants).'
   }
 }
 

@@ -12,7 +12,8 @@ const LOGICIELS = {
   mypaint: { nom: 'MyPaint', chemins: [PF + '\\mypaint-w64\\mypaint.exe', PF + '\\MyPaint\\mingw64\\bin\\mypaint.exe', PF + '\\MyPaint\\mingw64\\bin\\mypaint-w64.exe', PF + '\\MyPaint\\mypaint.exe'], menus: ['MyPaint'] },
   // Pensés pour son âge : Tux Paint (dessin, 3-12 ans), GCompris (activités du primaire), le Magnétophone de Windows.
   tuxpaint: { nom: 'Tux Paint', chemins: [PF + '\\TuxPaint\\tuxpaint.exe', PF86 + '\\TuxPaint\\tuxpaint.exe'], menu: 'Tux Paint' },
-  gcompris: { nom: 'GCompris', chemins: [PF + '\\GCompris-Qt\\bin\\gcompris-qt.exe', PF + '\\GCompris\\bin\\gcompris-qt.exe', PF + '\\KDE\\GCompris\\bin\\gcompris-qt.exe'], menu: 'GCompris' },
+  // Installé à la main depuis gcompris.net : le paquet winget KDE.GCompris n'installe que « GCompris Teachers » (relevé par le testeur).
+  gcompris: { nom: 'GCompris', manuel: 'depuis gcompris.net (le paquet winget n’installe que l’outil des enseignants)', menuExact: true, chemins: [PF + '\\GCompris-Qt\\bin\\gcompris-qt.exe', PF + '\\GCompris\\bin\\gcompris-qt.exe', PF + '\\KDE\\GCompris\\bin\\gcompris-qt.exe'], menu: 'GCompris' },
   magneto: { nom: 'Magnétophone', windows11: true, chemins: [], menus: ['Magnétophone', 'Enregistreur audio', 'Enregistreur vocal', 'Sound Recorder'] },
   krita: { nom: 'Krita', chemins: [PF + '\\Krita (x64)\\bin\\krita.exe', PF + '\\Krita\\bin\\krita.exe'], menu: 'Krita' },
   writer: { nom: 'LibreOffice Writer', chemins: [PF + '\\LibreOffice\\program\\swriter.exe'], menu: 'LibreOffice Writer' },
