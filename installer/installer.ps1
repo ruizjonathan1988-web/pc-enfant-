@@ -113,7 +113,10 @@ if (-not (Test-Path $zip)) {
   Invoke-WebRequest -Uri "$base/electron-v$VersionElectron-win32-x64.zip" -OutFile $zip -UseBasicParsing
 }
 Info 'Vérification de l''empreinte du téléchargement…'
-$sommes = (Invoke-WebRequest -Uri "$base/SHASUMS256.txt" -UseBasicParsing).Content
+# GitHub sert ce fichier en application/octet-stream : on l'enregistre puis on le relit comme texte.
+$fichierSommes = Join-Path $tmp 'SHASUMS256.txt'
+Invoke-WebRequest -Uri "$base/SHASUMS256.txt" -OutFile $fichierSommes -UseBasicParsing
+$sommes = Get-Content -Path $fichierSommes -Raw -Encoding UTF8
 $attendu = ($sommes -split "`n" | Where-Object { $_ -match "electron-v$VersionElectron-win32-x64\.zip" } | Select-Object -First 1) -replace '\s.*$', ''
 $obtenu = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLower()
 if (-not $attendu -or $attendu.Trim().ToLower() -ne $obtenu) { Remove-Item $zip -Force; throw "Empreinte incorrecte : le téléchargement est corrompu. Relancez l'installation." }

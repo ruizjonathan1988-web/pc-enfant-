@@ -1,4 +1,4 @@
-﻿# Flocon : installation en une ligne.
+# Flocon : installation en une ligne.
 #   irm https://raw.githubusercontent.com/ruizjonathan1988-web/pc-enfant-/main/en-ligne.ps1 | iex
 # Télécharge l'archive, la vérifie, l'extrait et lance l'installateur avec les droits administrateur.
 
