@@ -76,7 +76,7 @@ async function lancer() {
   await page.waitForSelector('.carte, .fenetre', { timeout: 30000 });
 }
 async function fermer() { await toutFermer(); }
-const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = BrowserWindow.getAllWindows()[0]; return { kiosk: w.isKiosk(), b: w.getBounds(), zone: screen.getPrimaryDisplay().workArea }; });
+const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = BrowserWindow.getAllWindows()[0]; return { kiosk: w.isKiosk(), b: w.getBounds(), zone: screen.getPrimaryDisplay().workArea, ecran: screen.getPrimaryDisplay().bounds }; });
 
 (async () => {
   // Point de départ : Test n'a jamais ouvert Flocon.
@@ -85,7 +85,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
   const jetonsAvant = etat().jetonsRestants;
   await lancer();
 
-  await etape('Atelier : bienvenue', async () => { await page.waitForSelector('text=Bonjour'); assert.ok((await fenetre()).kiosk, 'plein écran pendant l’atelier'); await clic('[data-a="atelierSuiv"]'); });
+  await etape('Atelier : bienvenue', async () => { await page.waitForSelector('text=Bonjour'); const f = await fenetre(); assert.ok(f.kiosk, 'plein écran pendant l’atelier'); assert.ok(f.b.width >= f.ecran.width && f.b.height >= f.ecran.height, `la fenêtre doit couvrir l’écran : ${JSON.stringify(f.b)} pour ${JSON.stringify(f.ecran)}`); await clic('[data-a="atelierSuiv"]'); });
   await etape('Atelier : prénom', async () => { await page.fill('#in-prenom', 'Testine'); await clic('[data-a="atelierSuiv"]'); });
   await etape('Atelier : compagnon', async () => {
     const n = await page.locator('[data-a="choisirCompa"]').count();
