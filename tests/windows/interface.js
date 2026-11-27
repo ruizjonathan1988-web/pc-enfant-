@@ -47,14 +47,24 @@ async function dessiner(sel) {
   for (let i = 1; i <= 10; i++) await page.mouse.move(b.x + 20 + i * (b.width - 40) / 10, b.y + b.height / 2 + (i % 2 ? 15 : -15));
   await page.mouse.up();
 }
+// Flocon n'accepte qu'une copie par compte : avant de relancer, plus aucune ne doit tourner (ni ses processus enfants).
+async function toutFermer() {
+  try { execFileSync('taskkill', ['/F', '/T', '/IM', 'Flocon.exe', '/FI', 'USERNAME eq ' + os.userInfo().username], { stdio: 'ignore' }); } catch (e) { /* aucune */ }
+  for (let i = 0; i < 20; i++) {
+    const l = execFileSync('tasklist', ['/FI', 'IMAGENAME eq Flocon.exe', '/FI', 'USERNAME eq ' + os.userInfo().username, '/NH'], { encoding: 'utf8' });
+    if (!/Flocon\.exe/i.test(l)) return;
+    await pause(500);
+  }
+}
 async function lancer() {
+  await toutFermer();
   appli = await electron.launch({ executablePath: EXE, env: Object.assign({}, process.env, { FLOCON_COMPTE: COMPTE }), timeout: 60000 });
   page = await appli.firstWindow();
   erreursPage = [];
   page.on('pageerror', (e) => erreursPage.push(e.message));
   await page.waitForSelector('.carte', { timeout: 30000 });
 }
-async function fermer() { try { appli.process().kill(); } catch (e) { /* rien */ } await pause(1500); }
+async function fermer() { await toutFermer(); }
 const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = BrowserWindow.getAllWindows()[0]; return { kiosk: w.isKiosk(), b: w.getBounds(), zone: screen.getPrimaryDisplay().workArea }; });
 
 (async () => {

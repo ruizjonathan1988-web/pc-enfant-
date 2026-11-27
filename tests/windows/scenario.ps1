@@ -146,7 +146,11 @@ Etape 'Verrous réels dans le registre de Test (niveaux 1 et 3)' {
   $profil = (Get-CimInstance Win32_UserProfile | Where-Object { $_.SID -eq $sid }).LocalPath
   Vrai $profil 'profil de Test absent'
   $charge = Test-Path "Registry::HKEY_USERS\$sid"
-  if (-not $charge) { reg load "HKU\$sid" (Join-Path $profil 'NTUSER.DAT') | Out-Null }
+  if (-not $charge) {
+    # Le service des profils peut garder la ruche quelques secondes après la dernière connexion.
+    for ($i = 0; $i -lt 10; $i++) { $sortie = cmd.exe /d /c "reg load HKU\$sid `"$(Join-Path $profil 'NTUSER.DAT')`" 2>&1"; if ($LASTEXITCODE -eq 0) { break }; Start-Sleep -Seconds 3; if (Test-Path "Registry::HKEY_USERS\$sid") { $charge = $true; break } }
+    Vrai (Test-Path "Registry::HKEY_USERS\$sid") "ruche de Test impossible à charger : $sortie"
+  }
   try {
     $pol = "Registry::HKEY_USERS\$sid\Software\Microsoft\Windows\CurrentVersion\Policies"
     $edge = "Registry::HKEY_USERS\$sid\Software\Policies\Microsoft\Edge"
@@ -183,6 +187,8 @@ Etape 'Mise à jour : rien ne change' {
 
 Etape 'L''interface démarre et reconnaît l''enfant' {
   Remove-Item (Join-Path $Base 'boite\test\demande.json') -ErrorAction SilentlyContinue
+  cmd.exe /d /c "taskkill /F /T /IM Flocon.exe /FI `"USERNAME eq $env:USERNAME`" >nul 2>&1"
+  Start-Sleep -Seconds 3
   $env:FLOCON_COMPTE = 'Test'
   $p = Start-Process $Exe -PassThru
   Remove-Item Env:FLOCON_COMPTE
