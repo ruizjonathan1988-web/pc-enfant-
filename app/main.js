@@ -283,7 +283,12 @@ poser('init', () => {
 });
 
 poser('seance', (id) => { seanceCourante = id; return true; });
-poser('fermer', () => { if (fen) fen.close(); return true; });
+// Niveau 4 : elle peut fermer Flocon. La fenêtre est créée « non fermable » (Windows ignore alors close()),
+// on ne la rend fermable qu'à ce moment-là, et seulement au niveau 4, hors plein écran.
+poser('fermer', () => {
+  if (!fen || (config().niveau || 1) < 4 || pleinEcran) return false;
+  fen.setClosable(true); fen.close(); return true;
+});
 poser('documentExpose', (fichier) => {
   const { p } = sur('exposes', fichier);
   const x = lireJson(p, null); if (!x) return { ok: false };
