@@ -23,7 +23,7 @@ const LOGICIELS = {
   camera: { nom: 'Caméra', uri: 'microsoft.windows.camera:' },
   explorateur: { nom: 'Explorateur de fichiers', chemins: ['%SystemRoot%\\explorer.exe'] },
   edge: { nom: 'Internet', chemins: [PF86 + '\\Microsoft\\Edge\\Application\\msedge.exe', PF + '\\Microsoft\\Edge\\Application\\msedge.exe'], menu: 'Microsoft Edge' },
-  minecraft: { nom: 'Minecraft', chemins: [PF86 + '\\Minecraft Launcher\\MinecraftLauncher.exe', PF + '\\Minecraft Launcher\\MinecraftLauncher.exe'], menu: 'Minecraft Launcher' },
+  minecraft: { nom: 'Minecraft', chemins: [PF86 + '\\Minecraft Launcher\\MinecraftLauncher.exe', PF + '\\Minecraft Launcher\\MinecraftLauncher.exe'], menus: ['Minecraft Launcher', 'Minecraft pour Windows', 'Minecraft for Windows', 'Minecraft Bedrock', 'Minecraft'] }, // Bedrock seul (sans lanceur) : trouvé par le menu Démarrer
   // RapidTyping, installé à la main (rapidtyping.com). Klavaro n'est plus installé : sa version Windows plante au démarrage
   // (0xC0000374, relevé par le testeur des logiciels) ; il reste en secours s'il est déjà là.
   klavaro: { nom: 'Le clavier', manuel: 'RapidTyping, à installer à la main (rapidtyping.com)', chemins: [PF + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\Klavaro\\bin\\klavaro.exe', PF + '\\Klavaro\\bin\\klavaro.exe'], menus: ['RapidTyping', 'Klavaro'] }
