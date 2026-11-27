@@ -66,11 +66,12 @@ function creerFenetre() {
   });
   fen.setMenu(null);
   screen.on('display-metrics-changed', caler);
+  fen.on('leave-full-screen', () => { if (!pleinEcran) caler(); });
   screen.on('display-added', caler);
   screen.on('display-removed', caler);
   fen.loadFile(path.join(__dirname, 'ui', 'index.html'));
   // Le mode demandé par l'interface avant l'affichage (reprise d'une séance) est respecté.
-  fen.once('ready-to-show', () => { appliquerMode(pleinEcran); fen.show(); });
+  fen.once('ready-to-show', () => { appliquerMode(pleinEcran); fen.show(); setTimeout(() => appliquerMode(pleinEcran), 300); });
   fen.on('close', (e) => {
     if (quitter) return;
     // Niveau 4 : elle peut fermer Flocon. On note la séance pour ne pas le rouvrir automatiquement.
@@ -86,22 +87,29 @@ function creerFenetre() {
   fen.webContents.on('will-navigate', (e) => e.preventDefault());
 }
 
+// Sous Windows, le mode kiosque ne suffit pas à agrandir une fenêtre sans cadre et non redimensionnable :
+// le drapeau passe à vrai mais la fenêtre garde sa taille. On pose donc aussi les dimensions nous-mêmes.
+function ecran() { return screen.getDisplayMatching(fen.getBounds()) || screen.getPrimaryDisplay(); }
 function caler() {
-  if (!fen || pleinEcran) return;
-  const d = screen.getDisplayMatching(fen.getBounds()) || screen.getPrimaryDisplay();
-  fen.setBounds(d.workArea);
+  if (!fen) return;
+  fen.setBounds(pleinEcran ? ecran().bounds : ecran().workArea);
 }
 function appliquerMode(plein) {
   if (!fen) return;
   pleinEcran = plein;
   if (plein) {
+    fen.setResizable(true);
     fen.setKiosk(true);
+    fen.setBounds(ecran().bounds);
+    fen.setResizable(false);
     fen.setAlwaysOnTop(true, 'screen-saver');
   } else {
     fen.setAlwaysOnTop(false);
     fen.setKiosk(false);
     // Le bureau occupe tout l'écran sauf la barre des tâches, qui reste visible pour retrouver ses logiciels.
+    // Windows rend à la sortie du kiosque l'ancienne taille, parfois un peu après : on recale tout de suite puis une seconde fois.
     caler();
+    setTimeout(caler, 250);
   }
 }
 
