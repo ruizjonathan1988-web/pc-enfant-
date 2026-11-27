@@ -62,8 +62,9 @@ function reg(args) { try { execFileSync('reg', args, { windowsHide: true, stdio:
 // Remet les verrous du compte enfant si sa ruche de registre est chargée (session ouverte).
 // Ils dépendent du niveau du permis : au niveau 3, Edge s'ouvre, mais seulement sur les sites autorisés.
 // Programmes interdits sur sa session (lancés depuis Windows : menu Démarrer, bureau, explorateur).
-// Le Microsoft Store est toujours interdit : un compte standard peut y installer des applications.
-const INTERDITS_BASE = ['powershell.exe', 'pwsh.exe', 'powershell_ise.exe', 'wt.exe', 'cmd.exe', 'regedit.exe', 'taskmgr.exe', 'mmc.exe', 'chrome.exe', 'firefox.exe', 'brave.exe', 'opera.exe', 'Minecraft.Windows.exe', 'WinStore.App.exe'];
+// Le Microsoft Store n'y est pas : sur Windows Famille rien ne l'interdit vraiment à un seul compte
+// (la stratégie RemoveWindowsStore ne vaut qu'en Entreprise et Éducation), et Stop Motion Studio s'installe par lui.
+const INTERDITS_BASE = ['powershell.exe', 'pwsh.exe', 'powershell_ise.exe', 'wt.exe', 'cmd.exe', 'regedit.exe', 'taskmgr.exe', 'mmc.exe', 'chrome.exe', 'firefox.exe', 'brave.exe', 'opera.exe', 'Minecraft.Windows.exe'];
 function listeInterdits(config) {
   const niveau = (config && config.niveau) || 1;
   // Ceux que le parent ajoute (ameli, carte CPS…) : des noms de fichiers .exe, sans chemin.

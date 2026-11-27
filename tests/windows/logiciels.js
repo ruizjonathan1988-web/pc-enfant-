@@ -35,11 +35,17 @@ let manquants = 0;
 for (const ref of refs) {
   const l = CAT.LOGICIELS[ref];
   if (l.uri) { lignes.push(`| ${l.nom} | adresse ${l.uri} (application Windows) |`); continue; }
+  if (l.store) { lignes.push(`| ${l.nom} | Microsoft Store : s’installe à la main dans la session de l’enfant (voir la notice) |`); continue; }
   const chemin = (l.chemins || []).map(developper).find((c) => fs.existsSync(c));
   const noms = l.menus || (l.menu ? [l.menu] : []);
   const entree = !chemin && noms.map((n) => menu.find((m) => m.Name && m.Name.toLowerCase().includes(n.toLowerCase()))).find(Boolean);
   if (chemin) lignes.push(`| ${l.nom} | trouvé : ${chemin} |`);
-  else if (entree) lignes.push(`| ${l.nom} | par le menu Démarrer : ${entree.Name} |`);
+  else if (entree) {
+    // Trouvé seulement par le menu : le chemin du catalogue est faux, on cherche le vrai pour le corriger.
+    const exes = Array.from(new Set((l.chemins || []).map((c) => path.basename(c)).concat(l.exe || [])));
+    const vrais = exes.flatMap(chercher);
+    lignes.push(`| ${l.nom} | par le menu Démarrer seulement (${entree.Name}, ${entree.AppID})${vrais.length ? ' ; exécutable : ' + vrais.join(', ') : ''} |`);
+  }
   else {
     manquants++;
     const exes = Array.from(new Set((l.chemins || []).map((c) => path.basename(c))));
