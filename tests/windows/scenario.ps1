@@ -85,8 +85,10 @@ Etape 'Installation neuve (Brune)' {
 }
 
 Etape 'Le gardien tourne sous SYSTEM et tient la tirelire' {
-  Start-ScheduledTask -TaskPath '\Flocon\' -TaskName 'Flocon Gardien'
+  # On efface la tirelire neuve : c'est bien le gardien, sous SYSTEM, qui doit la réécrire.
   $f = Join-Path $Base 'enfants\brune\etat.json'
+  Remove-Item $f -ErrorAction SilentlyContinue
+  Start-ScheduledTask -TaskPath '\Flocon\' -TaskName 'Flocon Gardien'
   for ($i = 0; $i -lt 40 -and -not (Test-Path $f); $i++) { Start-Sleep -Seconds 3 }
   $log = Join-Path $Base 'gardien.log'
   if (Test-Path $log) { Write-Host (Get-Content $log -Raw) }
@@ -102,7 +104,7 @@ Etape 'Le gardien lancé à la main ne plante pas' {
 }
 
 Etape 'Droits de Brune (sa boîte oui, le reste non)' {
-  $r = DroitsDe 'Brune' '-'
+  $r = DroitsDe 'Brune' 'aucun'
   Write-Host ($r | Out-String)
   Vrai $r.saBoite 'Brune ne peut pas écrire dans sa boîte'
   Vrai $r.litConfig 'Brune ne peut pas lire la configuration'
