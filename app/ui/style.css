@@ -145,3 +145,6 @@ audio,video{width:100%;border-radius:14px}
 .pas-liste{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
 .pas-liste li{display:flex;gap:12px;align-items:flex-start;font-size:16px;line-height:1.45}
 .pas-liste li b{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Outfit'}
+
+.tourne{width:46px;height:46px;border-radius:50%;border:5px solid rgba(31,95,168,.18);border-top-color:#1F5FA8;animation:tourne 0.9s linear infinite}
+@keyframes tourne{to{transform:rotate(360deg)}}

@@ -134,7 +134,7 @@ if ($mode -eq 'neuf') {
   $enfants.Clear()
   Titre '2. Votre enfant'
   [void]$enfants.Add((DemanderEnfant $enfants))
-  $r = Demander '  Installer aussi les logiciels (Scratch, Krita, LibreOffice, Audacity, Steam, Minecraft, Klavaro) ? [O/n]' 'logiciels'
+  $r = Demander '  Installer aussi les logiciels (Scratch, MyPaint, Krita, LibreOffice, Audacity, Steam, Minecraft, Klavaro) ? [O/n]' 'logiciels'
   $avecLogiciels = -not ($r -match '^[nN]')
 } else {
   $pinSel = $ancien.pinSel; $pinHash = $ancien.pinHash
@@ -169,6 +169,7 @@ if ($avecLogiciels) {
   } else {
     $paquets = @(
       @{ id = 'MITMediaLab.Scratch.3'; nom = 'Scratch' },
+      @{ id = 'MyPaint.MyPaint'; nom = 'MyPaint (dessin)' },
       @{ id = 'KDE.Krita'; nom = 'Krita' },
       @{ id = 'TheDocumentFoundation.LibreOffice'; nom = 'LibreOffice' },
       @{ id = 'Audacity.Audacity'; nom = 'Audacity' },

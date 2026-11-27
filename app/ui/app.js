@@ -123,7 +123,7 @@ function render() {
   else if (S.ecran === 'bureau') r.innerHTML = vueBureau();
   else if (S.ecran === 'fin') r.innerHTML = vueFin();
   else r.innerHTML = '';
-  $('#voile').innerHTML = S.voile ? vueVoile() : '';
+  $('#voile').innerHTML = S.voile ? vueVoile() : vueOuverture();
   $('#mascotte').innerHTML = vueMascotte();
   apresRendu();
 }
@@ -293,7 +293,7 @@ function vueExposes() {
   if (v.fichier) {
     const x = liste.find((e) => e.fichier === v.fichier); if (!x) return entete('Exposé');
     const i = v.etape || 0; const et = D.catalogue.EXPOSE_ETAPES[i]; x.etapes = x.etapes || []; const st = x.etapes[i] || {};
-    const outils = et.outils.map(([type, ref]) => { const nom = type === 'site' ? D.catalogue.SITES[ref].nom : type === 'interne' ? 'Minuteur' : ({ impress: 'Diaporama', krita: 'Dessin', writer: 'Affiche ou texte', audacity: 'M’enregistrer' })[ref] || ref; return `<button class="btn petit" data-a="outilExpose" data-type="${type}" data-ref="${ref}">${esc(nom)}</button>`; }).join('');
+    const outils = et.outils.map(([type, ref]) => { const nom = type === 'site' ? D.catalogue.SITES[ref].nom : type === 'interne' ? 'Minuteur' : ({ impress: 'Diaporama', mypaint: 'Dessin', krita: 'Peinture', writer: 'Affiche ou texte', audacity: 'M’enregistrer' })[ref] || ref; return `<button class="btn petit" data-a="outilExpose" data-type="${type}" data-ref="${ref}">${esc(nom)}</button>`; }).join('');
     const fait = x.etapes.filter((e) => e && e.fait).length;
     return `<div class="section">${entete('Mon exposé : ' + x.sujet, `<span class="etiquette">${fait} étape${fait > 1 ? 's' : ''} sur 6</span>`)}
       <p class="muet" style="margin:0">${x.pourQuand ? 'Pour le ' + esc(x.pourQuand) : ''}</p>
@@ -582,11 +582,26 @@ async function lancer(t, sansPas) {
   if (t.type === 'logiciel' && !sansPas && D.catalogue.PREMIERS_PAS[t.ref] && !((S.profil.vus || {})[t.ref])) { S.voile = { type: 'premiersPas', t }; render(); return; }
   if (t.type === 'site') return ouvrirSite(D.catalogue.SITES[t.ref].url, D.catalogue.SITES[t.ref].nom);
   if (t.type === 'interne') return ouvrirVue(t.ref);
+  if (S.ouverture) return; // un seul lancement à la fois : un double clic ouvrirait le logiciel deux fois
   const r = await F.lancer({ type: t.type, ref: t.ref });
-  if (r && r.ok) dire('C’est parti pour ' + t.nom + ' ! Il s’ouvre dans sa propre fenêtre.');
+  if (r && r.ok) {
+    dire('C’est parti pour ' + t.nom + ' ! Il s’ouvre dans sa propre fenêtre.');
+    // Certains logiciels (Scratch, Minecraft) mettent longtemps à apparaître : on le dit, au lieu de laisser croire que rien ne se passe.
+    S.ouverture = { nom: t.nom, depuis: Date.now() }; render();
+    clearTimeout(S.minuteOuverture); S.minuteOuverture = setTimeout(finOuverture, 90000);
+  }
   else dire((r && r.nom ? r.nom : t.nom) + ' n’est pas encore installé sur cet ordinateur. Demande à un adulte.');
   if (!S.profil.floconVisible) toast(r && r.ok ? 'Ouverture de ' + t.nom + '…' : t.nom + ' n’est pas encore installé.');
   $('#mascotte').innerHTML = vueMascotte();
+}
+
+function finOuverture() { if (!S.ouverture) return; S.ouverture = null; clearTimeout(S.minuteOuverture); render(); }
+function vueOuverture() {
+  if (!S.ouverture) return '';
+  return `<div class="voile"><div class="carte verre" style="width:min(460px,92vw);align-items:center;text-align:center"><div class="tourne"></div><h2>${esc(S.ouverture.nom)} s’ouvre…</h2>
+    <p class="muet" style="margin:0">Il apparaît dans sa propre fenêtre, par-dessus Flocon. Certains logiciels mettent jusqu’à une minute, surtout la première fois : patiente, ne clique pas plusieurs fois.</p>
+    <p class="muet" style="margin:0">Pour revenir ensuite à Flocon : clique sur son icône dans la barre en bas de l’écran.</p>
+    <button class="btn doux" data-a="finOuverture">D’accord</button></div></div>`;
 }
 
 async function ouvrirSite(url, nom) {
@@ -688,6 +703,7 @@ const A = {
   reduire: () => F.reduire(),
   rubrique: (d) => { S.rubrique = d.id; S.vue = null; render(); },
   tuile: (d) => lancer(S.tuilesAffichees[Number(d.i)]),
+  finOuverture: () => finOuverture(),
   pasOuvrir: async () => { const t = S.voile.t; S.profil.vus = Object.assign({}, S.profil.vus, { [t.ref]: true }); await sauverProfil(); S.voile = null; render(); lancer(t, true); },
   pasDebrouille: async () => { const t = S.voile.t; S.profil.vus = Object.assign({}, S.profil.vus, { [t.ref]: true }); await sauverProfil(); S.voile = null; render(); dire('D’accord ! Si tu bloques, clique sur moi.'); lancer(t, true); },
   autreIdee: () => { if (!S.seance) S.seance = { id: 'x', debut: Date.now(), prevu: 30 }; S.seance.tirages = (S.seance.tirages || 0) + 1; if (S.seance.tirages <= 3) S.idee = tirerIdee(); render(); },
@@ -853,6 +869,7 @@ async function demarrer() {
   try { await chargerDoc('agenda', 'agenda.json', { evenements: [] }); } catch (e) { /* rien */ }
   S.ecran = S.profil.atelierFait ? 'accueil' : 'atelier';
   if (!S.profil.atelierFait) F.demande({ atelier: true });
+  F.surFenetreQuittee(() => { if (S.ouverture && Date.now() - S.ouverture.depuis > 800) finOuverture(); });
   F.surSiteRefuse(() => toast('Cette page n’est pas dans la liste autorisée : elle ne s’ouvre pas.', 5000));
   const reprise = seanceAReprendre();
   if (reprise) {
