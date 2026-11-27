@@ -23,6 +23,8 @@ let pleinEcran = true;
 const DOSSIER_PROFIL = path.join(app.getPath('appData'), 'Flocon');
 const FICHIER_PROFIL = path.join(DOSSIER_PROFIL, 'profil.json');
 const FICHIER_FERME = path.join(DOSSIER_PROFIL, 'ferme.json');
+// Date de chaque document Word au moment où Flocon l'a fabriqué : s'il a changé depuis, elle l'a retouché dans Writer.
+const FICHIER_DOCUMENTS = path.join(DOSSIER_PROFIL, 'documents.json');
 let seanceCourante = null;
 
 function dossiers() {
@@ -67,7 +69,8 @@ function creerFenetre() {
   screen.on('display-added', caler);
   screen.on('display-removed', caler);
   fen.loadFile(path.join(__dirname, 'ui', 'index.html'));
-  fen.once('ready-to-show', () => { appliquerMode(true); fen.show(); });
+  // Le mode demandé par l'interface avant l'affichage (reprise d'une séance) est respecté.
+  fen.once('ready-to-show', () => { appliquerMode(pleinEcran); fen.show(); });
   fen.on('close', (e) => {
     if (quitter) return;
     // Niveau 4 : elle peut fermer Flocon. On note la séance pour ne pas le rouvrir automatiquement.
@@ -285,10 +288,18 @@ poser('documentExpose', (fichier) => {
   const { p } = sur('exposes', fichier);
   const x = lireJson(p, null); if (!x) return { ok: false };
   const docx = p.replace(/\.json$/, '.docx');
-  if (!fs.existsSync(docx)) fs.writeFileSync(docx, require('./lib/docx').exposeDocx(x, CAT.EXPOSE_ETAPES));
+  const marques = lireJson(FICHIER_DOCUMENTS, {}) || {};
+  // Sans marque (document d'une version précédente) ou retouché depuis : on ne l'écrase jamais.
+  let garde = fs.existsSync(docx) && !(marques[docx] && Math.abs(fs.statSync(docx).mtimeMs - marques[docx]) < 2000);
+  if (!garde) {
+    try {
+      fs.writeFileSync(docx, require('./lib/docx').exposeDocx(x, CAT.EXPOSE_ETAPES));
+      marques[docx] = fs.statSync(docx).mtimeMs; ecrireJson(FICHIER_DOCUMENTS, marques);
+    } catch (e) { garde = fs.existsSync(docx); if (!garde) throw e; } // ouvert dans Writer : on l'ouvre tel quel
+  }
   const writer = (CAT.LOGICIELS.writer.chemins || []).map(developper).find((c) => fs.existsSync(c));
   if (writer) spawn(writer, [docx], { detached: true, stdio: 'ignore' }).unref(); else shell.openPath(docx);
-  return { ok: true, chemin: docx };
+  return { ok: true, chemin: docx, garde };
 });
 poser('imprimer', (chemin) => {
   const permis = Object.values(dossiers()).map((d) => path.resolve(d));

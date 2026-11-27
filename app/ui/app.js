@@ -93,7 +93,10 @@ function jetonsRestants() {
 async function sonder() {
   try {
     const r = await F.etat();
+    const ancien = niveau(); const anciensJeux = JSON.stringify((S.config && S.config.jeux) || []);
     S.etat = r.etat; S.config = r.config;
+    // Le parent a changé le niveau ou les jeux : on redessine (bouton de fermeture, tuile Internet, Mes jeux).
+    if (S.ecran === 'bureau' && !S.voile && (niveau() !== ancien || JSON.stringify(S.config.jeux || []) !== anciensJeux)) render();
     if (S.ecran === 'bureau') {
       const reste = resteMinutes();
       if (reste !== null && reste <= (niveau() >= 3 ? 5 : 2) && reste > 0 && !S.averti2) { S.averti2 = true; toast('Plus que ' + reste + ' minute' + (reste > 1 ? 's' : '') + ' : pense à enregistrer ton travail.', 9000); }
@@ -778,7 +781,7 @@ const A = {
   evType: (d) => { S.vue.type = d.t; render(); },
   ajouterEv: async () => { const t = (S.vue.titre || '').trim(); if (!t || !S.vue.date) return toast('Écris ce qui se passe et choisis la date.'); S.docs.agenda.evenements.push({ id: 'e' + Date.now().toString(36), date: S.vue.date, titre: t, type: S.vue.type || 'Autre' }); S.vue.titre = ''; await ecrireCarnet('agenda', 'agenda.json'); render(); },
   supprimerEv: async (d) => { S.docs.agenda.evenements = S.docs.agenda.evenements.filter((e) => e.id !== d.id); await ecrireCarnet('agenda', 'agenda.json'); render(); },
-  documentWord: async () => { const r2 = await F.documentExpose(S.vue.fichier); toast(r2 && r2.ok ? 'Ton document s’ouvre dans Writer. Il est rangé dans « Mes exposés ».' : 'Le document n’a pas pu être créé.', 6000); },
+  documentWord: async () => { const r2 = await F.documentExpose(S.vue.fichier); toast(!(r2 && r2.ok) ? 'Le document n’a pas pu être créé.' : r2.garde ? 'Ton document a été retouché dans Writer : je l’ouvre tel quel, sans l’écraser.' : 'Ton document s’ouvre dans Writer, avec tes dernières notes. Il est rangé dans « Mes exposés ».', 6000); },
   imprimerOeuvre: async (d) => { const o = S.docs.creations[Number(d.i)]; const r2 = await F.imprimer(o.chemin); toast(r2 && r2.ok ? 'La fenêtre d’impression s’ouvre.' : 'Impossible d’imprimer ce fichier.'); },
   pJeu: (d) => { const j = S.voile.jeux; const k = j.findIndex((x) => x.id === d.id); if (k >= 0) j.splice(k, 1); else j.push({ id: d.id, nom: d.nom }); render(); },
   pEnregistrer: async () => {
@@ -832,6 +835,15 @@ function sonnerie() { try { const ctx = new AudioContext(); [0, .35, .7].forEach
 // ======================================================================
 // DÉMARRAGE
 // ======================================================================
+// Une séance encore ouverte côté gardien, commencée il y a moins que sa durée prévue (plus un quart d'heure).
+function seanceAReprendre() {
+  const s = S.etat && S.etat.session;
+  if (!s || s.fermee || !S.profil.atelierFait) return null;
+  const limite = s.aDeux ? (S.config.aDeuxMaxMinutes || 120) : (s.pris || 0) * 15;
+  if (!limite || Date.now() > new Date(s.debut).getTime() + (limite + 15) * 60000) return null;
+  return { s, limite };
+}
+
 async function demarrer() {
   D = await F.init();
   S.config = D.config; S.etat = D.etat;
@@ -842,6 +854,15 @@ async function demarrer() {
   S.ecran = S.profil.atelierFait ? 'accueil' : 'atelier';
   if (!S.profil.atelierFait) F.demande({ atelier: true });
   F.surSiteRefuse(() => toast('Cette page n’est pas dans la liste autorisée : elle ne s’ouvre pas.', 5000));
+  const reprise = seanceAReprendre();
+  if (reprise) {
+    // Flocon rouvert pendant une séance (niveau 4, plantage, relance) : on reprend au bureau, sans reprendre de jetons.
+    S.seance = { id: reprise.s.id, debut: new Date(reprise.s.debut).getTime(), jetons: reprise.s.pris, aDeux: !!reprise.s.aDeux, prevu: reprise.limite, intention: null, libre: '', reprise: true };
+    F.seance(S.seance.id);
+    S.ecran = 'bureau'; S.rubrique = ordreRubriques()[0].id;
+    await F.mode(false);
+    dire('On reprend ta séance là où tu l’avais laissée.');
+  }
   render();
   setInterval(sonder, 15000);
   setInterval(() => { if (S.ecran === 'accueil') { const h = document.querySelector('.heure'); if (h) { const d = new Date(); h.textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); } } }, 20000);

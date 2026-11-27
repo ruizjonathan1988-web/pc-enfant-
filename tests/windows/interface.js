@@ -21,6 +21,17 @@ const config = () => lire(path.join(BASE, 'config.json'));
 const enfant = (compte) => config().enfants.find((e) => e.compte.toLowerCase() === compte.toLowerCase());
 const etat = () => lire(path.join(BASE, 'enfants', 'test', 'etat.json'));
 const demande = () => lire(path.join(BASE, 'boite', 'test', 'demande.json'));
+// Le texte du document Word (word/document.xml) d'un .docx fabriqué par Flocon.
+function texteDocx(f) {
+  const b = fs.readFileSync(f); let i = 0;
+  while (b.readUInt32LE(i) === 0x04034b50) {
+    const methode = b.readUInt16LE(i + 8), taille = b.readUInt32LE(i + 18), n = b.readUInt16LE(i + 26), x = b.readUInt16LE(i + 28);
+    const nom = b.slice(i + 30, i + 30 + n).toString(); const debut = i + 30 + n + x; const donnees = b.slice(debut, debut + taille);
+    if (nom === 'word/document.xml') return (methode === 8 ? require('zlib').inflateRawSync(donnees) : donnees).toString();
+    i = debut + taille;
+  }
+  throw new Error('word/document.xml introuvable');
+}
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 // Un tic du gardien, tout de suite (le vrai tourne chaque minute sous SYSTEM).
 function tic() { execFileSync(EXE, [GARDIEN], { env: Object.assign({}, process.env, { ELECTRON_RUN_AS_NODE: '1' }), windowsHide: true }); }
@@ -136,6 +147,21 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     const b = fs.readFileSync(path.join(d, docx[0])); assert.strictEqual(b.readUInt32LE(0), 0x04034b50, 'archive Word valide');
     const json = fs.readdirSync(d).find((f) => f.endsWith('.json'));
     assert.strictEqual(lire(path.join(d, json)).etapes[0].notes, 'Comment vivent les loups ?', 'les notes sont enregistrées');
+    assert.ok(texteDocx(path.join(d, docx[0])).includes('Comment vivent les loups'), 'les notes sont dans le document Word');
+  });
+  await etape('Exposé : le document Word suit ses nouvelles notes', async () => {
+    await clic('[data-a="etapeExpose"][data-i="0"]');
+    await page.fill('[data-in="noteExpose"]', 'Ils vivent en meute.'); await pause(1200);
+    await clic('[data-a="documentWord"]'); await page.waitForSelector('text=avec tes dernières notes'); await pause(800);
+    const d = path.join(os.homedir(), 'Documents', 'Mes exposés'); const f = path.join(d, fs.readdirSync(d).find((x) => x.endsWith('.docx')));
+    assert.ok(texteDocx(f).includes('Ils vivent en meute'), 'document régénéré avec les nouvelles notes');
+  });
+  await etape('Exposé : un document retouché dans Writer n’est jamais écrasé', async () => {
+    const d = path.join(os.homedir(), 'Documents', 'Mes exposés'); const f = path.join(d, fs.readdirSync(d).find((x) => x.endsWith('.docx')));
+    const plusTard = new Date(Date.now() + 120000); fs.utimesSync(f, plusTard, plusTard); // comme si elle l'avait enregistré dans Writer
+    await page.fill('[data-in="noteExpose"]', 'Changement à ne pas écrire.'); await pause(1200);
+    await clic('[data-a="documentWord"]'); await page.waitForSelector('text=retouché dans Writer');
+    assert.ok(!texteDocx(f).includes('Changement'), 'son travail dans Writer est gardé');
     await clic('[data-a="fermerVue"]');
   });
   await etape('Carnets : lecture, journal, Grand Pourquoi', async () => {
@@ -206,9 +232,9 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     const b = enfant('Brune'); assert.strictEqual(b.jetonsSemaine, 8, 'jetons de Brune inchangés'); assert.deepStrictEqual(b.sites, ['vikidia.org'], 'sites de Brune inchangés');
   });
   await etape('Niveau 3 : la tuile Internet apparaît', async () => {
-    await pause(16000); // l'interface relit l'état toutes les 15 secondes
     await rubrique('Je découvre');
-    await page.waitForSelector('[data-a="tuile"]:has-text("Internet")', { timeout: 10000 });
+    // Sans aucun clic : l'interface relit l'état toutes les 15 secondes et se redessine d'elle-même.
+    await page.waitForSelector('[data-a="tuile"]:has-text("Internet")', { timeout: 25000 });
   });
   await etape('Espace parent : code faux envoyé en douce, refusé par le gardien', async () => {
     fs.writeFileSync(path.join(BASE, 'boite', 'test', 'parent.json'), JSON.stringify({ pin: '0000', changements: { jetonsSemaine: 40 } }));
@@ -255,6 +281,31 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await clic('[data-a="intention"][data-id="creer"]'); await clic('[data-a="commencer"]');
     await page.waitForSelector('.fenetre');
     tic();
+  });
+  await etape('Niveau 4 : elle ferme Flocon elle-même', async () => {
+    await rubrique('Mon style'); await clic('[data-a="espaceParent"]'); await code('1234');
+    await page.waitForSelector('[data-in="pJetons"]'); await clic('[data-a="pNiveau"][data-n="4"]'); await clic('[data-a="pEnregistrer"]');
+    tic(); assert.strictEqual(enfant('Test').niveau, 4);
+    await page.waitForSelector('[data-a="fermerFlocon"]', { timeout: 25000 });
+    const proc = appli.process(); const fin = new Promise((r) => proc.once('exit', r));
+    await clic('[data-a="fermerFlocon"]');
+    await Promise.race([fin, pause(15000).then(() => { throw new Error('Flocon ne s’est pas fermé'); })]);
+  });
+  await etape('Niveau 4 : la relance automatique ne le rouvre pas', async () => {
+    await toutFermer();
+    const p = require('child_process').spawn(EXE, [], { env: Object.assign({}, process.env, { FLOCON_COMPTE: COMPTE }), stdio: 'ignore' });
+    const code = await Promise.race([new Promise((r) => p.once('exit', r)), pause(20000).then(() => 'toujours ouvert')]);
+    if (code === 'toujours ouvert') { try { p.kill(); } catch (e) { /* rien */ } }
+    assert.notStrictEqual(code, 'toujours ouvert', 'Flocon s’est rouvert tout seul');
+  });
+  await etape('Niveau 4 : rouvert par le menu Démarrer, il reprend la séance', async () => {
+    appli = await electron.launch({ executablePath: EXE, args: ['--ouvrir'], env: Object.assign({}, process.env, { FLOCON_COMPTE: COMPTE }), timeout: 60000 });
+    page = await appli.firstWindow(); page.on('pageerror', (e) => erreursPage.push(e.message));
+    await page.waitForSelector('.fenetre', { timeout: 30000 });
+    await page.waitForSelector('text=Séance à deux');
+    assert.ok(!(await fenetre()).kiosk, 'au bureau, pas en plein écran');
+    const avant = etat().session.id; tic();
+    assert.strictEqual(etat().session.id, avant, 'même séance, aucune nouvelle prise de jetons');
   });
   await etape('Espace parent : refaire l’atelier', async () => {
     await rubrique('Mon style'); await clic('[data-a="espaceParent"]'); await code('1234');

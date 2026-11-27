@@ -77,6 +77,18 @@ console.log('atelier : ok');
   assert.strictEqual(p4.config.niveau, 4);
 }
 console.log('niveaux : ok');
+// Après une fin de temps : grâce courte tout de suite, mais grâce normale à la connexion suivante.
+{
+  let e = T.tic(null, cfg, { sessionId: 'g', jetons: 1 }, lundi, true).etat; let dec = -1;
+  for (let i = 1; i < 30 && dec < 0; i++) { const x = T.tic(e, cfg, { sessionId: 'g', jetons: 1 }, min(lundi, i), true); e = x.etat; if (x.deconnecter) dec = i; }
+  assert.strictEqual(dec, 16, 'déconnexion une minute après la fin');
+  assert.ok(e.session.fermeeLe, 'heure de fin notée');
+  // Le lendemain, elle se reconnecte : elle a de nouveau ses cinq minutes à l'accueil.
+  const demain = new Date(2026, 10, 24, 17, 0); let dec2 = -1;
+  for (let i = 0; i < 10 && dec2 < 0; i++) { const x = T.tic(e, cfg, { sessionId: 'g', jetons: 1 }, min(demain, i), true); e = x.etat; if (x.deconnecter) dec2 = i; }
+  assert.strictEqual(dec2, 5, 'grâce normale (5 minutes) le lendemain, et non une minute');
+}
+console.log('grâce après fin du temps : ok');
 
 // Document Word d'un exposé : archive valide, CRC correct.
 {

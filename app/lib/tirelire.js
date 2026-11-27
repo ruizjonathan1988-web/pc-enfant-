@@ -35,7 +35,7 @@ function limiteSession(session, config) {
 }
 
 // Ferme la session en cours et rend les jetons entiers non entamés.
-function fermerSession(etat, config, raison) {
+function fermerSession(etat, config, raison, maintenant) {
   const s = etat.session;
   if (!s || s.fermee) return etat;
   let rendus = 0;
@@ -47,6 +47,7 @@ function fermerSession(etat, config, raison) {
   s.fermee = true;
   s.raison = raison;
   s.rendus = rendus;
+  if (maintenant) s.fermeeLe = maintenant.toISOString();
   etat.journal = (etat.journal || []).concat([{ id: s.id, debut: s.debut, minutes: s.minutes, pris: s.pris, rendus, aDeux: !!s.aDeux, raison }]).slice(-60);
   return etat;
 }
@@ -67,14 +68,14 @@ function tic(etatEntree, config, demande, maintenant, actif) {
   // Nouvelle semaine : la tirelire se remplit, sans report.
   const sem = idSemaine(maintenant);
   if (etat.semaine !== sem) {
-    if (etat.session && !etat.session.fermee) fermerSession(etat, config, 'semaine');
+    if (etat.session && !etat.session.fermee) fermerSession(etat, config, 'semaine', maintenant);
     etat.semaine = sem;
     etat.jetonsRestants = config.jetonsSemaine;
   }
 
   // Nouvelle séance demandée par l'interface.
   if (demande && demande.sessionId && (!etat.session || etat.session.id !== demande.sessionId)) {
-    if (etat.session && !etat.session.fermee) fermerSession(etat, config, 'nouvelle');
+    if (etat.session && !etat.session.fermee) fermerSession(etat, config, 'nouvelle', maintenant);
     const aDeux = !!demande.aDeuxPin && pinValide(config, demande.aDeuxPin);
     const max = Math.min(config.maxParSeance, etat.jetonsRestants);
     const pris = aDeux ? 0 : Math.max(0, Math.min(Math.floor(Number(demande.jetons) || 0), max));
@@ -89,13 +90,13 @@ function tic(etatEntree, config, demande, maintenant, actif) {
 
   // « J'ai fini » : on ferme et on rend les jetons non entamés.
   if (enCours && demande && demande.fini && demande.sessionId === s.id) {
-    fermerSession(etat, config, 'fini');
+    fermerSession(etat, config, 'fini', maintenant);
   } else if (actif) {
     if (enCours) {
       s.minutes += 1;
       if (s.minutes >= limiteSession(s, config)) {
         // Temps écoulé : la séance se ferme, l'écran « au revoir » a une minute pour s'afficher.
-        fermerSession(etat, config, 'temps');
+        fermerSession(etat, config, 'temps', maintenant);
         etat.attente = 0;
       }
     } else {
@@ -106,7 +107,10 @@ function tic(etatEntree, config, demande, maintenant, actif) {
       const premiere = demande && demande.atelier && !(etat.journal || []).length && !s;
       // Niveau 4 du permis : fin douce, cinq minutes pour terminer tranquillement.
       const graceTemps = (config.niveau || 1) >= 4 ? 5 : 1;
-      const grace = premiere ? 30 : s && s.raison === 'temps' ? graceTemps : (config.graceMinutes || 5);
+      // La grâce courte ne vaut que juste après la fin du temps : à la connexion suivante (même un peu plus tard),
+      // elle retrouve le temps normal pour choisir ses jetons.
+      const justeApres = s && s.raison === 'temps' && s.fermeeLe && (maintenant - new Date(s.fermeeLe)) <= (graceTemps + 2) * 60000;
+      const grace = premiere ? 30 : justeApres ? graceTemps : (config.graceMinutes || 5);
       if (etat.attente > grace) { deconnecter = true; etat.attente = 0; }
     }
   }
