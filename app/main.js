@@ -50,7 +50,7 @@ function configPublique() {
 
 function creerFenetre() {
   fen = new BrowserWindow({
-    width: 1180, height: 760, minWidth: 980, minHeight: 640,
+    width: 1180, height: 760, minWidth: 640, minHeight: 480, resizable: false, maximizable: false,
     frame: false, show: false, backgroundColor: '#0F0B2E',
     closable: false, fullscreenable: true, autoHideMenuBar: true,
     title: 'Flocon',
@@ -58,6 +58,9 @@ function creerFenetre() {
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: false, webviewTag: true, spellcheck: false }
   });
   fen.setMenu(null);
+  screen.on('display-metrics-changed', caler);
+  screen.on('display-added', caler);
+  screen.on('display-removed', caler);
   fen.loadFile(path.join(__dirname, 'ui', 'index.html'));
   fen.once('ready-to-show', () => { appliquerMode(true); fen.show(); });
   fen.on('close', (e) => {
@@ -75,6 +78,11 @@ function creerFenetre() {
   fen.webContents.on('will-navigate', (e) => e.preventDefault());
 }
 
+function caler() {
+  if (!fen || pleinEcran) return;
+  const d = screen.getDisplayMatching(fen.getBounds()) || screen.getPrimaryDisplay();
+  fen.setBounds(d.workArea);
+}
 function appliquerMode(plein) {
   if (!fen) return;
   pleinEcran = plein;
@@ -84,9 +92,8 @@ function appliquerMode(plein) {
   } else {
     fen.setAlwaysOnTop(false);
     fen.setKiosk(false);
-    const zone = screen.getPrimaryDisplay().workArea;
-    const w = Math.min(1180, zone.width - 40), h = Math.min(760, zone.height - 40);
-    fen.setBounds({ x: zone.x + Math.round((zone.width - w) / 2), y: zone.y + Math.round((zone.height - h) / 2), width: w, height: h });
+    // Le bureau occupe tout l'écran sauf la barre des tâches, qui reste visible pour retrouver ses logiciels.
+    caler();
   }
 }
 
