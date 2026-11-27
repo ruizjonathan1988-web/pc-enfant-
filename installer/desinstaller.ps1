@@ -31,5 +31,6 @@ if ($config -and $config.enfant.sid) {
 }
 $r = Read-Host '  Supprimer la tirelire et les réglages (C:\ProgramData\Flocon) ? [o/N]'
 if ($r -match '^[oO]') { Remove-Item -Recurse -Force $Donnees; Write-Host '  [ok] Réglages supprimés.' -ForegroundColor Green }
+Remove-Item (Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs\Flocon.lnk') -Force -ErrorAction SilentlyContinue
 Write-Host '  Ses créations (Documents, Images) ne sont jamais supprimées.'
 Read-Host '  Entrée pour fermer'

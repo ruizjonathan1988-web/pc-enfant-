@@ -67,3 +67,27 @@ console.log('tirelire : tous les tests passent');
   assert.ok(!dec2, 'pas de déconnexion pendant l’atelier');
 }
 console.log('atelier : ok');
+// niveau 4 : fin douce (5 minutes de grâce après la fin du temps)
+{
+  const c4 = Object.assign({}, cfg, { niveau: 4 });
+  let e4 = T.tic(null, c4, { sessionId: 'n4', jetons: 1 }, lundi, true).etat; let dec4 = -1;
+  for (let i = 1; i < 30 && dec4 < 0; i++) { const x = T.tic(e4, c4, { sessionId: 'n4', jetons: 1 }, min(lundi, i), true); e4 = x.etat; if (x.deconnecter) dec4 = i; }
+  assert.strictEqual(dec4, 20, 'niveau 4 : déconnexion 5 minutes après la fin (15 + 5)');
+  const p4 = T.appliquerParent(cfg, null, { pin: '1234', changements: { niveau: 9 } });
+  assert.strictEqual(p4.config.niveau, 4);
+}
+console.log('niveaux : ok');
+
+// Document Word d'un exposé : archive valide, CRC correct.
+{
+  const assert = require('assert'); const zlib = require('zlib');
+  const { exposeDocx, crc32 } = require('../app/lib/docx');
+  assert.strictEqual(crc32(Buffer.from('123456789')), 0xCBF43926);
+  const b = exposeDocx({ sujet: 'Les <loups> & co', etapes: [{ notes: 'a\nb' }] }, []);
+  assert.strictEqual(b.readUInt32LE(0), 0x04034b50);
+  const n = b.readUInt16LE(26); const taille = b.readUInt32LE(18);
+  const ct = zlib.inflateRawSync(b.slice(30 + n, 30 + n + taille)).toString();
+  assert.ok(ct.includes('wordprocessingml'));
+  assert.ok(b.includes(Buffer.from('word/document.xml')));
+  console.log('document Word : ok');
+}

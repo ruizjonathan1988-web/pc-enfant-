@@ -104,7 +104,9 @@ function tic(etatEntree, config, demande, maintenant, actif) {
       etat.attente = (etat.attente || 0) + 1;
       // Première connexion (atelier) : 30 minutes, une seule fois, tant qu'aucune séance n'a eu lieu.
       const premiere = demande && demande.atelier && !(etat.journal || []).length && !s;
-      const grace = premiere ? 30 : s && s.raison === 'temps' ? 1 : (config.graceMinutes || 5);
+      // Niveau 4 du permis : fin douce, cinq minutes pour terminer tranquillement.
+      const graceTemps = (config.niveau || 1) >= 4 ? 5 : 1;
+      const grace = premiere ? 30 : s && s.raison === 'temps' ? graceTemps : (config.graceMinutes || 5);
       if (etat.attente > grace) { deconnecter = true; etat.attente = 0; }
     }
   }
@@ -116,7 +118,7 @@ function tic(etatEntree, config, demande, maintenant, actif) {
 }
 
 // Changements demandés depuis le panneau parent : appliqués seulement avec le bon code.
-const CLES_PARENT = ['jetonsSemaine', 'maxParSeance', 'aDeuxMaxMinutes', 'sites', 'jeux', 'logiciels'];
+const CLES_PARENT = ['jetonsSemaine', 'maxParSeance', 'aDeuxMaxMinutes', 'sites', 'jeux', 'logiciels', 'niveau'];
 function appliquerParent(config, etat, requete) {
   if (!requete || !pinValide(config, requete.pin)) return { ok: false, config, etat };
   const c = JSON.parse(JSON.stringify(config));
@@ -125,6 +127,7 @@ function appliquerParent(config, etat, requete) {
   for (const k of CLES_PARENT) if (ch[k] !== undefined) c[k] = ch[k];
   c.jetonsSemaine = Math.max(0, Math.min(40, Math.floor(Number(c.jetonsSemaine) || 0)));
   c.maxParSeance = Math.max(1, Math.min(8, Math.floor(Number(c.maxParSeance) || 1)));
+  c.niveau = Math.max(1, Math.min(4, Math.floor(Number(c.niveau) || 1)));
   if (ch.ajouterJetons && e) e.jetonsRestants = Math.max(0, e.jetonsRestants + Math.floor(Number(ch.ajouterJetons)));
   if (ch.nouveauPin && String(ch.nouveauPin).length >= 4) {
     c.pinSel = crypto.randomBytes(8).toString('hex');
@@ -141,6 +144,7 @@ function configParDefaut() {
     maxParSeance: 5,
     aDeuxMaxMinutes: 120,
     graceMinutes: 5,
+    niveau: 1,
     pinSel: null,
     pinHash: null,
     sites: null, // null = liste par défaut de l'application

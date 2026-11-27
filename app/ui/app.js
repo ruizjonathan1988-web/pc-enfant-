@@ -6,6 +6,12 @@ const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&':
 const ic = (d, coul, taille) => `<svg width="${taille || 26}" height="${taille || 26}" viewBox="0 0 24 24" fill="none" stroke="${coul || '#fff'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
 
 let D = null; // données d'initialisation
+const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+const isoJour = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+function lundiDe(date) { const d = new Date(date.getFullYear(), date.getMonth(), date.getDate()); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }
+const idSemaine = (date) => isoJour(lundiDe(date));
+const jourIdx = (date) => (date.getDay() + 6) % 7;
+const niveau = () => (S.config && S.config.niveau) || 1;
 const S = {
   ecran: 'chargement', etape: 0, profil: null, config: null, etat: null,
   accueil: { etape: 'tirelire', jetons: 1, aDeuxPin: null, intention: null, libre: '' },
@@ -90,7 +96,7 @@ async function sonder() {
     S.etat = r.etat; S.config = r.config;
     if (S.ecran === 'bureau') {
       const reste = resteMinutes();
-      if (reste !== null && reste <= 2 && reste > 0 && !S.averti2) { S.averti2 = true; toast('Plus que ' + reste + ' minute' + (reste > 1 ? 's' : '') + ' : pense à enregistrer ton travail.', 9000); }
+      if (reste !== null && reste <= (niveau() >= 3 ? 5 : 2) && reste > 0 && !S.averti2) { S.averti2 = true; toast('Plus que ' + reste + ' minute' + (reste > 1 ? 's' : '') + ' : pense à enregistrer ton travail.', 9000); }
       if (reste === 0 && !(S.seance && S.seance.aDeux && !S.etat)) { allerFin(true); return; }
       if (S.etat && S.etat.dernierMessage && S.seance && S.etat.dernierMessage.session === S.seance.id && S.etat.dernierMessage.code === 'pin-refuse' && !S.seance.pinSignale) { S.seance.pinSignale = true; toast('Le code n’a pas été accepté : ta séance compte sur tes jetons.', 7000); }
       majPied();
@@ -177,11 +183,23 @@ function ordreRubriques() {
 }
 
 // ---------- ACCUEIL (chaque séance) ----------
+const HUMEURS = ['En forme', 'Tranquille', 'Envie de dormir', 'Pas de bonne humeur'];
+function rappelsAccueil() {
+  const out = []; const auj = new Date();
+  const plan = S.profil.plan;
+  if (plan && plan.semaine === idSemaine(auj) && plan.jours) out.push('Ce que tu avais prévu aujourd’hui : <b>' + plan.jours[jourIdx(auj)] + ' jeton' + (plan.jours[jourIdx(auj)] > 1 ? 's' : '') + '</b>.');
+  if (auj.getDay() === 0) out.push('C’est dimanche : pense à faire le bilan de ta semaine avec un adulte (Mes outils, « Ma semaine »).');
+  const ev = ((S.docs.agenda && S.docs.agenda.evenements) || []).filter((e) => { const d = new Date(e.date + 'T12:00'); const diff = (d - new Date(isoJour(auj) + 'T12:00')) / 86400000; return diff >= 0 && diff <= 7; }).sort((x, y) => x.date.localeCompare(y.date)).slice(0, 2);
+  ev.forEach((e) => out.push('Bientôt : <b>' + esc(e.titre) + '</b>, ' + esc(new Date(e.date + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })) + '.'));
+  return out.length ? `<div class="astuce" style="flex-direction:column;gap:4px">${out.map((t) => `<span>${t}</span>`).join('')}</div>` : '';
+}
+
 function vueAccueil() {
   const a = S.accueil; const restants = jetonsRestants(); const max = Math.max(0, Math.min(S.config.maxParSeance, restants));
   const portrait = S.profil.avatar ? `<img src="${S.profil.avatar}" alt="">` : `<img src="${imgCompa(restants === 0 ? 'attend' : 'portrait', null, 'salut')}" alt="">`;
   const h = new Date(); const heure = String(h.getHours()).padStart(2, '0') + ':' + String(h.getMinutes()).padStart(2, '0');
   let corps;
+  const rappels = rappelsAccueil();
   if (a.etape === 'tirelire') {
     if (a.jetons > max) a.jetons = max;
     if (a.jetons < 1 && max >= 1) a.jetons = 1;
@@ -190,12 +208,14 @@ function vueAccueil() {
     corps = `<h1>Bonjour ${esc(prenom())} !</h1>
       <p class="chapo">Il reste <b>${restants} jeton${restants > 1 ? 's' : ''}</b> dans ta tirelire cette semaine.</p>
       <div class="rang">${pieces || '<span class="muet">Ta tirelire est vide jusqu’à lundi.</span>'}</div>
+      ${rappels}
       ${vide ? '' : `<div class="rang entre"><div class="compteur"><button class="rond" data-a="jetonsMoins" aria-label="un de moins">−</button><span class="val">${a.jetons}</span><button class="rond" data-a="jetonsPlus" aria-label="un de plus">+</button></div><span class="titre" style="font-size:22px">${a.jetons * 15} minutes</span></div><p class="muet" style="margin:0">Au maximum ${S.config.maxParSeance} jetons par séance. Ceux que tu ne commences pas reviennent dans ta tirelire.</p>`}
       <div class="rang entre"><button class="btn doux" data-a="aDeux">À deux avec un adulte (gratuit)</button>${vide ? '<button class="btn" data-a="eteindre">Éteindre</button>' : '<button class="btn grand" data-a="versIntention">Suivant</button>'}</div>`;
   } else {
     corps = `<h1>Aujourd’hui, je viens pour…</h1><p class="chapo">${a.aDeuxPin ? 'Séance à deux : profitez-en !' : a.jetons * 15 + ' minutes à toi.'} Choisis ce que tu veux faire, ça t’aidera à ne pas te perdre.</p>
       <div class="rang">${D.catalogue.INTENTIONS.map((x) => `<button class="puce ${a.intention === x.id ? 'on' : ''}" data-a="intention" data-id="${x.id}">${esc(x.texte)}</button>`).join('')}</div>
       <input class="champ" data-in="libre" maxlength="80" value="${esc(a.libre)}" placeholder="Ou écris-le avec tes mots">
+      <div class="rang"><span class="muet">Et comment tu te sens ? (si tu veux)</span>${HUMEURS.map((h) => `<button class="puce ${a.humeur === h ? 'on' : ''}" data-a="humeur" data-h="${h}">${h}</button>`).join('')}</div>
       <div class="rang entre"><button class="btn doux" data-a="versTirelire">Retour</button><button class="btn grand" data-a="commencer" ${a.intention || a.libre.trim() ? '' : 'disabled'}>C’est parti</button></div>`;
   }
   return `<div class="plein"><div class="rang" style="gap:48px;align-items:center;flex-wrap:nowrap"><div class="section" style="align-items:center"><span class="heure">${heure}</span><div class="compagnon" style="width:200px;height:200px">${portrait}</div></div><div class="carte verre" style="width:min(640px,60vw)">${corps}</div></div></div>`;
@@ -206,7 +226,7 @@ function vueBureau() {
   const rubs = ordreRubriques();
   if (!S.rubrique) S.rubrique = rubs[0].id;
   return `<div class="fenetre">
-    <div class="barre-titre"><span style="flex:1">${esc(nomCompa())} · l’ordinateur de ${esc(prenom())}</span><button class="reduire" data-a="reduire" aria-label="Réduire">—</button></div>
+    <div class="barre-titre"><span style="flex:1">${esc(nomCompa())} · l’ordinateur de ${esc(prenom())}</span><button class="reduire" data-a="reduire" aria-label="Réduire">—</button>${niveau() >= 4 ? '<button class="reduire" data-a="fermerFlocon" aria-label="Fermer Flocon">×</button>' : ''}</div>
     <div class="corps verre">
       <div class="onglets" role="tablist">${rubs.map((r) => `<button role="tab" class="${S.rubrique === r.id && !S.vue ? 'on' : ''}" data-a="rubrique" data-id="${r.id}">${esc(r.nom)}</button>`).join('')}</div>
       <div class="contenu">${S.vue ? vueInterne() : vueRubrique(rubs.find((r) => r.id === S.rubrique) || rubs[0])}</div>
@@ -234,7 +254,7 @@ function tuilesRubrique(r) {
     const jeux = (S.config.jeux || []).map((j) => ({ type: 'jeu', ref: j.id, nom: j.nom, sous: 'Choisi avec un adulte', icone: D.catalogue.ICONES.manette, couleur: '#5B3FD6' }));
     return [{ type: 'logiciel', ref: 'minecraft', nom: 'Minecraft', sous: 'Édition Java, en solo', icone: D.catalogue.ICONES.cube, couleur: '#2FA36B' }].concat(jeux);
   }
-  return r.tuiles;
+  return r.tuiles.filter((t) => !t.niveau || t.niveau <= niveau());
 }
 
 function vueRubrique(r) {
@@ -261,7 +281,7 @@ function entete(titre, extra) { return `<div class="entete"><button class="retou
 
 function vueInterne() {
   const v = S.vue;
-  const fn = { idee: vueIdee, galerie: vueGalerie, projet: vueProjet, exposes: vueExposes, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
+  const fn = { permis: vuePermis, semaine: vueSemaine, agenda: vueAgenda, idee: vueIdee, galerie: vueGalerie, projet: vueProjet, exposes: vueExposes, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
   return fn ? fn() : entete('Bientôt');
 }
 
@@ -277,11 +297,74 @@ function vueExposes() {
       <div class="etapes-expose">${D.catalogue.EXPOSE_ETAPES.map((e, k) => `<button class="${k === i ? 'on' : (x.etapes[k] && x.etapes[k].fait ? 'fait' : '')}" data-a="etapeExpose" data-i="${k}">${x.etapes[k] && x.etapes[k].fait ? '✓ ' : ''}${k + 1}<b>${esc(e.nom)}</b></button>`).join('')}</div>
       <div class="panneau"><h3>${esc(et.titre)}</h3><p style="margin:0;line-height:1.5">${esc(et.consigne)}</p><div class="astuce"><b>Astuce</b><span>${esc(et.astuce)}</span></div>
       <textarea class="champ" data-in="noteExpose" rows="7" placeholder="Écris ici…">${esc(st.notes || '')}</textarea>
-      <div class="rang">${outils}<button class="btn doux petit" data-a="dossierExposes">Mon dossier d’exposés</button><span style="flex:1"></span><button class="btn petit" style="background:${st.fait ? '#2FA36B' : '#1E2A4A'}" data-a="etapeFaite">${st.fait ? '✓ Étape faite' : 'J’ai fini cette étape'}</button></div></div></div>`;
+      <div class="rang">${outils}<button class="btn petit" style="background:#1F5FA8" data-a="documentWord">Mon document Word</button><button class="btn doux petit" data-a="dossierExposes">Mon dossier d’exposés</button><span style="flex:1"></span><button class="btn petit" style="background:${st.fait ? '#2FA36B' : '#1E2A4A'}" data-a="etapeFaite">${st.fait ? '✓ Étape faite' : 'J’ai fini cette étape'}</button></div></div></div>`;
   }
   return `<div class="section">${entete('Mes exposés')}
     <div class="panneau"><h3>Un nouvel exposé</h3><div class="rang"><input class="champ" style="flex:2" data-in="nouveauSujet" placeholder="Le sujet, par exemple : les loups" value="${esc(v.sujet || '')}"><input class="champ" style="flex:1" data-in="nouveauQuand" placeholder="Pour quand ?" value="${esc(v.quand || '')}"><button class="btn" data-a="creerExpose">Commencer</button></div></div>
     <div class="liste">${liste.length ? liste.map((e) => `<button class="ligne" data-a="ouvrirExpose" data-f="${esc(e.fichier)}">${ic(D.catalogue.ICONES.diapo, '#1F5FA8', 22)}<span class="grow"><b>${esc(e.sujet)}</b> <span class="muet">${e.pourQuand ? '· pour le ' + esc(e.pourQuand) : ''}</span></span><span class="etiquette">${(e.etapes || []).filter((z) => z && z.fait).length} / 6</span></button>`).join('') : '<p class="muet">Pas encore d’exposé. Le premier commence ici !</p>'}</div></div>`;
+}
+
+function vuePermis() {
+  const n = niveau(); const P = D.catalogue.PERMIS; const suivant = P.find((x) => x.n === n + 1);
+  const m = S.profil.missions || {};
+  const niveaux = P.map((x) => `<div class="ligne" style="${x.n === n ? 'box-shadow:0 0 0 3px #1F5FA8' : ''}${x.n > n ? ';opacity:.6' : ''}"><span class="etiquette" style="${x.n <= n ? 'background:#1F5FA8;color:#fff' : ''}">Niveau ${x.n}</span><span class="grow"><b>${esc(x.nom)}</b><br><span class="muet">${esc(x.ouvre)}</span></span>${x.n < n ? '<b style="color:#2FA36B">✓</b>' : x.n === n ? '<b style="color:#1F5FA8">Tu es ici</b>' : ''}</div>`).join('');
+  let missions = '';
+  if (suivant) {
+    const faites = suivant.missions.filter((_, i) => m[suivant.n + '-' + i]).length;
+    missions = `<div class="panneau"><h3>Pour passer au niveau ${suivant.n} : ${esc(suivant.nom)}</h3><p class="muet" style="margin:0">Coche ce que tu sais faire, puis montre-le à un adulte. C’est lui qui valide le passage avec son code.</p>
+      <div class="section" style="gap:8px">${suivant.missions.map((t, i) => { const k = suivant.n + '-' + i; return `<button class="coche ${m[k] ? 'on' : ''}" data-a="mission" data-k="${k}"><span class="case">${m[k] ? '✓' : ''}</span>${esc(t)}</button>`; }).join('')}</div>
+      <div class="rang entre"><span class="etiquette">${faites} sur ${suivant.missions.length}</span><button class="btn" data-a="passerNiveau" ${faites === suivant.missions.length ? '' : 'disabled'}>Je le montre à un adulte</button></div></div>`;
+  } else missions = '<div class="panneau"><b>Tu as ton permis complet.</b><span class="muet">Bravo : tu sais te servir d’un ordinateur, et t’arrêter quand tu as fini.</span></div>';
+  return `<div class="section">${entete('Mon permis')}<div class="liste">${niveaux}</div>${missions}</div>`;
+}
+
+function seancesDeLaSemaine(sem) {
+  const j = ((S.etat && S.etat.journal) || []).filter((x) => x.debut && idSemaine(new Date(x.debut)) === sem);
+  const f = ((S.docs.seances && S.docs.seances.seances) || []).filter((x) => x.date && idSemaine(new Date(x.date)) === sem);
+  return { j, f };
+}
+
+function vueSemaine() {
+  const auj = new Date(); const sem = S.vue.semaine || idSemaine(auj);
+  const { j, f } = seancesDeLaSemaine(sem);
+  const parJour = [0, 0, 0, 0, 0, 0, 0]; j.forEach((x) => { parJour[jourIdx(new Date(x.debut))] += x.minutes || 0; });
+  const total = parJour.reduce((a, b) => a + b, 0); const maxJ = Math.max(30, ...parJour);
+  const jetons = j.filter((x) => !x.aDeux).reduce((a, x) => a + (x.pris || 0) - (x.rendus || 0), 0);
+  const fini = j.filter((x) => x.raison === 'fini').length;
+  const fiertes = ['J’ai créé quelque chose', 'J’ai appris un truc', 'J’ai avancé mon exposé', 'J’ai joué', 'J’ai lu'];
+  const barres = parJour.map((mn, i) => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="height:110px;width:100%;display:flex;align-items:flex-end;justify-content:center"><div style="width:60%;height:${Math.round(mn / maxJ * 100)}%;min-height:${mn ? 4 : 0}px;background:#2FA36B;border-radius:8px 8px 4px 4px"></div></div><span class="muet" style="font-size:12px">${JOURS[i].slice(0, 3)}</span><b style="font-size:12px">${mn ? mn + ' min' : ''}</b></div>`).join('');
+  const sv = idSemaine(new Date(lundiDe(auj).getTime() + 7 * 86400000));
+  const plan = S.vue.plan || ((S.profil.plan && S.profil.plan.semaine === sv) ? S.profil.plan.jours.slice() : [1, 1, 1, 1, 1, 2, 1]);
+  S.vue.plan = plan; const somme = plan.reduce((a, b) => a + b, 0); const dispo = S.config.jetonsSemaine;
+  return `<div class="section">${entete('Ma semaine', '<span class="etiquette">à faire avec un adulte</span>')}
+    <div class="rang" style="gap:12px">${[['Temps d’écran', total + ' min'], ['Jetons dépensés', jetons + ' sur ' + S.config.jetonsSemaine], ['Séances', j.length], ['« J’ai fini » avant la fin', fini + ' sur ' + j.length]].map(([t, v]) => `<div class="panneau" style="flex:1;min-width:150px;gap:2px"><span class="muet" style="font-size:13px">${t}</span><b class="titre" style="font-size:24px">${v}</b></div>`).join('')}</div>
+    <div class="panneau"><h3>Jour par jour</h3><div style="display:flex;gap:6px">${barres}</div></div>
+    <div class="panneau"><h3>Ce dont j’ai été fière ou fier</h3>${f.length ? f.map((x) => `<div class="ligne"><span class="muet" style="width:90px">${esc(new Date(x.date).toLocaleDateString('fr-FR', { weekday: 'long' }))}</span><span class="grow">${(x.fierte || []).map((k) => esc(fiertes[k])).join(', ')}${x.texte ? ' : « ' + esc(x.texte) + ' »' : ''}${x.humeur ? ' <span class="etiquette">' + esc(x.humeur) + '</span>' : ''}</span></div>`).join('') : '<span class="muet">Rien de noté cette semaine.</span>'}</div>
+    <div class="astuce"><b>À se demander ensemble</b><span>Qu’est-ce que tu as préféré ? Est-ce que le temps t’a semblé long ou court ? Qu’est-ce que tu aurais fait sans écran ?</span></div>
+    <div class="panneau"><h3>Ma semaine prochaine</h3><p class="muet" style="margin:0">Répartis tes ${dispo} jetons. C’est un plan, pas une obligation : on le regardera dimanche prochain.</p>
+      <div style="display:flex;gap:6px">${plan.map((v, i) => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><span class="muet" style="font-size:12px">${JOURS[i].slice(0, 3)}</span><button class="rond" style="width:36px;height:36px;font-size:18px" data-a="planPlus" data-i="${i}">+</button><b class="titre" style="font-size:22px">${v}</b><button class="rond" style="width:36px;height:36px;font-size:18px" data-a="planMoins" data-i="${i}">−</button></div>`).join('')}</div>
+      <div class="rang entre"><span class="etiquette" style="${somme > dispo ? 'background:#FDE2E1;color:#B42318' : ''}">${somme} jeton${somme > 1 ? 's' : ''} sur ${dispo}</span><button class="btn" data-a="garderPlan" ${somme > dispo ? 'disabled' : ''}>Garder mon plan</button></div></div></div>`;
+}
+
+const TYPES_EV = { École: '#1F5FA8', Anniversaire: '#E0457B', Sport: '#2FA36B', Sortie: '#E8892A', Autre: '#7C5CFA' };
+function vueAgenda() {
+  const ag = S.docs.agenda || { evenements: [] }; const v = S.vue;
+  const mois = v.mois ? new Date(v.mois + '-01T12:00') : new Date(new Date().getFullYear(), new Date().getMonth(), 1, 12);
+  const debut = lundiDe(new Date(mois.getFullYear(), mois.getMonth(), 1));
+  const auj = isoJour(new Date());
+  const cases = Array.from({ length: 42 }, (_, i) => { const d = new Date(debut.getTime() + i * 86400000); const iso = isoJour(d); const evs = ag.evenements.filter((e) => e.date === iso);
+    return `<button data-a="choisirJour" data-d="${iso}" style="min-height:62px;border-radius:10px;padding:4px;text-align:left;background:${iso === v.date ? '#E6EEFF' : '#fff'};box-shadow:${iso === auj ? 'inset 0 0 0 2px #1F5FA8' : 'inset 0 0 0 1px rgba(20,24,60,.08)'};opacity:${d.getMonth() === mois.getMonth() ? 1 : .4};display:flex;flex-direction:column;gap:2px"><b style="font-size:12px">${d.getDate()}</b>${evs.slice(0, 2).map((e) => `<span style="font-size:10px;font-weight:800;color:#fff;background:${TYPES_EV[e.type] || '#7C5CFA'};border-radius:5px;padding:1px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.titre)}</span>`).join('')}</button>`; }).join('');
+  const avenir = ag.evenements.filter((e) => e.date >= auj).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 8);
+  const titreMois = mois.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  return `<div class="section">${entete('Mon agenda')}
+    <div class="rang" style="align-items:flex-start;gap:16px;flex-wrap:nowrap">
+      <div class="panneau" style="flex:3"><div class="rang entre"><button class="btn doux petit" data-a="moisPrec">‹</button><h3 style="text-transform:capitalize">${esc(titreMois)}</h3><button class="btn doux petit" data-a="moisSuiv">›</button></div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">${JOURS.map((j) => `<span class="muet" style="font-size:11px;text-align:center">${j.slice(0, 3)}</span>`).join('')}${cases}</div></div>
+      <div class="section" style="flex:2">
+        <div class="panneau"><h3>Ajouter</h3><input class="champ" type="date" data-in="evDate" value="${esc(v.date || auj)}"><input class="champ" data-in="evTitre" maxlength="60" placeholder="Quoi ?" value="${esc(v.titre || '')}">
+          <div class="rang">${Object.keys(TYPES_EV).map((t) => `<button class="puce ${v.type === t ? 'on' : ''}" data-a="evType" data-t="${t}">${t}</button>`).join('')}</div><button class="btn" data-a="ajouterEv">Noter</button></div>
+        <div class="panneau"><h3>À venir</h3>${avenir.length ? avenir.map((e) => `<div class="ligne"><span style="width:10px;height:10px;border-radius:50%;background:${TYPES_EV[e.type] || '#7C5CFA'}"></span><span class="grow"><b>${esc(e.titre)}</b><br><span class="muet">${esc(new Date(e.date + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }))}</span></span><button class="btn doux petit" data-a="supprimerEv" data-id="${esc(e.id)}">Effacer</button></div>`).join('') : '<span class="muet">Rien pour l’instant.</span>'}</div>
+      </div></div></div>`;
 }
 
 function vueIdee() {
@@ -297,7 +380,7 @@ function vueIdee() {
 
 function vueGalerie() {
   const l = S.docs.creations || [];
-  const carte = (o) => o.type === 'image' ? `<div class="oeuvre"><img src="${esc(o.url)}" alt="${esc(o.nom)}" loading="lazy"></div>` : o.type === 'video' ? `<div class="oeuvre"><video src="${esc(o.url)}" muted preload="metadata"></video></div>` : `<div class="oeuvre">${ic(D.catalogue.ICONES.note, '#7C5CFA', 40)}<span>${esc(o.nom)}</span></div>`;
+  const carte = (o, i) => o.type === 'image' ? `<div class="oeuvre" style="position:relative"><img src="${esc(o.url)}" alt="${esc(o.nom)}" loading="lazy"><button class="btn doux petit" style="position:absolute;bottom:6px;right:6px;height:28px;font-size:12px" data-a="imprimerOeuvre" data-i="${i}">Imprimer</button></div>` : o.type === 'video' ? `<div class="oeuvre"><video src="${esc(o.url)}" muted preload="metadata"></video></div>` : `<div class="oeuvre">${ic(D.catalogue.ICONES.note, '#7C5CFA', 40)}<span>${esc(o.nom)}</span></div>`;
   return `<div class="section">${entete('Ma galerie', `<button class="btn petit" data-a="premiere" ${l.length ? '' : 'disabled'}>Première en famille</button><button class="btn doux petit" data-a="ouvrirDossier" data-d="creations">Ouvrir Mes créations</button>`)}
     <p class="muet" style="margin:0">Tout ce que tu enregistres dans Documents, « Mes créations », arrive ici : dessins, films, musiques, émissions.</p>
     ${l.length ? `<div class="galerie">${l.map(carte).join('')}</div>` : '<div class="panneau"><b>Ta galerie est encore vide.</b><span class="muet">Quand tu enregistres un dessin, un film ou un son, choisis le dossier Documents, puis « Mes créations ». C’est un geste à apprendre : il sert sur tous les ordinateurs.</span></div>'}</div>`;
@@ -401,6 +484,7 @@ function vueVoile() {
       <div class="panneau"><h3>Tirelire</h3><div class="rang"><label>Jetons par semaine <input class="champ" style="width:90px" type="number" min="0" max="40" data-in="pJetons" value="${v.jetonsSemaine}"></label><label>Maximum par séance <input class="champ" style="width:90px" type="number" min="1" max="8" data-in="pMax" value="${v.maxParSeance}"></label><label>Ajouter tout de suite <input class="champ" style="width:90px" type="number" min="0" max="20" data-in="pAjout" value="${v.ajouter || 0}"></label></div><p class="muet" style="margin:0">Il reste ${jetonsRestants()} jetons cette semaine. Un jeton = 15 minutes.</p></div>
       <div class="panneau"><h3>Ses jeux</h3>${steam.length ? `<div class="rang">${steam.map((j) => `<button class="puce ${jeuxOn.has(j.id) ? 'on' : ''}" data-a="pJeu" data-id="${esc(j.id)}" data-nom="${esc(j.nom)}">${esc(j.nom)}</button>`).join('')}</div>` : '<p class="muet" style="margin:0">Aucun jeu Steam trouvé sur cet ordinateur. Installez-les depuis Steam (Steam Families), puis revenez ici.</p>'}</div>
       <div class="panneau"><h3>Sites autorisés</h3><p class="muet" style="margin:0">Un domaine par ligne. Rien d’autre ne s’ouvre, et les autres navigateurs sont bloqués sur sa session.</p><textarea class="champ" data-in="pSites" rows="7">${esc(sites)}</textarea></div>
+      <div class="panneau"><h3>Permis</h3><div class="rang">${D.catalogue.PERMIS.map((x) => `<button class="puce ${Number(v.niveau) === x.n ? 'on' : ''}" data-a="pNiveau" data-n="${x.n}">${x.n}. ${esc(x.nom)}</button>`).join('')}</div><p class="muet" style="margin:0">Au niveau 3, Edge s’ouvre sur sa session, limité aux sites autorisés. Au niveau 4, elle peut fermer Flocon et la fin de séance laisse cinq minutes.</p></div>
       <div class="panneau"><h3>Changer le code</h3><input class="champ" style="max-width:200px" data-in="pNouveauPin" inputmode="numeric" maxlength="8" placeholder="Nouveau code" value="${esc(v.nouveauPin || '')}"></div>
       <div class="rang entre"><span class="muet">Les changements sont appliqués dans la minute.</span><button class="btn" data-a="pEnregistrer">Enregistrer</button></div></div></div>`;
   }
@@ -480,6 +564,8 @@ async function ouvrirVue(ref) {
   if (ref === 'journal') await chargerDoc('journal', 'journal.json', { pages: [] });
   if (ref === 'photos') S.docs.photos = await F.photos();
   if (ref === 'galerie') S.docs.creations = await F.creations();
+  if (ref === 'agenda') { await chargerDoc('agenda', 'agenda.json', { evenements: [] }); S.vue.date = isoJour(new Date()); S.vue.type = 'École'; }
+  if (ref === 'semaine') { await chargerDoc('seances', 'mes-seances.json', { seances: [] }); try { const r2 = await F.etat(); S.etat = r2.etat; } catch (e) { /* rien */ } }
   if (ref === 'idee') { S.idee = tirerIdee(); }
   if (ref === 'musique') S.docs.musique = await F.musique();
   if (ref === 'livresAudio') S.docs.musique = await F.livresAudio();
@@ -515,8 +601,9 @@ async function commencer() {
   const a = S.accueil;
   const id = 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const prevu = a.aDeuxPin ? (S.config.aDeuxMaxMinutes || 120) : a.jetons * 15;
-  S.seance = { id, debut: Date.now(), jetons: a.aDeuxPin ? 0 : a.jetons, aDeux: !!a.aDeuxPin, prevu, intention: a.intention, libre: a.libre };
+  S.seance = { id, debut: Date.now(), jetons: a.aDeuxPin ? 0 : a.jetons, aDeux: !!a.aDeuxPin, prevu, intention: a.intention, libre: a.libre, humeur: a.humeur || null };
   S.averti2 = false;
+  F.seance(id);
   await F.demande({ sessionId: id, jetons: a.aDeuxPin ? 0 : a.jetons, aDeuxPin: a.aDeuxPin || null, fini: false, intention: a.intention, libre: a.libre });
   const vers = { creer: ['creer'], expose: ['apprendre', 'exposes'], devoirs: ['apprendre'], question: ['apprendre', 'pourquoi'], jouer: ['jeux'], ecouter: ['medias', 'musique'] }[a.intention] || [ordreRubriques()[0].id];
   S.rubrique = vers[0]; S.vue = null;
@@ -648,7 +735,7 @@ const A = {
   // fin
   fierte: (d) => { const i = Number(d.i); const c = S.fin.choix; const k = c.indexOf(i); if (k >= 0) c.splice(k, 1); else c.push(i); render(); },
   auRevoir: async () => {
-    try { await chargerDoc('seances', 'mes-seances.json', { seances: [] }); S.docs.seances.seances.push({ date: new Date().toISOString(), intention: S.seance && (S.seance.libre || S.seance.intention), fierte: S.fin.choix, texte: S.fin.texte }); await ecrireCarnet('seances', 'mes-seances.json'); } catch (e) { /* rien */ }
+    try { await chargerDoc('seances', 'mes-seances.json', { seances: [] }); S.docs.seances.seances.push({ date: new Date().toISOString(), intention: S.seance && (S.seance.libre || S.seance.intention), fierte: S.fin.choix, texte: S.fin.texte, humeur: S.seance && S.seance.humeur }); await ecrireCarnet('seances', 'mes-seances.json'); } catch (e) { /* rien */ }
     if (S.seance) await F.demande({ sessionId: S.seance.id, fini: true });
     await F.finir();
   },
@@ -667,13 +754,29 @@ const A = {
   espaceParent: () => demanderPin('Espace parent', async (pin) => {
     const steam = await F.jeuxSteam();
     const sitesActuels = S.config.sites || Array.from(new Set(Object.values(D.catalogue.SITES).flatMap((s) => s.domaines)));
-    S.voile = { type: 'parent', pin, steam: Array.isArray(steam) ? steam : [], jeux: (S.config.jeux || []).slice(), jetonsSemaine: S.config.jetonsSemaine, maxParSeance: S.config.maxParSeance, ajouter: 0, sites: sitesActuels.join('\n'), nouveauPin: '' };
+    S.voile = { type: 'parent', pin, steam: Array.isArray(steam) ? steam : [], jeux: (S.config.jeux || []).slice(), jetonsSemaine: S.config.jetonsSemaine, maxParSeance: S.config.maxParSeance, niveau: niveau(), ajouter: 0, sites: sitesActuels.join('\n'), nouveauPin: '' };
     render();
   }),
+  pNiveau: (d) => { S.voile.niveau = Number(d.n); render(); },
+  humeur: (d) => { S.accueil.humeur = S.accueil.humeur === d.h ? null : d.h; render(); },
+  fermerFlocon: () => F.fermer(),
+  mission: async (d) => { S.profil.missions = Object.assign({}, S.profil.missions, { [d.k]: !(S.profil.missions || {})[d.k] }); await sauverProfil(); render(); },
+  passerNiveau: () => demanderPin('Valider le niveau ' + (niveau() + 1), async (pin) => { await F.parent({ pin, changements: { niveau: niveau() + 1 } }); dire('Bravo ! Ton nouveau niveau arrive dans la minute.'); toast('Le nouveau niveau s’applique dans la minute.', 6000); }),
+  planPlus: (d) => { S.vue.plan[Number(d.i)] = Math.min(S.config.maxParSeance, S.vue.plan[Number(d.i)] + 1); render(); },
+  planMoins: (d) => { S.vue.plan[Number(d.i)] = Math.max(0, S.vue.plan[Number(d.i)] - 1); render(); },
+  garderPlan: async () => { const sv = idSemaine(new Date(lundiDe(new Date()).getTime() + 7 * 86400000)); S.profil.plan = { semaine: sv, jours: S.vue.plan.slice() }; await sauverProfil(); toast('Ton plan est gardé : tu le verras chaque jour en allumant l’ordinateur.', 5000); },
+  choisirJour: (d) => { S.vue.date = d.d; render(); },
+  moisPrec: () => { const m = S.vue.mois ? new Date(S.vue.mois + '-01T12:00') : new Date(); m.setDate(1); m.setMonth(m.getMonth() - 1); S.vue.mois = m.getFullYear() + '-' + String(m.getMonth() + 1).padStart(2, '0'); render(); },
+  moisSuiv: () => { const m = S.vue.mois ? new Date(S.vue.mois + '-01T12:00') : new Date(); m.setDate(1); m.setMonth(m.getMonth() + 1); S.vue.mois = m.getFullYear() + '-' + String(m.getMonth() + 1).padStart(2, '0'); render(); },
+  evType: (d) => { S.vue.type = d.t; render(); },
+  ajouterEv: async () => { const t = (S.vue.titre || '').trim(); if (!t || !S.vue.date) return toast('Écris ce qui se passe et choisis la date.'); S.docs.agenda.evenements.push({ id: 'e' + Date.now().toString(36), date: S.vue.date, titre: t, type: S.vue.type || 'Autre' }); S.vue.titre = ''; await ecrireCarnet('agenda', 'agenda.json'); render(); },
+  supprimerEv: async (d) => { S.docs.agenda.evenements = S.docs.agenda.evenements.filter((e) => e.id !== d.id); await ecrireCarnet('agenda', 'agenda.json'); render(); },
+  documentWord: async () => { const r2 = await F.documentExpose(S.vue.fichier); toast(r2 && r2.ok ? 'Ton document s’ouvre dans Writer. Il est rangé dans « Mes exposés ».' : 'Le document n’a pas pu être créé.', 6000); },
+  imprimerOeuvre: async (d) => { const o = S.docs.creations[Number(d.i)]; const r2 = await F.imprimer(o.chemin); toast(r2 && r2.ok ? 'La fenêtre d’impression s’ouvre.' : 'Impossible d’imprimer ce fichier.'); },
   pJeu: (d) => { const j = S.voile.jeux; const k = j.findIndex((x) => x.id === d.id); if (k >= 0) j.splice(k, 1); else j.push({ id: d.id, nom: d.nom }); render(); },
   pEnregistrer: async () => {
     const v = S.voile;
-    const ch = { jetonsSemaine: Number(v.jetonsSemaine), maxParSeance: Number(v.maxParSeance), jeux: v.jeux, sites: String(v.sites).split(/\s+/).map((x) => x.trim()).filter(Boolean) };
+    const ch = { niveau: Number(v.niveau), jetonsSemaine: Number(v.jetonsSemaine), maxParSeance: Number(v.maxParSeance), jeux: v.jeux, sites: String(v.sites).split(/\s+/).map((x) => x.trim()).filter(Boolean) };
     if (Number(v.ajouter) > 0) ch.ajouterJetons = Number(v.ajouter);
     if (v.nouveauPin && String(v.nouveauPin).length >= 4) ch.nouveauPin = String(v.nouveauPin);
     await F.parent({ pin: v.pin, changements: ch });
@@ -694,7 +797,7 @@ const SAISIES = {
   livreTitre: (v) => { S.vue.n = Object.assign({}, S.vue.n, { titre: v }); }, livreAuteur: (v) => { S.vue.n = Object.assign({}, S.vue.n, { auteur: v }); }, livreAvis: (v) => { S.vue.n = Object.assign({}, S.vue.n, { avis: v }); },
   pageJournal: (v) => { S.vue.texte = v; },
   fierteTexte: (v) => { S.fin.texte = v; },
-  pJetons: (v) => { S.voile.jetonsSemaine = v; }, pMax: (v) => { S.voile.maxParSeance = v; }, pAjout: (v) => { S.voile.ajouter = v; }, pSites: (v) => { S.voile.sites = v; }, pNouveauPin: (v) => { S.voile.nouveauPin = v.replace(/\D/g, ''); }
+  pJetons: (v) => { S.voile.jetonsSemaine = v; }, pMax: (v) => { S.voile.maxParSeance = v; }, pAjout: (v) => { S.voile.ajouter = v; }, pSites: (v) => { S.voile.sites = v; }, evDate: (v) => { S.vue.date = v; }, evTitre: (v) => { S.vue.titre = v; }, pNouveauPin: (v) => { S.voile.nouveauPin = v.replace(/\D/g, ''); }
 };
 function majBouton(ok) { const b = document.querySelector('[data-a="atelierSuiv"],[data-a="commencer"]'); if (b) b.disabled = !ok; }
 
@@ -728,6 +831,7 @@ async function demarrer() {
   S.profil = Object.assign(profilParDefaut(), D.profil || {});
   S.profil.compagnon = Object.assign({ id: 'pingouin', nom: 'Flocon' }, S.profil.compagnon || {});
   appliquerFond();
+  try { await chargerDoc('agenda', 'agenda.json', { evenements: [] }); } catch (e) { /* rien */ }
   S.ecran = S.profil.atelierFait ? 'accueil' : 'atelier';
   if (!S.profil.atelierFait) F.demande({ atelier: true });
   F.surSiteRefuse(() => toast('Cette page n’est pas dans la liste autorisée : elle ne s’ouvre pas.', 5000));

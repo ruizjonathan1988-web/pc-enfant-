@@ -7,6 +7,7 @@ const fs = require('fs');
 const { execFileSync } = require('child_process');
 const T = require('./lib/tirelire');
 const { C, lireJson, ecrireJson } = require('./lib/chemins');
+const CAT = require('./lib/catalogue');
 
 function log(msg) {
   try {
@@ -41,8 +42,12 @@ function deconnecter(id) {
   try { execFileSync('logoff', [String(id)], { windowsHide: true }); log('déconnexion session ' + id); } catch (e) { log('échec déconnexion : ' + e.message); }
 }
 
+function reg(args) { try { execFileSync('reg', args, { windowsHide: true, stdio: 'ignore' }); return true; } catch (e) { return false; } }
+
 // Remet les verrous du compte enfant si sa ruche de registre est chargée (session ouverte).
-function verrous(sid) {
+// Ils dépendent du niveau du permis : au niveau 3, Edge s'ouvre, mais seulement sur les sites autorisés.
+function verrous(sid, config) {
+  const niveau = (config && config.niveau) || 1;
   if (C.DEV || !sid) return;
   const base = 'HKU\\' + sid;
   const cles = [
@@ -51,16 +56,29 @@ function verrous(sid) {
     [base + '\\Software\\Policies\\Microsoft\\Windows\\System', 'DisableCMD', '1'],
     [base + '\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer', 'DisallowRun', '1']
   ];
-  const interdits = ['powershell.exe', 'pwsh.exe', 'powershell_ise.exe', 'wt.exe', 'cmd.exe', 'regedit.exe', 'taskmgr.exe', 'mmc.exe', 'msedge.exe', 'chrome.exe', 'firefox.exe', 'brave.exe', 'opera.exe', 'Minecraft.Windows.exe'];
+  const interdits = ['powershell.exe', 'pwsh.exe', 'powershell_ise.exe', 'wt.exe', 'cmd.exe', 'regedit.exe', 'taskmgr.exe', 'mmc.exe', 'chrome.exe', 'firefox.exe', 'brave.exe', 'opera.exe', 'Minecraft.Windows.exe'].concat(niveau >= 3 ? [] : ['msedge.exe']);
   try {
     execFileSync('reg', ['query', base], { windowsHide: true, stdio: 'ignore' });
   } catch (e) { return; } // ruche non chargée : l'enfant n'est pas connectée
   for (const [cle, nom, val] of cles) {
     try { execFileSync('reg', ['add', cle, '/v', nom, '/t', 'REG_DWORD', '/d', val, '/f'], { windowsHide: true, stdio: 'ignore' }); } catch (e) { log('reg ' + nom + ' : ' + e.message); }
   }
-  interdits.forEach((exe, i) => {
-    try { execFileSync('reg', ['add', base + '\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\DisallowRun', '/v', String(i + 1), '/t', 'REG_SZ', '/d', exe, '/f'], { windowsHide: true, stdio: 'ignore' }); } catch (e) { /* rien */ }
-  });
+  const cleDR = base + '\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\DisallowRun';
+  reg(['delete', cleDR, '/f']);
+  interdits.forEach((exe, i) => reg(['add', cleDR, '/v', String(i + 1), '/t', 'REG_SZ', '/d', exe, '/f']));
+  // Edge : stratégies utilisateur. Tout est bloqué sauf la liste blanche, recherche dans Vikidia, pas de navigation privée.
+  const edge = base + '\\Software\\Policies\\Microsoft\\Edge';
+  if (niveau >= 3) {
+    reg(['delete', edge, '/f']);
+    reg(['add', edge + '\\URLBlocklist', '/v', '1', '/t', 'REG_SZ', '/d', '*', '/f']);
+    CAT.domainesAutorises(config.sites).forEach((d, i) => reg(['add', edge + '\\URLAllowlist', '/v', String(i + 1), '/t', 'REG_SZ', '/d', d, '/f']));
+    const dw = [['InPrivateModeAvailability', '1'], ['DeveloperToolsAvailability', '2'], ['BrowserAddProfileEnabled', '0'], ['BrowserGuestModeEnabled', '0'], ['HideFirstRunExperience', '1'], ['DefaultSearchProviderEnabled', '1'], ['DownloadRestrictions', '3']];
+    dw.forEach(([n, v]) => reg(['add', edge, '/v', n, '/t', 'REG_DWORD', '/d', v, '/f']));
+    const sz = [['DefaultSearchProviderName', 'Vikidia'], ['DefaultSearchProviderSearchURL', 'https://fr.vikidia.org/w/index.php?search={searchTerms}'], ['HomepageLocation', 'https://fr.vikidia.org']];
+    sz.forEach(([n, v]) => reg(['add', edge, '/v', n, '/t', 'REG_SZ', '/d', v, '/f']));
+  } else {
+    reg(['delete', edge, '/f']);
+  }
 }
 
 function principal() {
@@ -86,8 +104,7 @@ function principal() {
   if (r.message) r.etat.dernierMessage = { code: r.message, le: maintenant.toISOString(), session: demande && demande.sessionId };
   ecrireJson(C.etat, r.etat);
   if (r.deconnecter) deconnecter(sess.id);
-  if (sess.active && maintenant.getMinutes() % 5 === 0) verrous(config.enfant.sid);
-  if (sess.active && r.etat.session && r.etat.session.minutes === 1) verrous(config.enfant.sid);
+  if (sess.active && (maintenant.getMinutes() % 5 === 0 || (r.etat.session && r.etat.session.minutes === 1) || reqParent)) verrous(config.enfant.sid, config);
 }
 
 try { principal(); } catch (e) { log('erreur : ' + (e && e.stack || e)); }

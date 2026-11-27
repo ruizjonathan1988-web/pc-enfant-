@@ -9,7 +9,10 @@ const CAT = require('./lib/catalogue');
 app.setName('Flocon');
 if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
 // Relancé chaque minute par le Planificateur : si une copie tourne déjà, celle-ci s'arrête sans rien faire.
-app.on('second-instance', () => {});
+app.on('second-instance', (_e, argv) => {
+  // Le raccourci « Flocon » du menu Démarrer (niveau 4) rouvre la fenêtre ; les relances automatiques ne font rien.
+  if (argv.includes('--ouvrir') && fen) { try { fs.unlinkSync(FICHIER_FERME); } catch (e) { /* rien */ } fen.show(); fen.restore(); fen.focus(); }
+});
 
 let fen = null;
 let quitter = false;
@@ -17,6 +20,8 @@ let pleinEcran = true;
 
 const DOSSIER_PROFIL = path.join(app.getPath('appData'), 'Flocon');
 const FICHIER_PROFIL = path.join(DOSSIER_PROFIL, 'profil.json');
+const FICHIER_FERME = path.join(DOSSIER_PROFIL, 'ferme.json');
+let seanceCourante = null;
 
 function dossiers() {
   const docs = app.getPath('documents');
@@ -40,7 +45,7 @@ function configPublique() {
   const c = config();
   // Le sel et l'empreinte du code servent à vérifier le code à l'écran ; ce qui compte vraiment
   // (temps à deux, réglages) est revérifié par le gardien, que l'enfant ne peut pas contourner.
-  return { enfant: { prenom: c.enfant && c.enfant.prenom }, jetonsSemaine: c.jetonsSemaine, maxParSeance: c.maxParSeance, aDeuxMaxMinutes: c.aDeuxMaxMinutes, sites: c.sites, jeux: c.jeux || [], pinSel: c.pinSel, pinHash: c.pinHash };
+  return { niveau: c.niveau || 1, enfant: { prenom: c.enfant && c.enfant.prenom }, jetonsSemaine: c.jetonsSemaine, maxParSeance: c.maxParSeance, aDeuxMaxMinutes: c.aDeuxMaxMinutes, sites: c.sites, jeux: c.jeux || [], pinSel: c.pinSel, pinHash: c.pinHash };
 }
 
 function creerFenetre() {
@@ -55,7 +60,12 @@ function creerFenetre() {
   fen.setMenu(null);
   fen.loadFile(path.join(__dirname, 'ui', 'index.html'));
   fen.once('ready-to-show', () => { appliquerMode(true); fen.show(); });
-  fen.on('close', (e) => { if (!quitter) e.preventDefault(); });
+  fen.on('close', (e) => {
+    if (quitter) return;
+    // Niveau 4 : elle peut fermer Flocon. On note la séance pour ne pas le rouvrir automatiquement.
+    if ((config().niveau || 1) >= 4 && !pleinEcran) { ecrireJson(FICHIER_FERME, { seance: seanceCourante, le: new Date().toISOString() }); quitter = true; return; }
+    e.preventDefault();
+  });
   // Alt+F4, Ctrl+W, Ctrl+R, F5, F11, F12 et outils de développement neutralisés.
   fen.webContents.on('before-input-event', (e, input) => {
     const k = (input.key || '').toLowerCase();
@@ -252,11 +262,30 @@ poser('init', () => {
   }
   return {
     dev: C.DEV, plateforme: process.platform,
-    catalogue: { PREMIERS_PAS: CAT.PREMIERS_PAS, IDEES: CAT.IDEES, PROJETS: CAT.PROJETS, RUBRIQUES: CAT.RUBRIQUES, SITES: CAT.SITES, EXPOSE_ETAPES: CAT.EXPOSE_ETAPES, INTENTIONS: CAT.INTENTIONS, ICONES: CAT.ICONES },
+    catalogue: { PERMIS: CAT.PERMIS, PREMIERS_PAS: CAT.PREMIERS_PAS, IDEES: CAT.IDEES, PROJETS: CAT.PROJETS, RUBRIQUES: CAT.RUBRIQUES, SITES: CAT.SITES, EXPOSE_ETAPES: CAT.EXPOSE_ETAPES, INTENTIONS: CAT.INTENTIONS, ICONES: CAT.ICONES },
     config: configPublique(), etat: lireJson(C.etat, null), profil: lireJson(FICHIER_PROFIL, null), compagnons
   };
 });
 
+poser('seance', (id) => { seanceCourante = id; return true; });
+poser('fermer', () => { if (fen) fen.close(); return true; });
+poser('documentExpose', (fichier) => {
+  const { p } = sur('exposes', fichier);
+  const x = lireJson(p, null); if (!x) return { ok: false };
+  const docx = p.replace(/\.json$/, '.docx');
+  if (!fs.existsSync(docx)) fs.writeFileSync(docx, require('./lib/docx').exposeDocx(x, CAT.EXPOSE_ETAPES));
+  const writer = (CAT.LOGICIELS.writer.chemins || []).map(developper).find((c) => fs.existsSync(c));
+  if (writer) spawn(writer, [docx], { detached: true, stdio: 'ignore' }).unref(); else shell.openPath(docx);
+  return { ok: true, chemin: docx };
+});
+poser('imprimer', (chemin) => {
+  const permis = Object.values(dossiers()).map((d) => path.resolve(d));
+  const c = path.resolve(String(chemin || ''));
+  if (!permis.some((d) => c.startsWith(d + path.sep)) || !fs.existsSync(c)) return { ok: false };
+  if (process.platform !== 'win32') return { ok: true, simule: true };
+  spawn('powershell.exe', ['-NoProfile', '-Command', 'Start-Process -FilePath $args[0] -Verb Print', c], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+  return { ok: true };
+});
 poser('etat', () => ({ etat: lireJson(C.etat, null), config: configPublique() }));
 poser('demande', (d) => { const cur = lireJson(C.demande, {}) || {}; ecrireJson(C.demande, Object.assign(cur, d, { le: new Date().toISOString() })); return true; });
 poser('parent', (req) => { ecrireJson(C.parent, Object.assign({}, req, { le: new Date().toISOString() })); return true; });
@@ -302,5 +331,30 @@ poser('finir', () => {
   return true;
 });
 
-app.whenReady().then(creerFenetre);
+// Réglages de LibreOffice pour son compte, posés une seule fois avant le premier lancement :
+// affichage en onglets (comme Word), enregistrement en .docx/.pptx/.xlsx sans alerte, pas d'astuce au démarrage.
+function reglagesLibreOffice() {
+  if (process.platform !== 'win32') return;
+  const f = path.join(app.getPath('appData'), 'LibreOffice', '4', 'user', 'registrymodifications.xcu');
+  if (fs.existsSync(f)) return;
+  const item = (chemin, prop, type, val) => `<item oor:path="${chemin}"><prop oor:name="${prop}" oor:op="fuse"><value>${val}</value></prop></item>`;
+  const fab = (doc, filtre) => item(`/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['${doc}']`, 'ooSetupFactoryDefaultFilter', 'string', filtre);
+  const barre = (app2) => item(`/org.openoffice.Office.UI.ToolbarMode/Applications/org.openoffice.Office.UI.ToolbarMode:Application['${app2}']`, 'Active', 'string', 'notebookbar.ui');
+  const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<oor:items xmlns:oor="http://openoffice.org/2001/registry" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n'
+    + [fab('com.sun.star.text.TextDocument', 'MS Word 2007 XML'), fab('com.sun.star.presentation.PresentationDocument', 'Impress MS PowerPoint 2007 XML'), fab('com.sun.star.sheet.SpreadsheetDocument', 'Calc MS Excel 2007 XML'),
+      item('/org.openoffice.Office.Common/Save/Document', 'WarnAlienFormat', 'boolean', 'false'), item('/org.openoffice.Office.Common/Misc', 'ShowTipOfTheDay', 'boolean', 'false'),
+      barre('Writer'), barre('Impress'), barre('Calc')].join('\n') + '\n</oor:items>\n';
+  try { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, xml, 'utf8'); } catch (e) { /* rien */ }
+}
+
+app.whenReady().then(() => {
+  // Niveau 4 : si elle a fermé Flocon pendant cette séance, la relance automatique ne le rouvre pas.
+  if ((config().niveau || 1) >= 4 && !process.argv.includes('--ouvrir')) {
+    const f = lireJson(FICHIER_FERME, null); const e = lireJson(C.etat, null);
+    if (f && e && e.session && !e.session.fermee && e.session.id === f.seance) { app.quit(); return; }
+  }
+  try { fs.unlinkSync(FICHIER_FERME); } catch (e) { /* rien */ }
+  reglagesLibreOffice();
+  creerFenetre();
+});
 app.on('window-all-closed', () => { if (quitter) app.quit(); });

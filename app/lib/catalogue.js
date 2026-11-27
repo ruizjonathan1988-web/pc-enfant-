@@ -15,6 +15,8 @@ const LOGICIELS = {
   audacity: { nom: 'Audacity', chemins: [PF + '\\Audacity\\Audacity.exe'], menu: 'Audacity' },
   calculatrice: { nom: 'Calculatrice', chemins: ['%SystemRoot%\\System32\\calc.exe'], menu: 'Calculatrice' },
   camera: { nom: 'Caméra', uri: 'microsoft.windows.camera:' },
+  explorateur: { nom: 'Explorateur de fichiers', chemins: ['%SystemRoot%\\explorer.exe'] },
+  edge: { nom: 'Internet', chemins: [PF86 + '\\Microsoft\\Edge\\Application\\msedge.exe', PF + '\\Microsoft\\Edge\\Application\\msedge.exe'], menu: 'Microsoft Edge' },
   minecraft: { nom: 'Minecraft', chemins: [PF86 + '\\Minecraft Launcher\\MinecraftLauncher.exe', PF + '\\Minecraft Launcher\\MinecraftLauncher.exe'], menu: 'Minecraft Launcher' },
   // RapidTyping s'il a été installé (à la main, depuis rapidtyping.com), sinon Klavaro.
   klavaro: { nom: 'Le clavier', chemins: [PF + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\Klavaro\\bin\\klavaro.exe', PF + '\\Klavaro\\bin\\klavaro.exe'], menus: ['RapidTyping', 'Klavaro'] }
@@ -68,7 +70,10 @@ const I = {
   dico: 'M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM5 18a2 2 0 0 1 2-2h12M9 8h6',
   camera: 'M3 7h12v10H3zM15 10l6-3v10l-6-3',
   palette: 'M12 3a9 9 0 1 0 0 18c1 0 2-1 1.5-2-.6-1.2.3-2.5 1.6-2.5H17a4 4 0 0 0 4-4c0-5-4-9.5-9-9.5zM7.5 12h.01M10 7.5h.01M14.5 7.5h.01',
-  coeur: 'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z'
+  coeur: 'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z',
+  agenda: 'M4 6h16v14H4zM4 10h16M8 3v5M16 3v5M8 14h3',
+  graphe: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  permis: 'M4 6h16v12H4zM8 10h.01M11 10h5M8 14h8'
 };
 
 // type : logiciel | site | interne
@@ -99,7 +104,8 @@ const RUBRIQUES = [
     { type: 'site', ref: 'unjour', nom: '1jour1actu', sous: 'L’actu expliquée', icone: I.ecran, couleur: '#E8892A' },
     { type: 'site', ref: 'terre', nom: 'Le monde', sous: 'La Terre en 3D', icone: I.globe, couleur: '#2B7BD6' },
     { type: 'site', ref: 'etoiles', nom: 'Les étoiles', sous: 'Le ciel de ce soir', icone: I.etoile, couleur: '#3C3489' },
-    { type: 'site', ref: 'vinz', nom: 'Vinz et Lou', sous: 'Internet expliqué', icone: I.question, couleur: '#7C5CFA' }
+    { type: 'site', ref: 'vinz', nom: 'Vinz et Lou', sous: 'Internet expliqué', icone: I.question, couleur: '#7C5CFA' },
+    { type: 'logiciel', ref: 'edge', nom: 'Internet', sous: 'Un vrai navigateur, mes sites', icone: I.globe, couleur: '#1F5FA8', niveau: 3 }
   ] },
   { id: 'apprendre', nom: 'J’apprends', tuiles: [
     { type: 'interne', ref: 'exposes', nom: 'Mes exposés', sous: 'De l’idée à l’oral', icone: I.diapo, couleur: '#1F5FA8' },
@@ -123,7 +129,11 @@ const RUBRIQUES = [
     { type: 'logiciel', ref: 'calculatrice', nom: 'Calculatrice', sous: 'Comme une vraie', icone: I.calcul, couleur: '#56607A' },
     { type: 'interne', ref: 'minuteur', nom: 'Minuteur', sous: 'Pour me chronométrer', icone: I.minuteur, couleur: '#E8892A' },
     { type: 'site', ref: 'dicoado', nom: 'Dictionnaire', sous: 'Dicoado', icone: I.dico, couleur: '#1F5FA8' },
-    { type: 'interne', ref: 'dossiers', nom: 'Mes dossiers', sous: 'Tout ce que je fabrique', icone: I.dossier, couleur: '#F2B33D' }
+    { type: 'interne', ref: 'dossiers', nom: 'Mes dossiers', sous: 'Tout ce que je fabrique', icone: I.dossier, couleur: '#F2B33D' },
+    { type: 'interne', ref: 'agenda', nom: 'Mon agenda', sous: 'Ce qui m\u2019attend', icone: I.agenda, couleur: '#E0457B' },
+    { type: 'interne', ref: 'semaine', nom: 'Ma semaine', sous: 'Le bilan du dimanche', icone: I.graphe, couleur: '#2FA36B' },
+    { type: 'interne', ref: 'permis', nom: 'Mon permis', sous: 'Gagner en autonomie', icone: I.permis, couleur: '#1F5FA8' },
+    { type: 'logiciel', ref: 'explorateur', nom: 'Explorateur', sous: 'Tous mes fichiers', icone: I.dossier, couleur: '#56607A', niveau: 2 }
   ] },
   { id: 'style', nom: 'Mon style', tuiles: [] }
 ];
@@ -185,6 +195,20 @@ const PROJETS = {
   ], outils: [['interne', 'photos', 'Mes photos'], ['logiciel', 'krita', 'Colorier'], ['logiciel', 'stopmotion', 'Animer']] }
 };
 
+// Le permis : quatre niveaux. On passe au suivant quand les missions sont acquises, avec un adulte, jamais avec du temps d'écran.
+const PERMIS = [
+  { n: 1, nom: 'Premiers pas', ouvre: 'Tout se passe dans Flocon : les logiciels, les sites choisis, tes carnets.', missions: [] },
+  { n: 2, nom: 'J\u2019explore', ouvre: 'L\u2019explorateur de fichiers dans tes outils, pour ranger, copier sur une clé et imprimer toute seule.', missions: [
+    'Je crée un dossier dans « Mes créations » et je lui donne un nom.', 'Je renomme un fichier sans perdre son extension.', 'J\u2019enregistre un dessin au bon endroit, du premier coup.',
+    'Je retrouve un fichier avec la recherche de Windows.', 'Je copie une création sur une clé USB, puis je l\u2019éjecte proprement.', 'J\u2019imprime une page toute seule.'] },
+  { n: 3, nom: 'Je navigue', ouvre: 'Un vrai navigateur, avec sa barre d\u2019adresse et ses onglets, mais seulement sur les sites autorisés. La recherche passe par Vikidia.', missions: [
+    'Je tape une phrase avec mes dix doigts, sans regarder le clavier.', 'Je mets en forme un texte : un titre, du gras, une image.', 'Je fais une capture d\u2019écran (Windows + Maj + S).',
+    'Je vérifie une information dans deux sources différentes.', 'Je cite mes sources à la fin d\u2019un exposé.', 'Je sais ce que je ne donne jamais sur Internet : nom, adresse, école, photos.'] },
+  { n: 4, nom: 'En autonomie', ouvre: 'Tu peux fermer Flocon quand tu veux. Quand ton temps est fini, tu as cinq minutes pour terminer tranquillement.', missions: [
+    'J\u2019utilise la barre d\u2019adresse et les onglets sans me perdre.', 'Je reconnais une publicité et un lien douteux.', 'Je ferme ce que je ne veux pas voir et j\u2019en parle à un adulte.',
+    'Pendant un mois, j\u2019ai dit « J\u2019ai fini » sans attendre que le temps s\u2019arrête.', 'Je prépare ma semaine de jetons et je la respecte à peu près.', 'J\u2019explique à un adulte comment je range mes fichiers.'] }
+];
+
 const EXPOSE_ETAPES = [
   { nom: 'Mon sujet', titre: 'Choisir et cerner mon sujet', consigne: 'Un sujet trop grand, c’est un exposé qui déborde. Écris trois questions auxquelles ton exposé va répondre.', astuce: 'Pas « Les loups », mais « Comment vivent les loups, et pourquoi en a-t-on peur ? »', outils: [] },
   { nom: 'Chercher', titre: 'Chercher dans plusieurs sources', consigne: 'Lis au moins deux sources différentes, et un livre de la bibliothèque si tu peux. Pour chaque info, note d’où elle vient.', astuce: 'Si deux sources disent la même chose, l’info est solide. Si elles se contredisent, demande à un adulte.', outils: [['site', 'vikidia'], ['site', 'wikimini'], ['site', 'unjour']] },
@@ -214,4 +238,4 @@ function urlAutorisee(url, domaines) {
   return domaines.some((d) => h === d || h.endsWith('.' + d));
 }
 
-module.exports = { LOGICIELS, SITES, RUBRIQUES, EXPOSE_ETAPES, PREMIERS_PAS, IDEES, PROJETS, INTENTIONS, ICONES: I, domainesAutorises, urlAutorisee };
+module.exports = { LOGICIELS, SITES, RUBRIQUES, EXPOSE_ETAPES, PREMIERS_PAS, IDEES, PROJETS, PERMIS, INTENTIONS, ICONES: I, domainesAutorises, urlAutorisee };

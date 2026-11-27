@@ -18,4 +18,11 @@ Ou téléchargez `Flocon-installation.zip` dans la dernière release, extrayez-l
 - `installer/` : installation et désinstallation (PowerShell).
 - `en-ligne.ps1` : installation en une ligne.
 
+## Nouveautés de la 1.4
+
+- Permis en quatre niveaux, validé par le parent : Explorateur de fichiers au niveau 2, Edge limité aux sites autorisés au niveau 3, Flocon fermable au niveau 4.
+- « Ma semaine » : bilan du dimanche et plan des jetons de la semaine suivante ; humeur facultative en début de séance.
+- « Mon agenda », rappels à l'accueil.
+- Exposé exporté en vrai fichier .docx, impression depuis la galerie, LibreOffice préréglé (onglets, formats Microsoft).
+
 Tests : `node tests/tirelire.test.js`

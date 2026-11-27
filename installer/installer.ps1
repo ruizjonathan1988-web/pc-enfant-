@@ -129,6 +129,11 @@ Rename-Item (Join-Path $Dest 'electron.exe') 'Flocon.exe'
 Remove-Item (Join-Path $Dest 'resources\default_app.asar') -ErrorAction SilentlyContinue
 Copy-Item -Recurse -Force $SourceApp (Join-Path $Dest 'resources\app')
 Ok "Flocon installé dans $Dest"
+# Raccourci « Flocon » du menu Démarrer : au niveau 4 du permis, elle peut fermer Flocon et le rouvrir elle-même.
+$lnk = Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs\Flocon.lnk'
+$ws = New-Object -ComObject WScript.Shell
+$sc = $ws.CreateShortcut($lnk); $sc.TargetPath = (Join-Path $Dest 'Flocon.exe'); $sc.Arguments = '--ouvrir'; $sc.WorkingDirectory = $Dest; $sc.Save()
+Ok 'Raccourci Flocon ajouté au menu Démarrer.'
 
 # ------------------------------------------------------------------ données et droits
 Titre '5. Tirelire et réglages'
