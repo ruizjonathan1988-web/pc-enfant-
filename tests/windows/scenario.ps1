@@ -185,7 +185,15 @@ Etape 'Verrous réels dans le registre de Test (niveaux 1 et 3)' {
 Etape 'Mise à jour : rien ne change' {
   $photo = Join-Path $env:TEMP 'flocon-photo.json'
   Verifier photo $photo
+  # Cas réel du 27/11 : mise à jour pendant que Flocon tourne et que le gardien est actif (Flocon.exe verrouillé).
+  Enable-ScheduledTask -TaskPath '\Flocon\' -TaskName 'Flocon Gardien' | Out-Null
+  $env:FLOCON_COMPTE = 'Brune'; $enCours = Start-Process $Exe -PassThru; Remove-Item Env:FLOCON_COMPTE
+  Start-Sleep -Seconds 8
+  Vrai (-not $enCours.HasExited) 'Flocon devait tourner avant la mise à jour'
   Installer @{ choix = '1'; logiciels = 'n' }
+  Vrai (Test-Path $Exe) 'Flocon.exe absent après la mise à jour'
+  $etats = @(Get-ScheduledTask -TaskPath '\Flocon\' | Where-Object { $_.State -eq 'Disabled' } | ForEach-Object { $_.TaskName })
+  Vrai (-not $etats.Count) "tâches restées en pause : $($etats -join ', ')"
   Verifier maj $photo
 }
 
