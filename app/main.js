@@ -177,6 +177,20 @@ app.on('web-contents-created', (_e, wc) => {
 function developper(p) { return p.replace(/%([^%]+)%/g, (_, v) => process.env[v] || process.env[v.toUpperCase()] || ''); }
 const cacheMenu = {};
 
+// Les AppID du menu Démarrer des logiciels de bureau commencent par un dossier connu de Windows.
+const DOSSIERS_CONNUS = {
+  '{6D809377-6AF0-444B-8957-A3773F02200E}': '%ProgramFiles%',
+  '{7C5A40EF-A0FB-4BFC-874A-C0F2E0B9FA8E}': '%ProgramFiles(x86)%',
+  '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}': '%SystemRoot%\\System32',
+  '{F38BF404-1D43-42F2-9305-67DE0B28FC23}': '%SystemRoot%'
+};
+function cheminDepuisMenu(id) {
+  let c = null;
+  const m = /^(\{[0-9A-F-]+\})\\(.+\.exe)$/i.exec(id);
+  if (m && DOSSIERS_CONNUS[m[1].toUpperCase()]) c = developper(DOSSIERS_CONNUS[m[1].toUpperCase()] + '\\' + m[2]);
+  else if (/^[A-Z]:\\.+\.exe$/i.test(id)) c = id;
+  return c && fs.existsSync(c) ? c : null;
+}
 function idDemarrer(nom, exact) {
   return new Promise((ok) => {
     if (cacheMenu[nom]) return ok(cacheMenu[nom]);
@@ -221,6 +235,10 @@ async function lancerLogiciel(ref) {
   }
   for (const m of (l.menus || (l.menu ? [l.menu] : []))) {
     const id = await idDemarrer(m, l.menuExact);
+    // Un logiciel de bureau ({dossier connu}\chemin\x.exe) : lancé directement, comme ceux trouvés par leur chemin.
+    // (Passer par l'Explorateur le soumettrait à la liste blanche des niveaux 1 et 2.)
+    const direct = id && cheminDepuisMenu(id);
+    if (direct) { noterLancement(`${l.nom} : menu Démarrer, ${direct}`); surveiller(spawn(direct, [], { detached: true, stdio: 'ignore', cwd: path.dirname(direct) }), l.nom, direct); return { ok: true }; }
     // explorer.exe rend la main tout de suite, souvent avec le code 1 : pas de surveillance possible ici.
     if (id) { noterLancement(`${l.nom} : menu Démarrer ${id}`); spawn('explorer.exe', ['shell:AppsFolder\\' + id], { detached: true, stdio: 'ignore' }).unref(); return { ok: true }; }
   }

@@ -169,8 +169,14 @@ Etape 'Verrous réels dans le registre de Test (niveaux 1 et 3)' {
     foreach ($x in 'chrome.exe', 'firefox.exe', 'msedge.exe', 'powershell.exe', 'cmd.exe', 'regedit.exe') { Vrai ($dr -contains $x) "$x non bloqué au niveau 1" }
     Vrai (-not (Test-Path $edge)) 'stratégies Edge présentes au niveau 1'
     foreach ($v in 'NoDesktop', 'NoControlPanel', 'NoStartMenuMorePrograms') { Vrai ((Get-ItemProperty "$pol\Explorer").$v -eq 1) "$v absent au niveau 1" }
+    Vrai ((Get-ItemProperty "$pol\Explorer").TaskbarNoPinnedList -eq 1) 'icônes épinglées encore là au niveau 1'
+    Vrai ((Get-ItemProperty "$pol\Explorer").RestrictRun -eq 1) 'liste blanche inactive au niveau 1'
+    $rr = & $liste "$pol\Explorer\RestrictRun"
+    foreach ($x in 'Flocon.exe', 'swriter.exe', 'tuxpaint.exe', 'Scratch 3.exe') { Vrai ($rr -contains $x) "$x absent de la liste blanche" }
+    Vrai (-not ($rr -contains 'WINWORD.EXE')) 'Word dans la liste blanche'
     & $poser 3
-    foreach ($v in 'NoDesktop', 'NoControlPanel', 'NoStartMenuMorePrograms') { Vrai ($null -eq (Get-ItemProperty "$pol\Explorer").$v) "$v resté au niveau 3" }
+    foreach ($v in 'NoDesktop', 'NoControlPanel', 'NoStartMenuMorePrograms', 'TaskbarNoPinnedList', 'RestrictRun') { Vrai ($null -eq (Get-ItemProperty "$pol\Explorer").$v) "$v resté au niveau 3" }
+    Vrai (-not (Test-Path "$pol\Explorer\RestrictRun")) 'liste blanche restée au niveau 3'
     $dr = & $liste "$pol\Explorer\DisallowRun"
     Vrai (-not ($dr -contains 'msedge.exe')) 'Edge encore interdit au niveau 3'
     Vrai ($dr -contains 'chrome.exe') 'Chrome autorisé au niveau 3'

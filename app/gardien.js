@@ -74,6 +74,16 @@ function listeInterdits(config) {
   return Array.from(new Set(l.map((x) => x.toLowerCase()))).map((x) => l.find((y) => y.toLowerCase() === x));
 }
 
+// Niveaux 1 et 2 : liste blanche. Windows n'ouvre plus, depuis le menu Démarrer, la barre des tâches, la recherche
+// ou l'Explorateur, que Flocon et les logiciels de son catalogue (Word, jeux téléchargés, .exe double-cliqués : refusés).
+// Les logiciels que Flocon lance lui-même ne passent pas par là.
+const PERMIS_EN_PLUS = ['Flocon.exe', 'soffice.exe', 'soffice.bin', 'Minecraft.Windows.exe', 'CalculatorApp.exe', 'WindowsCamera.exe', 'SoundRec.exe', 'VoiceRecorder.exe', 'gcompris-qt.exe', 'GCompris.exe', 'RapidTyping.exe', 'steam.exe'];
+function listeAutorises() {
+  // Edge n'y est pas : il reste interdit avant le niveau 3.
+  const l = Object.values(CAT.LOGICIELS).flatMap((x) => (x.chemins || []).map((c) => c.split('\\').pop())).concat(PERMIS_EN_PLUS).filter((x) => x.toLowerCase() !== 'msedge.exe');
+  return Array.from(new Set(l.map((x) => x.toLowerCase()))).map((x) => l.find((y) => y.toLowerCase() === x));
+}
+
 function verrous(sid, config) {
   const niveau = (config && config.niveau) || 1;
   if (C.DEV || !sid) return;
@@ -87,7 +97,8 @@ function verrous(sid, config) {
   const interdits = listeInterdits(config);
   // Aux niveaux 1 et 2, tout passe par Flocon : bureau sans icônes, ni Paramètres ni « Toutes les applications ».
   const explorer = base + '\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer';
-  const parNiveau = [[explorer, 'NoDesktop'], [explorer, 'NoControlPanel'], [explorer, 'NoStartMenuMorePrograms']];
+  // TaskbarNoPinnedList : plus d'icônes épinglées dans la barre des tâches (Word, Edge, Store…).
+  const parNiveau = [[explorer, 'NoDesktop'], [explorer, 'NoControlPanel'], [explorer, 'NoStartMenuMorePrograms'], [explorer, 'TaskbarNoPinnedList']];
   try {
     execFileSync('reg', ['query', base], { windowsHide: true, stdio: 'ignore' });
   } catch (e) { return; } // ruche non chargée : l'enfant n'est pas connectée
@@ -98,6 +109,12 @@ function verrous(sid, config) {
     if (niveau <= 2) reg(['add', cle, '/v', nom, '/t', 'REG_DWORD', '/d', '1', '/f']);
     else reg(['delete', cle, '/v', nom, '/f']);
   }
+  const cleRR = explorer + '\\RestrictRun';
+  reg(['delete', cleRR, '/f']);
+  if (niveau <= 2) {
+    reg(['add', explorer, '/v', 'RestrictRun', '/t', 'REG_DWORD', '/d', '1', '/f']);
+    listeAutorises().forEach((exe, i) => reg(['add', cleRR, '/v', String(i + 1), '/t', 'REG_SZ', '/d', exe, '/f']));
+  } else reg(['delete', explorer, '/v', 'RestrictRun', '/f']);
   const cleDR = base + '\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\DisallowRun';
   reg(['delete', cleDR, '/f']);
   interdits.forEach((exe, i) => reg(['add', cleDR, '/v', String(i + 1), '/t', 'REG_SZ', '/d', exe, '/f']));
@@ -181,4 +198,4 @@ if (require.main === module) {
   if (process.argv[2] === 'verrous') { try { verrousDe(process.argv[3]); } catch (e) { console.error(e.message); process.exit(1); } }
   else { try { principal(); } catch (e) { log('erreur : ' + (e && e.stack || e)); } }
 }
-module.exports = { verrous, verrousDe, listeInterdits, listerSessions, deconnecter, principal };
+module.exports = { verrous, verrousDe, listeInterdits, listeAutorises, listerSessions, deconnecter, principal };

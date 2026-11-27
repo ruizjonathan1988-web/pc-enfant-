@@ -166,3 +166,13 @@ console.log('grâce après fin du temps : ok');
   assert.ok(!listeInterdits({ niveau: 3 }).includes('msedge.exe'), 'Edge permis au niveau 3');
   console.log('programmes interdits : ok');
 }
+
+// Liste blanche des niveaux 1 et 2 : Flocon et ses logiciels, ni Word ni Edge.
+{
+  const assert = require('assert');
+  const { listeAutorises } = require('../app/gardien');
+  const l = listeAutorises().map((x) => x.toLowerCase());
+  for (const x of ['flocon.exe', 'scratch 3.exe', 'tuxpaint.exe', 'swriter.exe', 'soffice.exe', 'minecraftlauncher.exe']) assert.ok(l.includes(x), x + ' permis');
+  assert.ok(!l.includes('winword.exe') && !l.includes('msedge.exe'), 'Word et Edge absents');
+  console.log('liste blanche : ok');
+}
