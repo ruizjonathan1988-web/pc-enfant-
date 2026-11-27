@@ -64,7 +64,8 @@ function reg(args) { try { execFileSync('reg', args, { windowsHide: true, stdio:
 // Programmes interdits sur sa session (lancés depuis Windows : menu Démarrer, bureau, explorateur).
 // Le Microsoft Store n'y est pas : sur Windows Famille rien ne l'interdit vraiment à un seul compte
 // (la stratégie RemoveWindowsStore ne vaut qu'en Entreprise et Éducation), et Stop Motion Studio s'installe par lui.
-const INTERDITS_BASE = ['powershell.exe', 'pwsh.exe', 'powershell_ise.exe', 'wt.exe', 'cmd.exe', 'regedit.exe', 'taskmgr.exe', 'mmc.exe', 'chrome.exe', 'firefox.exe', 'brave.exe', 'opera.exe', 'Minecraft.Windows.exe'];
+const INTERDITS_BASE = ['powershell.exe', 'pwsh.exe', 'powershell_ise.exe', 'wt.exe', 'cmd.exe', 'regedit.exe', 'taskmgr.exe', 'mmc.exe', 'chrome.exe', 'firefox.exe', 'brave.exe', 'opera.exe'];
+// Minecraft.Windows.exe (Bedrock) n'y est plus : le lanceur l'ouvre, et le temps est compté par la séance de toute façon.
 function listeInterdits(config) {
   const niveau = (config && config.niveau) || 1;
   // Ceux que le parent ajoute (ameli, carte CPS…) : des noms de fichiers .exe, sans chemin.
