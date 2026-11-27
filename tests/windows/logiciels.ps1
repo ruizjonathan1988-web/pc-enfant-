@@ -29,10 +29,19 @@ $code = $LASTEXITCODE
 Remove-Item Env:FLOCON_REPONSES
 if ($code) { throw "l'installateur s'est arrêté (code $code)" }
 # Identifiants winget des logiciels pour enfants, pour corriger l'installateur s'il se trompe.
-foreach ($nom in 'Tux Paint', 'TuxPaint', 'GCompris') { Write-Host "--- winget search $nom"; cmd.exe /d /c "winget search `"$nom`" --source winget --accept-source-agreements 2>&1" | Out-Host }
+foreach ($nom in 'Tux Paint', 'TuxPaint', 'GCompris', 'RapidTyping', 'Rapid Typing') { Write-Host "--- winget search $nom"; cmd.exe /d /c "winget search `"$nom`" --source winget --accept-source-agreements 2>&1" | Out-Host }
 # Ce que le paquet GCompris installe vraiment (le menu ne montre que « GCompris Teachers »).
 Get-ChildItem $env:ProgramFiles, ${env:ProgramFiles(x86)} -Directory -Filter '*GCompris*' -ErrorAction SilentlyContinue | ForEach-Object { Get-ChildItem $_.FullName -Recurse -Filter *.exe -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "GCompris exe : $($_.FullName)" } }
 Get-StartApps | Where-Object { $_.Name -match 'GCompris' } | ForEach-Object { Write-Host "GCompris menu : $($_.Name) = $($_.AppID)" }
+# RapidTyping : s'il est dans winget, on l'installe ici pour voir où il se range (Flocon le cherche dans Program Files\RapidTyping).
+$rt = cmd.exe /d /c "winget search RapidTyping --source winget --accept-source-agreements 2>&1" | Out-String
+$id = ([regex]::Match($rt, '(\S*RapidTyping\S*)\s+\d')).Groups[1].Value
+if ($id) {
+  Write-Host "RapidTyping winget : $id"
+  cmd.exe /d /c "winget install --id $id -e --silent --accept-package-agreements --accept-source-agreements --disable-interactivity 2>&1" | Out-Host
+  Get-ChildItem $env:ProgramFiles, ${env:ProgramFiles(x86)} -Recurse -Depth 3 -Filter 'RapidTyping*.exe' -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "RapidTyping exe : $($_.FullName)" }
+  Get-StartApps | Where-Object { $_.Name -match 'Rapid' } | ForEach-Object { Write-Host "RapidTyping menu : $($_.Name) = $($_.AppID)" }
+} else { Write-Host 'RapidTyping : absent de winget' }
 $md = Join-Path $env:TEMP 'logiciels.md'
 & node (Join-Path $Ici 'logiciels.js') $md
 $code = $LASTEXITCODE
