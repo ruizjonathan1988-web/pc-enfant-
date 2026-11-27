@@ -16,7 +16,7 @@ jobs:
       - name: Fabriquer l'archive
         run: |
           mkdir -p paquet/Flocon
-          cp -r app installer "Installer Flocon.cmd" "Désinstaller Flocon.cmd" LISEZMOI.html paquet/Flocon/
+          cp -r app installer "Installer Flocon.cmd" "Désinstaller Flocon.cmd" LISEZMOI.html "Guide Flocon.pdf" paquet/Flocon/
           cd paquet && zip -qr ../Flocon-installation.zip Flocon
       - name: Publier la release
         env:
