@@ -101,8 +101,12 @@ Etape 'Le gardien tourne sous SYSTEM et tient la tirelire' {
 }
 
 Etape 'Le gardien lancé à la main ne plante pas' {
+  # Flocon.exe est une application graphique : le « | Out-String » oblige PowerShell à attendre sa fin et son code.
   $env:ELECTRON_RUN_AS_NODE = '1'
-  try { $out = & $Exe $Gardien; $code = $LASTEXITCODE } finally { Remove-Item Env:ELECTRON_RUN_AS_NODE }
+  try { $o = & $Exe -e "process.exit(7)" | Out-String; $c = $LASTEXITCODE } finally { Remove-Item Env:ELECTRON_RUN_AS_NODE }
+  Vrai ($c -eq 7) "le code de sortie de Flocon.exe n'est pas récupéré ($c) : le test ne prouverait rien"
+  $env:ELECTRON_RUN_AS_NODE = '1'
+  try { $out = & $Exe $Gardien | Out-String; $code = $LASTEXITCODE } finally { Remove-Item Env:ELECTRON_RUN_AS_NODE }
   Vrai ($code -eq 0) "code $code : $out"
 }
 
@@ -154,7 +158,7 @@ Etape 'Verrous réels dans le registre de Test (niveaux 1 et 3)' {
   try {
     $pol = "Registry::HKEY_USERS\$sid\Software\Microsoft\Windows\CurrentVersion\Policies"
     $edge = "Registry::HKEY_USERS\$sid\Software\Policies\Microsoft\Edge"
-    $poser = { param($niv) $env:ELECTRON_RUN_AS_NODE = '1'; & $Exe (Join-Path $Ici 'verrous.js') $Gardien $sid $niv; $c = $LASTEXITCODE; Remove-Item Env:ELECTRON_RUN_AS_NODE; Vrai ($c -eq 0) "verrous.js : code $c" }
+    $poser = { param($niv) $env:ELECTRON_RUN_AS_NODE = '1'; $o = & $Exe (Join-Path $Ici 'verrous.js') $Gardien $sid $niv | Out-String; $c = $LASTEXITCODE; if ($o.Trim()) { Write-Host $o }; Remove-Item Env:ELECTRON_RUN_AS_NODE; Vrai ($c -eq 0) "verrous.js : code $c" }
     $liste = { param($cle) @((Get-ItemProperty $cle).PSObject.Properties | Where-Object { $_.Name -match '^\d+$' } | ForEach-Object { $_.Value }) }
     & $poser 1
     Vrai ((Get-ItemProperty "$pol\System").DisableTaskMgr -eq 1) 'Gestionnaire des tâches non bloqué'
