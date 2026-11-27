@@ -73,7 +73,7 @@ async function lancer() {
   page = await appli.firstWindow();
   erreursPage = [];
   page.on('pageerror', (e) => erreursPage.push(e.message));
-  await page.waitForSelector('.carte', { timeout: 30000 });
+  await page.waitForSelector('.carte, .fenetre', { timeout: 30000 });
 }
 async function fermer() { await toutFermer(); }
 const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = BrowserWindow.getAllWindows()[0]; return { kiosk: w.isKiosk(), b: w.getBounds(), zone: screen.getPrimaryDisplay().workArea }; });
@@ -275,12 +275,13 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
   });
   await fermer();
   await lancer();
-  await etape('Troisième séance, à deux : refaire l’atelier', async () => {
-    await page.waitForSelector('text=Bonjour Testine');
-    await clic('[data-a="aDeux"]'); await code('1234');
-    await clic('[data-a="intention"][data-id="creer"]'); await clic('[data-a="commencer"]');
-    await page.waitForSelector('.fenetre');
+  await etape('Arrêt brutal puis relance : la séance reprend, sans nouveaux jetons', async () => {
+    // Flocon a été tué avant « Au revoir » : la séance à deux est encore ouverte côté gardien.
+    const avant = etat();
+    await page.waitForSelector('.fenetre'); await page.waitForSelector('text=Séance à deux');
+    assert.ok(!(await fenetre()).kiosk, 'au bureau, pas en plein écran');
     tic();
+    assert.strictEqual(etat().session.id, avant.session.id, 'même séance'); assert.strictEqual(etat().jetonsRestants, avant.jetonsRestants, 'aucun jeton pris');
   });
   await etape('Niveau 4 : elle ferme Flocon elle-même', async () => {
     await rubrique('Mon style'); await clic('[data-a="espaceParent"]'); await code('1234');
