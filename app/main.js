@@ -66,6 +66,7 @@ function creerFenetre() {
   });
   fen.setMenu(null);
   screen.on('display-metrics-changed', caler);
+  fen.on('leave-full-screen', () => { if (!pleinEcran) caler(); });
   screen.on('display-added', caler);
   screen.on('display-removed', caler);
   fen.loadFile(path.join(__dirname, 'ui', 'index.html'));
@@ -106,7 +107,9 @@ function appliquerMode(plein) {
     fen.setAlwaysOnTop(false);
     fen.setKiosk(false);
     // Le bureau occupe tout l'écran sauf la barre des tâches, qui reste visible pour retrouver ses logiciels.
+    // Windows rend à la sortie du kiosque l'ancienne taille, parfois un peu après : on recale tout de suite puis une seconde fois.
     caler();
+    setTimeout(caler, 250);
   }
 }
 

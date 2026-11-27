@@ -124,9 +124,10 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.strictEqual(enfant('Brune').jetonsSemaine, 8, 'Brune non touchée');
   });
   await etape('Bureau : fenêtre calée sur la zone de travail', async () => {
+    await new Promise((r) => setTimeout(r, 800));
     const f = await fenetre();
     assert.ok(!f.kiosk, 'plus en plein écran');
-    assert.deepStrictEqual(f.b, f.zone, 'fenêtre = zone de travail (barre des tâches visible)');
+    assert.deepStrictEqual(f.b, f.zone, `fenêtre = zone de travail (barre des tâches visible) : ${JSON.stringify(f.b)} pour ${JSON.stringify(f.zone)}`);
   });
   await etape('Bureau : les huit rubriques s’ouvrent', async () => {
     const n = await page.locator('[data-a="rubrique"]').count();
