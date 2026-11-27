@@ -181,7 +181,9 @@ function idDemarrer(nom) {
   return new Promise((ok) => {
     if (cacheMenu[nom]) return ok(cacheMenu[nom]);
     if (process.platform !== 'win32') return ok(null);
-    const cmd = "Get-StartApps | Where-Object { $_.Name -like '*" + nom.replace(/'/g, "''") + "*' } | Select-Object -First 1 -ExpandProperty AppID";
+    // Le nom exact d'abord, sinon le plus court qui le contient : « GCompris » et non « GCompris Teachers ».
+    const n = nom.replace(/'/g, "''");
+    const cmd = "$l = @(Get-StartApps | Where-Object { $_.Name -like '*" + n + "*' }); $e = $l | Where-Object { $_.Name -eq '" + n + "' } | Select-Object -First 1; if (-not $e) { $e = $l | Sort-Object { $_.Name.Length } | Select-Object -First 1 }; if ($e) { $e.AppID }";
     execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], { windowsHide: true, timeout: 15000 }, (err, out) => {
       const id = String(out || '').trim();
       if (id) cacheMenu[nom] = id;

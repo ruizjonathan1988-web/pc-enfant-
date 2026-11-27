@@ -172,7 +172,7 @@ if ($avecLogiciels) {
   } else {
     $paquets = @(
       @{ id = 'MITMediaLab.Scratch.3'; nom = 'Scratch' },
-      @{ id = 'TuxPaint.TuxPaint'; nom = 'Tux Paint (dessin)' },
+      @{ id = 'NewBreedSoftware.TuxPaint'; nom = 'Tux Paint (dessin)' },
       @{ id = 'KDE.GCompris'; nom = 'GCompris (jeux pour apprendre)' },
       @{ id = 'MyPaint.MyPaint'; nom = 'MyPaint (peinture)' },
       @{ id = 'KDE.Krita'; nom = 'Krita' },

@@ -50,7 +50,9 @@ for (const ref of refs) {
   if (l.store) { lignes.push(`| ${l.nom} | Microsoft Store : s’installe à la main dans la session de l’enfant (voir la notice) |`); continue; }
   const chemin = (l.chemins || []).map(developper).find((c) => fs.existsSync(c));
   const noms = l.menus || (l.menu ? [l.menu] : []);
-  const entree = !chemin && noms.map((n) => menu.find((m) => m.Name && m.Name.toLowerCase().includes(n.toLowerCase()))).find(Boolean);
+  // Même règle que Flocon : le nom exact, sinon le plus court qui le contient.
+  const choisir = (n) => { const l = menu.filter((m) => m.Name && m.Name.toLowerCase().includes(n.toLowerCase())); return l.find((m) => m.Name.toLowerCase() === n.toLowerCase()) || l.sort((a, b) => a.Name.length - b.Name.length)[0]; };
+  const entree = !chemin && noms.map(choisir).find(Boolean);
   if (chemin) {
     let r = ref === 'explorateur' ? 'non lancé' : await essayer(chemin);
     // Klavaro plante parfois au démarrage : on essaie aussi depuis son dossier d'installation, pour comprendre.

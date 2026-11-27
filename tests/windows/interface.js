@@ -268,7 +268,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await rubrique('Je crée'); await tuile('Mon cahier');
     await page.fill('[data-in="nouveauTexte"]', 'Le renard des neiges'); await clic('[data-a="creerTexte"]');
     await page.fill('[data-in="texteCorps"]', 'Il était une fois un renard tout blanc.\nIl aimait la neige.'); await pause(1200);
-    assert.strictEqual(await page.textContent('.cahier .entete .etiquette'), '13 mots');
+    assert.strictEqual(await page.textContent('.cahier .entete .etiquette'), '12 mots');
     const d = path.join(os.homedir(), 'Documents', 'Mes textes');
     const f = fs.readdirSync(d).find((x) => x.endsWith('.json'));
     const x = lire(path.join(d, f));
