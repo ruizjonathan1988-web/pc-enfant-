@@ -13,7 +13,7 @@ const LOGICIELS = {
   // Pensés pour son âge : Tux Paint (dessin, 3-12 ans), GCompris (activités du primaire), le Magnétophone de Windows.
   tuxpaint: { nom: 'Tux Paint', chemins: [PF + '\\TuxPaint\\tuxpaint.exe', PF86 + '\\TuxPaint\\tuxpaint.exe'], menu: 'Tux Paint' },
   gcompris: { nom: 'GCompris', chemins: [PF + '\\GCompris-Qt\\bin\\gcompris-qt.exe', PF + '\\GCompris\\bin\\gcompris-qt.exe', PF + '\\KDE\\GCompris\\bin\\gcompris-qt.exe'], menu: 'GCompris' },
-  magneto: { nom: 'Magnétophone', chemins: [], menus: ['Magnétophone', 'Enregistreur audio', 'Enregistreur vocal', 'Sound Recorder'] },
+  magneto: { nom: 'Magnétophone', windows11: true, chemins: [], menus: ['Magnétophone', 'Enregistreur audio', 'Enregistreur vocal', 'Sound Recorder'] },
   krita: { nom: 'Krita', chemins: [PF + '\\Krita (x64)\\bin\\krita.exe', PF + '\\Krita\\bin\\krita.exe'], menu: 'Krita' },
   writer: { nom: 'LibreOffice Writer', chemins: [PF + '\\LibreOffice\\program\\swriter.exe'], menu: 'LibreOffice Writer' },
   impress: { nom: 'LibreOffice Impress', chemins: [PF + '\\LibreOffice\\program\\simpress.exe'], menu: 'LibreOffice Impress' },
@@ -25,7 +25,7 @@ const LOGICIELS = {
   minecraft: { nom: 'Minecraft', chemins: [PF86 + '\\Minecraft Launcher\\MinecraftLauncher.exe', PF + '\\Minecraft Launcher\\MinecraftLauncher.exe'], menu: 'Minecraft Launcher' },
   // RapidTyping, installé à la main (rapidtyping.com). Klavaro n'est plus installé : sa version Windows plante au démarrage
   // (0xC0000374, relevé par le testeur des logiciels) ; il reste en secours s'il est déjà là.
-  klavaro: { nom: 'Le clavier', chemins: [PF + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\Klavaro\\bin\\klavaro.exe', PF + '\\Klavaro\\bin\\klavaro.exe'], menus: ['RapidTyping', 'Klavaro'] }
+  klavaro: { nom: 'Le clavier', manuel: 'RapidTyping, à installer à la main (rapidtyping.com)', chemins: [PF + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\Klavaro\\bin\\klavaro.exe', PF + '\\Klavaro\\bin\\klavaro.exe'], menus: ['RapidTyping', 'Klavaro'] }
 };
 
 // domaines : adresses autorisées en navigation (sous-domaines compris).

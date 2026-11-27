@@ -41,12 +41,16 @@ function essayer(chemin, dossier) {
     setTimeout(() => { if (fini) return; fini = true; ok('s’ouvre et tient'); try { execFileSync('taskkill', ['/F', '/T', '/PID', String(p.pid)], { stdio: 'ignore' }); } catch (e) { /* rien */ } }, 20000);
   });
 }
+const chemin0 = (l) => (l.chemins || []).map(developper).find((c) => fs.existsSync(c));
+const choisirTot = (l) => (l.menus || (l.menu ? [l.menu] : [])).some((n) => menu.some((m) => m.Name && m.Name.toLowerCase().includes(n.toLowerCase())));
 const lignes = ['| Logiciel | Résultat |', '|---|---|'];
 let manquants = 0;
 (async () => {
 for (const ref of refs) {
   const l = CAT.LOGICIELS[ref];
   if (l.uri) { lignes.push(`| ${l.nom} | adresse ${l.uri} (application Windows) |`); continue; }
+  if (!chemin0(l) && l.manuel) { lignes.push(`| ${l.nom} | à installer à la main : ${l.manuel} |`); continue; }
+  if (!chemin0(l) && l.windows11 && !choisirTot(l)) { lignes.push(`| ${l.nom} | application de Windows 11, absente des serveurs de test |`); continue; }
   if (l.store) { lignes.push(`| ${l.nom} | Microsoft Store : s’installe à la main dans la session de l’enfant (voir la notice) |`); continue; }
   const chemin = (l.chemins || []).map(developper).find((c) => fs.existsSync(c));
   const noms = l.menus || (l.menu ? [l.menu] : []);
