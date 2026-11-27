@@ -1,0 +1,22 @@
+name: Publier une version
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tests de la tirelire
+        run: node tests/tirelire.test.js
+      - name: Fabriquer l'archive
+        run: |
+          mkdir -p paquet/Flocon
+          cp -r app installer "Installer Flocon.cmd" "Désinstaller Flocon.cmd" LISEZMOI.html paquet/Flocon/
+          cd paquet && zip -qr ../Flocon-installation.zip Flocon
+      - name: Publier la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" Flocon-installation.zip --title "Flocon ${GITHUB_REF_NAME}" --notes "Installation : voir le README."
