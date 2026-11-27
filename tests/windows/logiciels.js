@@ -32,9 +32,9 @@ function chercher(exe) {
 const refs = new Set(CAT.RUBRIQUES.flatMap((r) => r.tuiles).filter((t) => t.type === 'logiciel').map((t) => t.ref).concat(['minecraft']));
 // Lance vraiment le logiciel, comme Flocon, et regarde s'il tient 20 secondes.
 // Un programme qui rend la main avec le code 0 (calc.exe ouvre la Calculatrice de Windows) n'est pas en échec.
-function essayer(chemin) {
+function essayer(chemin, dossier) {
   return new Promise((ok) => {
-    const p = require('child_process').spawn(chemin, [], { detached: true, stdio: 'ignore', cwd: path.dirname(chemin) });
+    const p = require('child_process').spawn(chemin, [], { detached: true, stdio: 'ignore', cwd: dossier || path.dirname(chemin) });
     let fini = false;
     p.once('error', (e) => { fini = true; ok('ne démarre pas : ' + e.message); });
     p.once('exit', (code) => { if (fini) return; fini = true; ok(code === 0 ? 'rend la main (code 0)' : 'SE FERME aussitôt (code ' + code + ')'); });
@@ -52,7 +52,9 @@ for (const ref of refs) {
   const noms = l.menus || (l.menu ? [l.menu] : []);
   const entree = !chemin && noms.map((n) => menu.find((m) => m.Name && m.Name.toLowerCase().includes(n.toLowerCase()))).find(Boolean);
   if (chemin) {
-    const r = ref === 'explorateur' ? 'non lancé' : await essayer(chemin);
+    let r = ref === 'explorateur' ? 'non lancé' : await essayer(chemin);
+    // Klavaro plante parfois au démarrage : on essaie aussi depuis son dossier d'installation, pour comprendre.
+    if (/SE FERME/.test(r) && /\\bin\\[^\\]+$/i.test(chemin)) r += ' ; depuis ' + path.dirname(path.dirname(chemin)) + ' : ' + await essayer(chemin, path.dirname(path.dirname(chemin)));
     if (/SE FERME|ne démarre pas/.test(r)) manquants++;
     lignes.push(`| ${l.nom} | trouvé : ${chemin} ; ${r} |`);
   }

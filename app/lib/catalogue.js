@@ -9,11 +9,11 @@ const LAD = '%LOCALAPPDATA%';
 const LOGICIELS = {
   scratch: { nom: 'Scratch', chemins: [PF + '\\Scratch 3\\Scratch 3.exe', PF86 + '\\Scratch 3\\Scratch 3.exe', LAD + '\\Programs\\Scratch 3\\Scratch 3.exe'], menu: 'Scratch' },
   stopmotion: { nom: 'Stop Motion Studio', chemins: [], menu: 'Stop Motion', store: true },
-  mypaint: { nom: 'MyPaint', chemins: [PF + '\\MyPaint\\mingw64\\bin\\mypaint.exe', PF + '\\MyPaint\\mingw64\\bin\\mypaint-w64.exe', PF + '\\MyPaint\\mypaint.exe'], menus: ['MyPaint'] },
+  mypaint: { nom: 'MyPaint', chemins: [PF + '\\mypaint-w64\\mypaint.exe', PF + '\\MyPaint\\mingw64\\bin\\mypaint.exe', PF + '\\MyPaint\\mingw64\\bin\\mypaint-w64.exe', PF + '\\MyPaint\\mypaint.exe'], menus: ['MyPaint'] },
   krita: { nom: 'Krita', chemins: [PF + '\\Krita (x64)\\bin\\krita.exe', PF + '\\Krita\\bin\\krita.exe'], menu: 'Krita' },
   writer: { nom: 'LibreOffice Writer', chemins: [PF + '\\LibreOffice\\program\\swriter.exe'], menu: 'LibreOffice Writer' },
   impress: { nom: 'LibreOffice Impress', chemins: [PF + '\\LibreOffice\\program\\simpress.exe'], menu: 'LibreOffice Impress' },
-  audacity: { nom: 'Audacity', chemins: [PF + '\\Audacity\\Audacity.exe'], menu: 'Audacity' },
+  audacity: { nom: 'Audacity', chemins: [PF + '\\Audacity 4\\bin\\Audacity4.exe', PF + '\\Audacity\\Audacity.exe'], menu: 'Audacity' },
   calculatrice: { nom: 'Calculatrice', chemins: ['%SystemRoot%\\System32\\calc.exe'], menu: 'Calculatrice' },
   camera: { nom: 'Caméra', uri: 'microsoft.windows.camera:' },
   explorateur: { nom: 'Explorateur de fichiers', chemins: ['%SystemRoot%\\explorer.exe'] },

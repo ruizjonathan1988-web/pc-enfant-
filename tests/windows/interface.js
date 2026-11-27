@@ -235,15 +235,16 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
   await etape('Téléchargement : une musique est rangée dans Mes créations', async () => {
     const f = path.join(os.homedir(), 'Documents', 'Mes créations', 'ma-melodie.mid');
     try { fs.unlinkSync(f); } catch (e) { /* rien */ }
-    await page.evaluate(() => document.querySelector('#vue-site').executeJavaScript("const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['MThd'], { type: 'audio/midi' })); a.download = 'ma-melodie.mid'; document.body.appendChild(a); a.click();", true));
+    await page.evaluate(() => document.querySelector('#vue-site').executeJavaScript("{ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['MThd'], { type: 'audio/midi' })); a.download = 'ma-melodie.mid'; document.body.appendChild(a); a.click(); }", true));
     await page.waitForSelector('text=est rangé dans Mes créations', { timeout: 15000 });
     assert.ok(fs.existsSync(f), 'fichier dans Mes créations');
   });
   await etape('Téléchargement : un programme est refusé', async () => {
-    await page.evaluate(() => document.querySelector('#vue-site').executeJavaScript("const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['MZ'])); a.download = 'jeu-gratuit.exe'; document.body.appendChild(a); a.click();", true));
+    try {
+    await page.evaluate(() => document.querySelector('#vue-site').executeJavaScript("{ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['MZ'])); a.download = 'jeu-gratuit.exe'; document.body.appendChild(a); a.click(); }", true));
     await page.waitForSelector('text=ne peut pas être enregistré', { timeout: 15000 });
     assert.ok(!fs.existsSync(path.join(os.homedir(), 'Documents', 'Mes créations', 'jeu-gratuit.exe')), 'aucun .exe enregistré');
-    await clic('#site-fermer');
+    } finally { if (await page.locator('#site-fermer').count()) await clic('#site-fermer'); }
   });
   for (const [nomTuile, domaine] of [['Les étoiles', /stellarium/], ['Les Fondamentaux', /reseau-canope\.fr/]]) {
     await etape(nomTuile + ' : le site s’ouvre (adresse suivie jusqu’au bout)', async () => {
