@@ -35,6 +35,7 @@ const SITES = {
   calcul: { nom: 'Calcul mental', url: 'https://calculatice.ac-lille.fr', domaines: ['calculatice.ac-lille.fr'] },
   dicoado: { nom: 'Dicoado', url: 'https://www.dicoado.org', domaines: ['dicoado.org'] },
   songmaker: { nom: 'Mélodies', url: 'https://musiclab.chromeexperiments.com/Song-Maker/', domaines: ['musiclab.chromeexperiments.com'] },
+  teachable: { nom: 'Teachable Machine', url: 'https://teachablemachine.withgoogle.com/train/image', domaines: ['teachablemachine.withgoogle.com'], camera: true },
   blockly: { nom: 'Blockly Games', url: 'https://blockly.games/?lang=fr', domaines: ['blockly.games'] },
   incredibox: { nom: 'Mes beats', url: 'https://www.incredibox.com/demo/', domaines: ['incredibox.com'] }
 };
@@ -104,6 +105,7 @@ const RUBRIQUES = [
     { type: 'interne', ref: 'exposes', nom: 'Mes exposés', sous: 'De l’idée à l’oral', icone: I.diapo, couleur: '#1F5FA8' },
     { type: 'interne', ref: 'pourquoi', nom: 'Grand Pourquoi', sous: 'Mes questions', icone: I.question, couleur: '#7C5CFA' },
     { type: 'site', ref: 'blockly', nom: 'Blockly Games', sous: 'Après Scratch : coder pas à pas', icone: I.code, couleur: '#F28C28' },
+    { type: 'projet', ref: 'ia', nom: 'J\u2019apprends à l\u2019ordinateur', sous: 'Comprendre l\u2019IA, à deux', icone: I.cube, couleur: '#7C5CFA' },
     { type: 'logiciel', ref: 'klavaro', nom: 'Taper au clavier', sous: 'Avec les dix doigts', icone: I.texte, couleur: '#13A39F' },
     { type: 'site', ref: 'lama', nom: 'Classe du Lama', sous: 'Jeux de français et maths', icone: I.lama, couleur: '#E0457B' },
     { type: 'site', ref: 'khan', nom: 'Khan Academy', sous: 'Leçons et exercices', icone: I.chapeau, couleur: '#2FA36B' },
@@ -167,6 +169,14 @@ const PROJETS = {
     ['Mets en page', 'Une image et son texte par page, dans LibreOffice Writer.'],
     ['Imprime en livret', 'Fichier, Imprimer, puis choisis « Brochure » : tu n\u2019as plus qu\u2019à plier et agrafer.']
   ], outils: [['logiciel', 'writer', 'Écrire'], ['logiciel', 'krita', 'Dessiner']] },
+  ia: { titre: 'J\u2019apprends à l\u2019ordinateur', chapo: 'Une intelligence artificielle ne sait que ce qu\u2019on lui a montré. Pour le comprendre, entraîne la tienne. La première fois, fais-le avec un adulte : le site est en anglais.', etapes: [
+    ['Ouvre Teachable Machine', 'Un projet d\u2019images : la caméra va servir d\u2019yeux à l\u2019ordinateur.'],
+    ['Crée trois catégories', 'Pierre, Feuille, Ciseaux. Ce sont les seules choses que ta machine pourra reconnaître.'],
+    ['Montre-lui des exemples', 'Une cinquantaine d\u2019images pour chaque geste, en bougeant un peu ta main.'],
+    ['Entraîne et teste', 'Clique sur « Train », puis montre tes gestes : est-ce qu\u2019elle devine ?'],
+    ['Piège-la', 'La main de quelqu\u2019un d\u2019autre, la pénombre, un autre fond, ton pied… Qu\u2019est-ce qui rate ? Pourquoi ?'],
+    ['Note ce que tu as découvert', 'Dans ton Grand Pourquoi. Par exemple : « Elle se trompe quand on lui montre ce qu\u2019elle n\u2019a jamais vu. »']
+  ], outils: [['site', 'teachable', 'Teachable Machine'], ['interne', 'pourquoi', 'Mon Grand Pourquoi']] },
   papier: { titre: 'Du papier à l\u2019écran', chapo: 'Tes dessins sur papier deviennent des images en couleur ou des films.', etapes: [
     ['Dessine sur papier', 'Avec un feutre bien noir, des traits nets.'],
     ['Prends-le en photo', 'Bien à plat, à la lumière du jour, sans ombre.'],

@@ -96,6 +96,21 @@ app.on('web-contents-created', (_e, wc) => {
   wc.session.on('will-download', (e) => e.preventDefault());
 });
 
+// Permissions des sites : tout est refusé, sauf la caméra pour les sites qui en ont besoin (Teachable Machine).
+function permisCamera(url) {
+  let h = ''; try { h = new URL(url).hostname; } catch (e) { return false; }
+  return Object.values(CAT.SITES).some((s) => s.camera && s.domaines.some((d) => h === d || h.endsWith('.' + d)));
+}
+app.whenReady().then(() => {
+  const ses = require('electron').session.fromPartition('persist:sites');
+  ses.setPermissionRequestHandler((wc, perm, cb, details) => {
+    const url = (details && (details.requestingUrl || details.securityOrigin)) || wc.getURL();
+    const media = perm === 'media' && (!details || !details.mediaTypes || details.mediaTypes.every((t) => t === 'video'));
+    cb(media && permisCamera(url));
+  });
+  ses.setPermissionCheckHandler((wc, perm, origin) => perm === 'media' && permisCamera(origin));
+});
+
 app.on('web-contents-created', (_e, wc) => {
   wc.on('will-attach-webview', (e, prefs, params) => {
     delete prefs.preload;
