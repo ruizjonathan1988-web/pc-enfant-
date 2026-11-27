@@ -12,9 +12,23 @@ const C = {
   etat: path.join(BASE, 'etat.json'),              // écrit par le gardien seulement
   journalGardien: path.join(BASE, 'gardien.log'),
   boite: path.join(BASE, 'boite'),                 // seul dossier où l'enfant peut écrire
+  // Version 1 (un seul enfant) : gardés pour la migration.
   demande: path.join(BASE, 'boite', 'demande.json'),
   parent: path.join(BASE, 'boite', 'parent.json')
 };
+
+// Version 2 : un dossier par enfant. Sa boîte aux lettres n'est modifiable que par son compte.
+const { dossierCompte } = require('./enfants');
+function pour(compte) {
+  const d = dossierCompte(compte);
+  return {
+    etat: path.join(BASE, 'enfants', d, 'etat.json'),          // écrit par le gardien seulement
+    boite: path.join(BASE, 'boite', d),
+    demande: path.join(BASE, 'boite', d, 'demande.json'),
+    parent: path.join(BASE, 'boite', d, 'parent.json')
+  };
+}
+C.pour = pour;
 
 function lireJson(f, defaut) {
   try { return JSON.parse(fs.readFileSync(f, 'utf8').replace(/^\uFEFF/, '')); } catch (e) { return defaut; }

@@ -1,0 +1,37 @@
+name: Testeur Windows
+# Une vraie machine Windows installe Flocon de bout en bout à chaque envoi, et vérifie tout.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tests de la tirelire
+        env:
+          FLOCON_DEV: '1'
+        run: node tests/tirelire.test.js
+      - name: Fabriquer le paquet (comme la release)
+        shell: powershell
+        run: |
+          $d = Join-Path $env:RUNNER_TEMP 'paquet\Flocon'
+          New-Item -ItemType Directory -Force -Path $d | Out-Null
+          Copy-Item -Recurse app, installer, VERSION, 'Installer Flocon.cmd', 'Désinstaller Flocon.cmd', LISEZMOI.html -Destination $d
+      - name: Scénario complet (installer, ajouter un enfant, mettre à jour, migrer, désinstaller)
+        shell: powershell
+        run: .\tests\windows\scenario.ps1 -Paquet (Join-Path $env:RUNNER_TEMP 'paquet')
+      - name: Garder les captures et les journaux
+        if: always()
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path captures | Out-Null
+          Copy-Item (Join-Path $env:TEMP 'flocon-installation.log') captures -ErrorAction SilentlyContinue
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: testeur-windows
+          path: captures/

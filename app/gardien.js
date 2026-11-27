@@ -19,27 +19,42 @@ function log(msg) {
   } catch (e) { /* rien */ }
 }
 
-// Retourne { active, id } pour le compte enfant, d'après « quser ».
-function sessionEnfant(compte) {
-  if (C.DEV) return { active: process.env.FLOCON_ACTIF === '1', id: null };
+const path = require('path');
+const E = require('./lib/enfants');
+const SCRIPT_SESSIONS = path.join(__dirname, 'lib', 'sessions.ps1');
+const PS = ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', SCRIPT_SESSIONS];
+
+// Sessions Windows ouvertes : [{ id, user, active }].
+// D'abord l'API WTS (présente partout, Windows Famille compris), sinon quser (Pro seulement).
+function listerSessions() {
+  if (C.DEV) return (process.env.FLOCON_ACTIF || '').split(',').filter(Boolean).map((u, i) => ({ id: i + 1, user: u, active: true }));
+  try {
+    const out = execFileSync('powershell.exe', PS.concat(['liste']), { encoding: 'utf8', windowsHide: true, timeout: 60000 });
+    const l = JSON.parse(String(out).trim() || '[]');
+    if (Array.isArray(l)) return l;
+  } catch (e) { log('sessions (WTS) : ' + e.message); }
+  return listerQuser();
+}
+
+function listerQuser() {
   let sortie = '';
   try { sortie = execFileSync('quser', [], { encoding: 'utf8', windowsHide: true }); } catch (e) { sortie = String((e && e.stdout) || ''); }
+  const res = [];
   for (const brut of sortie.split(/\r?\n/).slice(1)) {
     const l = brut.replace(/^>/, ' ').trim();
     if (!l) continue;
     const morceaux = l.split(/\s+/);
-    if (morceaux[0].toLowerCase() !== String(compte).toLowerCase()) continue;
     const idx = morceaux.findIndex((m) => /^\d+$/.test(m));
-    const id = idx >= 0 ? morceaux[idx] : null;
-    const etatTxt = idx >= 0 ? (morceaux[idx + 1] || '') : '';
-    return { active: /^(active|actif)/i.test(etatTxt), id };
+    if (idx < 0) continue;
+    res.push({ id: Number(morceaux[idx]), user: morceaux[0], active: /^(active|actif)/i.test(morceaux[idx + 1] || '') });
   }
-  return { active: false, id: null };
+  return res;
 }
 
 function deconnecter(id) {
   if (C.DEV || !id) { log('déconnexion (simulée) session ' + id); return; }
-  try { execFileSync('logoff', [String(id)], { windowsHide: true }); log('déconnexion session ' + id); } catch (e) { log('échec déconnexion : ' + e.message); }
+  try { execFileSync('powershell.exe', PS.concat(['deconnecter', String(id)]), { windowsHide: true, timeout: 60000 }); log('déconnexion session ' + id); return; } catch (e) { log('déconnexion (WTS) : ' + e.message); }
+  try { execFileSync('logoff', [String(id)], { windowsHide: true }); log('déconnexion session ' + id + ' (logoff)'); } catch (e) { log('échec déconnexion : ' + e.message); }
 }
 
 function reg(args) { try { execFileSync('reg', args, { windowsHide: true, stdio: 'ignore' }); return true; } catch (e) { return false; } }
@@ -81,30 +96,57 @@ function verrous(sid, config) {
   }
 }
 
+// Une configuration et un état de la version 1 passent en version 2 (un dossier par enfant).
+function migrer(config) {
+  const c = E.normaliser(config);
+  if (c === config) return c;
+  ecrireJson(C.config, c);
+  const p = C.pour(c.enfants[0].compte);
+  if (!fs.existsSync(p.etat) && fs.existsSync(C.etat)) { fs.mkdirSync(path.dirname(p.etat), { recursive: true }); fs.renameSync(C.etat, p.etat); }
+  log('configuration passée en version 2');
+  return c;
+}
+
+function unEnfant(config, enfant, sessions, maintenant) {
+  const p = C.pour(enfant.compte);
+  let v = E.vue(config, enfant);
+  let etat = lireJson(p.etat, null);
+
+  // Demandes du panneau parent (protégées par le code).
+  const reqParent = lireJson(p.parent, null);
+  if (reqParent) {
+    const r = T.appliquerParent(v, etat, reqParent);
+    try { fs.unlinkSync(p.parent); } catch (e) { /* rien */ }
+    if (r.ok) { config = E.integrer(config, enfant.compte, r.config); v = E.vue(config, enfant); etat = r.etat; ecrireJson(C.config, config); log(enfant.compte + ' : réglages parent appliqués'); }
+    else log(enfant.compte + ' : code parent refusé');
+    if (etat) etat.retourParent = { ok: r.ok, le: maintenant.toISOString() };
+  }
+
+  const demande = lireJson(p.demande, null);
+  const sess = sessions.find((s) => E.memeCompte(s.user, enfant.compte)) || { active: false, id: null };
+  const r = T.tic(etat, v, demande, maintenant, !!sess.active);
+  if (etat && etat.retourParent) r.etat.retourParent = etat.retourParent;
+  if (r.message) r.etat.dernierMessage = { code: r.message, le: maintenant.toISOString(), session: demande && demande.sessionId };
+  ecrireJson(p.etat, r.etat);
+  // Le code tapé pour « à deux » ne reste pas en clair dans la boîte : il ne sert qu'à ouvrir la séance.
+  if (demande && demande.aDeuxPin && r.etat.session && r.etat.session.id === demande.sessionId) {
+    try { ecrireJson(p.demande, Object.assign({}, demande, { aDeuxPin: null })); } catch (e) { /* rien */ }
+  }
+  if (r.deconnecter) deconnecter(sess.id);
+  if (sess.active && (maintenant.getMinutes() % 5 === 0 || (r.etat.session && r.etat.session.minutes === 1) || reqParent)) verrous(enfant.sid, v);
+  return config;
+}
+
 function principal() {
   const maintenant = new Date();
   let config = lireJson(C.config, null);
   if (!config) { log('pas de configuration, rien à faire'); return; }
-  let etat = lireJson(C.etat, null);
-
-  // Demandes du panneau parent (protégées par le code).
-  const reqParent = lireJson(C.parent, null);
-  if (reqParent) {
-    const r = T.appliquerParent(config, etat, reqParent);
-    try { fs.unlinkSync(C.parent); } catch (e) { /* rien */ }
-    if (r.ok) { config = r.config; etat = r.etat; ecrireJson(C.config, config); log('réglages parent appliqués'); }
-    else log('code parent refusé');
-    if (etat) etat.retourParent = { ok: r.ok, le: maintenant.toISOString() };
+  config = migrer(config);
+  const sessions = listerSessions();
+  for (const enfant of config.enfants.slice()) {
+    try { config = unEnfant(config, config.enfants.find((e) => E.memeCompte(e.compte, enfant.compte)), sessions, maintenant); }
+    catch (e) { log(enfant.compte + ' : erreur : ' + (e && e.stack || e)); }
   }
-
-  const demande = lireJson(C.demande, null);
-  const sess = sessionEnfant(config.enfant.compte);
-  const r = T.tic(etat, config, demande, maintenant, sess.active);
-  if (etat && etat.retourParent) r.etat.retourParent = etat.retourParent;
-  if (r.message) r.etat.dernierMessage = { code: r.message, le: maintenant.toISOString(), session: demande && demande.sessionId };
-  ecrireJson(C.etat, r.etat);
-  if (r.deconnecter) deconnecter(sess.id);
-  if (sess.active && (maintenant.getMinutes() % 5 === 0 || (r.etat.session && r.etat.session.minutes === 1) || reqParent)) verrous(config.enfant.sid, config);
 }
 
 try { principal(); } catch (e) { log('erreur : ' + (e && e.stack || e)); }

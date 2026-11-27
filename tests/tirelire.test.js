@@ -91,3 +91,54 @@ console.log('niveaux : ok');
   assert.ok(b.includes(Buffer.from('word/document.xml')));
   console.log('document Word : ok');
 }
+
+// Plusieurs enfants : migration de la version 1, vues séparées, code commun.
+{
+  const assert = require('assert');
+  const E = require('../app/lib/enfants');
+  const v1 = { version: 1, enfant: { prenom: 'Brune', compte: 'Brune', sid: 'S-1' }, jetonsSemaine: 8, maxParSeance: 5, aDeuxMaxMinutes: 120, graceMinutes: 5, niveau: 3, pinSel: 'abc', pinHash: T.hacherPin('1234', 'abc'), sites: ['vikidia.org'], jeux: [{ id: '1', nom: 'Jeu' }], logiciels: null };
+  const c = E.normaliser(v1);
+  assert.strictEqual(c.version, 2); assert.strictEqual(c.enfants.length, 1);
+  assert.strictEqual(c.enfants[0].niveau, 3); assert.deepStrictEqual(c.enfants[0].sites, ['vikidia.org']);
+  assert.strictEqual(E.normaliser(c), c, 'version 2 inchangée');
+  c.enfants.push({ compte: 'Test', prenom: 'Test', sid: 'S-2', jetonsSemaine: 4, maxParSeance: 2, niveau: 1, sites: null, jeux: [] });
+  assert.strictEqual(E.trouver(c, 'brune').prenom, 'Brune', 'compte sans tenir compte de la casse');
+  const vt = E.vue(c, E.trouver(c, 'Test'));
+  assert.strictEqual(vt.jetonsSemaine, 4); assert.strictEqual(vt.pinHash, v1.pinHash); assert.strictEqual(vt.enfant.compte, 'Test');
+  // Le panneau parent de Test ne touche pas Brune ; un nouveau code vaut pour tous.
+  const r = T.appliquerParent(vt, null, { pin: '1234', changements: { niveau: 2, jetonsSemaine: 6, nouveauPin: '9876' } });
+  assert.ok(r.ok);
+  const c2 = E.integrer(c, 'Test', r.config);
+  assert.strictEqual(E.trouver(c2, 'Test').niveau, 2); assert.strictEqual(E.trouver(c2, 'Brune').niveau, 3);
+  assert.ok(T.pinValide(E.vue(c2, E.trouver(c2, 'Brune')), '9876'));
+  assert.strictEqual(E.dossierCompte('Léa Martin'), 'lea_martin');
+  console.log('plusieurs enfants : ok');
+}
+
+// Le gardien en mode test : migration d'une installation 1.4.3, deux enfants, code « à deux » effacé.
+{
+  const assert = require('assert'); const fs = require('fs'); const path = require('path'); const { execFileSync } = require('child_process');
+  const { C } = require('../app/lib/chemins');
+  if (!C.DEV) throw new Error('ce test efface ses données : lancer avec FLOCON_DEV=1 sous Windows');
+  fs.rmSync(C.base, { recursive: true, force: true }); fs.mkdirSync(path.join(C.base, 'boite'), { recursive: true });
+  const v1 = Object.assign(T.configParDefaut(), { enfant: { prenom: 'Brune', compte: 'Brune', sid: null }, niveau: 3, pinSel: 'abc', pinHash: T.hacherPin('1234', 'abc') });
+  fs.writeFileSync(C.config, JSON.stringify(v1));
+  fs.writeFileSync(C.etat, JSON.stringify(T.etatInitial(v1, new Date())));
+  const gardien = (actifs) => execFileSync(process.execPath, [path.join(__dirname, '..', 'app', 'gardien.js')], { env: Object.assign({}, process.env, { FLOCON_ACTIF: actifs }) });
+  gardien('');
+  let c = JSON.parse(fs.readFileSync(C.config, 'utf8'));
+  assert.strictEqual(c.version, 2); assert.strictEqual(c.enfants[0].niveau, 3);
+  assert.ok(fs.existsSync(C.pour('Brune').etat) && !fs.existsSync(C.etat), 'tirelire déplacée');
+  c.enfants.push({ compte: 'Test', prenom: 'Test', sid: null, jetonsSemaine: 4, maxParSeance: 2, niveau: 1, sites: null, jeux: [] });
+  fs.writeFileSync(C.config, JSON.stringify(c));
+  const pt = C.pour('Test'); fs.mkdirSync(pt.boite, { recursive: true });
+  fs.writeFileSync(pt.demande, JSON.stringify({ sessionId: 's1', jetons: 0, aDeuxPin: '1234' }));
+  gardien('Test');
+  const et = JSON.parse(fs.readFileSync(pt.etat, 'utf8'));
+  assert.ok(et.session.aDeux, 'séance à deux ouverte pour Test'); assert.strictEqual(et.session.minutes, 1);
+  assert.strictEqual(JSON.parse(fs.readFileSync(pt.demande, 'utf8')).aDeuxPin, null, 'code effacé de la boîte');
+  const eb = JSON.parse(fs.readFileSync(C.pour('Brune').etat, 'utf8'));
+  assert.strictEqual(eb.jetonsRestants, 8, 'Brune non touchée');
+  fs.rmSync(C.base, { recursive: true, force: true });
+  console.log('gardien, plusieurs enfants : ok');
+}

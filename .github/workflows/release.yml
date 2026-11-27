@@ -7,7 +7,10 @@ on:
 permissions:
   contents: write
 jobs:
+  windows:
+    uses: ./.github/workflows/tests-windows.yml
   release:
+    needs: windows
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,7 +19,7 @@ jobs:
       - name: Fabriquer l'archive
         run: |
           mkdir -p paquet/Flocon
-          cp -r app installer "Installer Flocon.cmd" "Désinstaller Flocon.cmd" LISEZMOI.html "Guide Flocon.pdf" paquet/Flocon/
+          cp -r app installer VERSION "Installer Flocon.cmd" "Désinstaller Flocon.cmd" LISEZMOI.html "Guide Flocon.pdf" paquet/Flocon/
           cd paquet && zip -qr ../Flocon-installation.zip Flocon
       - name: Publier la release
         env:

@@ -5,6 +5,8 @@ const fs = require('fs');
 const { spawn, execFile } = require('child_process');
 const { C, lireJson, ecrireJson } = require('./lib/chemins');
 const CAT = require('./lib/catalogue');
+const E = require('./lib/enfants');
+const os = require('os');
 
 app.setName('Flocon');
 if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
@@ -36,10 +38,13 @@ function dossiers() {
   };
 }
 
-function config() {
-  const c = lireJson(C.config, null) || require('./lib/tirelire').configParDefaut();
-  return c;
-}
+// L'enfant de cette session : celui dont le compte Windows est ouvert.
+// En test (ou depuis un compte inconnu), le premier enfant de la configuration.
+const COMPTE = process.env.FLOCON_COMPTE || os.userInfo().username;
+function configComplete() { return E.normaliser(lireJson(C.config, null) || require('./lib/tirelire').configParDefaut()); }
+function enfantCourant(c) { return E.trouver(c, COMPTE) || c.enfants[0]; }
+function config() { const c = configComplete(); return E.vue(c, enfantCourant(c)); }
+function fichiers() { return C.pour(enfantCourant(configComplete()).compte); }
 
 function configPublique() {
   const c = config();
@@ -270,7 +275,7 @@ poser('init', () => {
   return {
     dev: C.DEV, plateforme: process.platform,
     catalogue: { PERMIS: CAT.PERMIS, PREMIERS_PAS: CAT.PREMIERS_PAS, IDEES: CAT.IDEES, PROJETS: CAT.PROJETS, RUBRIQUES: CAT.RUBRIQUES, SITES: CAT.SITES, EXPOSE_ETAPES: CAT.EXPOSE_ETAPES, INTENTIONS: CAT.INTENTIONS, ICONES: CAT.ICONES },
-    config: configPublique(), etat: lireJson(C.etat, null), profil: lireJson(FICHIER_PROFIL, null), compagnons
+    config: configPublique(), etat: lireJson(fichiers().etat, null), profil: lireJson(FICHIER_PROFIL, null), compagnons
   };
 });
 
@@ -293,9 +298,9 @@ poser('imprimer', (chemin) => {
   spawn('powershell.exe', ['-NoProfile', '-Command', 'Start-Process -FilePath $args[0] -Verb Print', c], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
   return { ok: true };
 });
-poser('etat', () => ({ etat: lireJson(C.etat, null), config: configPublique() }));
-poser('demande', (d) => { const cur = lireJson(C.demande, {}) || {}; ecrireJson(C.demande, Object.assign(cur, d, { le: new Date().toISOString() })); return true; });
-poser('parent', (req) => { ecrireJson(C.parent, Object.assign({}, req, { le: new Date().toISOString() })); return true; });
+poser('etat', () => ({ etat: lireJson(fichiers().etat, null), config: configPublique() }));
+poser('demande', (d) => { const f = fichiers().demande; const cur = lireJson(f, {}) || {}; ecrireJson(f, Object.assign(cur, d, { le: new Date().toISOString() })); return true; });
+poser('parent', (req) => { ecrireJson(fichiers().parent, Object.assign({}, req, { le: new Date().toISOString() })); return true; });
 poser('profil', (p) => { if (p) ecrireJson(FICHIER_PROFIL, p); return lireJson(FICHIER_PROFIL, null); });
 poser('mode', (plein) => { appliquerMode(!!plein); return true; });
 poser('reduire', () => { if (fen && !pleinEcran) fen.minimize(); return true; });
@@ -357,7 +362,7 @@ function reglagesLibreOffice() {
 app.whenReady().then(() => {
   // Niveau 4 : si elle a fermé Flocon pendant cette séance, la relance automatique ne le rouvre pas.
   if ((config().niveau || 1) >= 4 && !process.argv.includes('--ouvrir')) {
-    const f = lireJson(FICHIER_FERME, null); const e = lireJson(C.etat, null);
+    const f = lireJson(FICHIER_FERME, null); const e = lireJson(fichiers().etat, null);
     if (f && e && e.session && !e.session.fermee && e.session.id === f.seance) { app.quit(); return; }
   }
   try { fs.unlinkSync(FICHIER_FERME); } catch (e) { /* rien */ }
