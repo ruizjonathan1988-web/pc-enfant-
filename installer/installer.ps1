@@ -60,6 +60,9 @@ function EnfantDepuis($o, $racine) {
   if ($null -ne $src.sites) { $h.sites = @($src.sites) } else { $h.sites = $null }
   if ($src.jeux) { $h.jeux = @($src.jeux) } else { $h.jeux = @() }
   $h.logiciels = $src.logiciels
+  if ($src.interdits) { $h.interdits = @($src.interdits) }
+  # Tout autre réglage d'un enfant (ajouté par une version plus récente) est gardé tel quel : une mise à jour ne perd rien.
+  if (-not $racine) { foreach ($pr in $o.PSObject.Properties) { if (-not $h.Contains($pr.Name)) { $h[$pr.Name] = $pr.Value } } }
   return $h
 }
 
@@ -134,7 +137,7 @@ if ($mode -eq 'neuf') {
   $enfants.Clear()
   Titre '2. Votre enfant'
   [void]$enfants.Add((DemanderEnfant $enfants))
-  $r = Demander '  Installer aussi les logiciels (Scratch, MyPaint, Krita, LibreOffice, Audacity, Steam, Minecraft, Klavaro) ? [O/n]' 'logiciels'
+  $r = Demander '  Installer aussi les logiciels (Scratch, MyPaint, Krita, LibreOffice, Audacity, Steam, Minecraft) ? [O/n]' 'logiciels'
   $avecLogiciels = -not ($r -match '^[nN]')
 } else {
   $pinSel = $ancien.pinSel; $pinHash = $ancien.pinHash
@@ -174,8 +177,7 @@ if ($avecLogiciels) {
       @{ id = 'TheDocumentFoundation.LibreOffice'; nom = 'LibreOffice' },
       @{ id = 'Audacity.Audacity'; nom = 'Audacity' },
       @{ id = 'Valve.Steam'; nom = 'Steam' },
-      @{ id = 'Mojang.MinecraftLauncher'; nom = 'Minecraft Launcher' },
-      @{ id = 'FelipeEFdeCastro.Klavaro'; nom = 'Klavaro (clavier)' }
+      @{ id = 'Mojang.MinecraftLauncher'; nom = 'Minecraft Launcher' }
     )
     foreach ($p in $paquets) {
       Info "Installation de $($p.nom)…"
