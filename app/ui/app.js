@@ -485,6 +485,7 @@ function vueVoile() {
       <div class="panneau"><h3>Ses jeux</h3>${steam.length ? `<div class="rang">${steam.map((j) => `<button class="puce ${jeuxOn.has(j.id) ? 'on' : ''}" data-a="pJeu" data-id="${esc(j.id)}" data-nom="${esc(j.nom)}">${esc(j.nom)}</button>`).join('')}</div>` : '<p class="muet" style="margin:0">Aucun jeu Steam trouvé sur cet ordinateur. Installez-les depuis Steam (Steam Families), puis revenez ici.</p>'}</div>
       <div class="panneau"><h3>Sites autorisés</h3><p class="muet" style="margin:0">Un domaine par ligne. Rien d’autre ne s’ouvre, et les autres navigateurs sont bloqués sur sa session.</p><textarea class="champ" data-in="pSites" rows="7">${esc(sites)}</textarea></div>
       <div class="panneau"><h3>Permis</h3><div class="rang">${D.catalogue.PERMIS.map((x) => `<button class="puce ${Number(v.niveau) === x.n ? 'on' : ''}" data-a="pNiveau" data-n="${x.n}">${x.n}. ${esc(x.nom)}</button>`).join('')}</div><p class="muet" style="margin:0">Au niveau 3, Edge s’ouvre sur sa session, limité aux sites autorisés. Au niveau 4, elle peut fermer Flocon et la fin de séance laisse cinq minutes.</p></div>
+      <div class="panneau"><h3>Atelier de première connexion</h3><div class="rang entre"><span class="muet">Pour que ${esc(prenom() || 'votre enfant')} choisisse elle-même ou lui-même son compagnon, son monde et son portrait. Ses créations et sa tirelire ne bougent pas.</span><button class="btn doux petit" data-a="pRefaireAtelier">Refaire l’atelier</button></div></div>
       <div class="panneau"><h3>Changer le code</h3><input class="champ" style="max-width:200px" data-in="pNouveauPin" inputmode="numeric" maxlength="8" placeholder="Nouveau code" value="${esc(v.nouveauPin || '')}"></div>
       <div class="rang entre"><span class="muet">Les changements sont appliqués dans la minute.</span><button class="btn" data-a="pEnregistrer">Enregistrer</button></div></div></div>`;
   }
@@ -757,6 +758,12 @@ const A = {
     S.voile = { type: 'parent', pin, steam: Array.isArray(steam) ? steam : [], jeux: (S.config.jeux || []).slice(), jetonsSemaine: S.config.jetonsSemaine, maxParSeance: S.config.maxParSeance, niveau: niveau(), ajouter: 0, sites: sitesActuels.join('\n'), nouveauPin: '' };
     render();
   }),
+  pRefaireAtelier: async () => {
+    S.profil.atelierFait = false; S.profil.signatures = {}; S.pacte = null; S.etape = 0;
+    await sauverProfil();
+    S.voile = null; S.ecran = 'atelier'; fermerSite();
+    await F.mode(true); render();
+  },
   pNiveau: (d) => { S.voile.niveau = Number(d.n); render(); },
   humeur: (d) => { S.accueil.humeur = S.accueil.humeur === d.h ? null : d.h; render(); },
   fermerFlocon: () => F.fermer(),
