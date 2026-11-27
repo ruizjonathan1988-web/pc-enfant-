@@ -149,4 +149,6 @@ function principal() {
   }
 }
 
-try { principal(); } catch (e) { log('erreur : ' + (e && e.stack || e)); }
+// Lancé par le Planificateur : un tic. Chargé par un test : on expose les briques, sans rien lancer.
+if (require.main === module) { try { principal(); } catch (e) { log('erreur : ' + (e && e.stack || e)); } }
+module.exports = { verrous, listerSessions, deconnecter, principal };

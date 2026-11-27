@@ -70,6 +70,9 @@ Etape 'Sessions Windows sans quser (sessions.ps1)' {
   Write-Host "  sessions : $out"
   $l = $out | ConvertFrom-Json
   Vrai ($null -ne $l) "sortie illisible : $out"
+  Vrai (@($l | Where-Object { $_.user -eq $env:USERNAME -and $_.active }).Count -eq 1) "la session de $env:USERNAME n'est pas vue comme active"
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Depot 'app\lib\sessions.ps1') deconnecter 9999
+  Vrai ($LASTEXITCODE -eq 1) "déconnecter une session inexistante devrait échouer proprement (code $LASTEXITCODE)"
 }
 
 Etape 'Installation neuve (Brune)' {
@@ -130,6 +133,47 @@ Etape 'Chaque enfant n''écrit que dans sa boîte' {
   Vrai (-not $r.autreBoite) 'Test peut écrire dans la boîte de Brune'
 }
 
+Etape 'Le robot pilote l''interface de Test (atelier, séance, sites, espace parent)' {
+  & node (Join-Path $Ici 'interface.js') (Join-Path $Captures 'interface')
+  $code = $LASTEXITCODE
+  $md = Join-Path $Captures 'interface\interface.md'
+  if (Test-Path $md) { $script:LignesInterface = Get-Content $md -Encoding UTF8 }
+  Vrai ($code -eq 0) 'au moins un geste a échoué (voir le détail plus bas)'
+}
+
+Etape 'Verrous réels dans le registre de Test (niveaux 1 et 3)' {
+  $sid = (Get-LocalUser Test).SID.Value
+  $profil = (Get-CimInstance Win32_UserProfile | Where-Object { $_.SID -eq $sid }).LocalPath
+  Vrai $profil 'profil de Test absent'
+  $charge = Test-Path "Registry::HKEY_USERS\$sid"
+  if (-not $charge) { reg load "HKU\$sid" (Join-Path $profil 'NTUSER.DAT') | Out-Null }
+  try {
+    $pol = "Registry::HKEY_USERS\$sid\Software\Microsoft\Windows\CurrentVersion\Policies"
+    $edge = "Registry::HKEY_USERS\$sid\Software\Policies\Microsoft\Edge"
+    $poser = { param($niv) $env:ELECTRON_RUN_AS_NODE = '1'; & $Exe (Join-Path $Ici 'verrous.js') $Gardien $sid $niv; $c = $LASTEXITCODE; Remove-Item Env:ELECTRON_RUN_AS_NODE; Vrai ($c -eq 0) "verrous.js : code $c" }
+    $liste = { param($cle) @((Get-ItemProperty $cle).PSObject.Properties | Where-Object { $_.Name -match '^\d+$' } | ForEach-Object { $_.Value }) }
+    & $poser 1
+    Vrai ((Get-ItemProperty "$pol\System").DisableTaskMgr -eq 1) 'Gestionnaire des tâches non bloqué'
+    Vrai ((Get-ItemProperty "$pol\System").DisableRegistryTools -eq 1) 'éditeur du registre non bloqué'
+    Vrai ((Get-ItemProperty "Registry::HKEY_USERS\$sid\Software\Policies\Microsoft\Windows\System").DisableCMD -eq 1) 'invite de commandes non bloquée'
+    Vrai ((Get-ItemProperty "$pol\Explorer").DisallowRun -eq 1) 'liste d''interdits inactive'
+    $dr = & $liste "$pol\Explorer\DisallowRun"
+    foreach ($x in 'chrome.exe', 'firefox.exe', 'msedge.exe', 'powershell.exe', 'cmd.exe', 'regedit.exe') { Vrai ($dr -contains $x) "$x non bloqué au niveau 1" }
+    Vrai (-not (Test-Path $edge)) 'stratégies Edge présentes au niveau 1'
+    & $poser 3
+    $dr = & $liste "$pol\Explorer\DisallowRun"
+    Vrai (-not ($dr -contains 'msedge.exe')) 'Edge encore interdit au niveau 3'
+    Vrai ($dr -contains 'chrome.exe') 'Chrome autorisé au niveau 3'
+    Vrai ((Get-ItemProperty "$edge\URLBlocklist").'1' -eq '*') 'Edge : tout n''est pas bloqué par défaut'
+    Vrai ((& $liste "$edge\URLAllowlist") -contains 'vikidia.org') 'Edge : Vikidia absent de la liste blanche'
+    Vrai ((Get-ItemProperty $edge).InPrivateModeAvailability -eq 1) 'Edge : navigation privée possible'
+    Vrai ((Get-ItemProperty $edge).DownloadRestrictions -eq 3) 'Edge : téléchargements possibles'
+    & $poser 1
+    Vrai (-not (Test-Path $edge)) 'stratégies Edge restées après retour au niveau 1'
+    Vrai ((& $liste "$pol\Explorer\DisallowRun") -contains 'msedge.exe') 'Edge pas réinterdit au retour au niveau 1'
+  } finally { [GC]::Collect(); Start-Sleep -Seconds 1; if (-not $charge) { reg unload "HKU\$sid" | Out-Null } }
+}
+
 Etape 'Mise à jour : rien ne change' {
   $photo = Join-Path $env:TEMP 'flocon-photo.json'
   Verifier photo $photo
@@ -174,6 +218,7 @@ Etape 'Désinstallation' {
 # ---------------------------------------------------------------------------------------------
 $lignes = @('## Testeur Windows de Flocon', '', '| Étape | Résultat |', '|---|---|')
 foreach ($r in $Resultats) { $lignes += "| $($r.Etape) | $(if ($r.Ok) { 'ok' } else { 'ÉCHEC : ' + ($r.Detail -replace '\|', '/') }) |" }
+if ($script:LignesInterface) { $lignes += $script:LignesInterface }
 $texte = $lignes -join "`n"
 Write-Host ''; Write-Host $texte
 if ($env:GITHUB_STEP_SUMMARY) { Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $texte -Encoding UTF8 }
