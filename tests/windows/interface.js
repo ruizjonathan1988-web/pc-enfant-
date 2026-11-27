@@ -163,7 +163,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await page.fill('[data-in="noteExpose"]', 'Changement à ne pas écrire.'); await pause(1200);
     await clic('[data-a="documentWord"]'); await page.waitForSelector('text=retouché dans Writer');
     assert.ok(!texteDocx(f).includes('Changement'), 'son travail dans Writer est gardé');
-    await clic('[data-a="fermerVue"]');
+    await clic('[data-a="fermerVue"]'); await page.waitForSelector('[data-in="nouveauSujet"]'); await clic('[data-a="fermerVue"]');
   });
   await etape('Carnets : lecture, journal, Grand Pourquoi', async () => {
     await rubrique('Mes lectures'); await tuile('Mon carnet de lecture');
@@ -262,6 +262,35 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await clic('[data-a="mettreCodeJournal"]'); await code('1357'); await code('1357');
     await page.waitForSelector('[data-a="enleverCodeJournal"]');
     assert.ok(lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json')).codeJournal.hash, 'code enregistré (empreinte seulement)');
+    await clic('[data-a="fermerVue"]');
+  });
+  await etape('Mon cahier : écrire un texte, enregistré tout seul', async () => {
+    await rubrique('Je crée'); await tuile('Mon cahier');
+    await page.fill('[data-in="nouveauTexte"]', 'Le renard des neiges'); await clic('[data-a="creerTexte"]');
+    await page.fill('[data-in="texteCorps"]', 'Il était une fois un renard tout blanc.\nIl aimait la neige.'); await pause(1200);
+    assert.strictEqual(await page.textContent('.cahier .entete .etiquette'), '13 mots');
+    const d = path.join(os.homedir(), 'Documents', 'Mes textes');
+    const f = fs.readdirSync(d).find((x) => x.endsWith('.json'));
+    const x = lire(path.join(d, f));
+    assert.strictEqual(x.titre, 'Le renard des neiges'); assert.ok(x.texte.includes('renard tout blanc'), 'texte enregistré');
+    assert.strictEqual(await page.locator('[data-a="texteWriter"]').count(), 0, 'Writer seulement à partir du niveau 2');
+  });
+  await etape('Mon cahier : imprimer prépare un vrai document', async () => {
+    await clic('[data-a="texteImprimer"]'); await page.waitForSelector('text=part à l’imprimante');
+    const d = path.join(os.homedir(), 'Documents', 'Mes textes');
+    const f = path.join(d, fs.readdirSync(d).find((x) => x.endsWith('.docx')));
+    const xml = texteDocx(f);
+    assert.ok(xml.includes('Le renard des neiges') && xml.includes('Il aimait la neige'), 'titre et texte dans le document');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Badges : un site utilisé donne « Je découvre »', async () => {
+    const p = lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json'));
+    assert.ok(p.badges && p.badges['site:vikidia'] && p.badges['site:vikidia'].jours.length === 1, 'jour noté pour Vikidia');
+    await rubrique('Je découvre');
+    await page.waitForSelector('[data-a="tuile"]:has-text("Vikidia") .badge-tuile');
+    await rubrique('Mes outils'); await tuile('Mon permis');
+    await page.waitForSelector('.badge:has-text("Vikidia"):has-text("Je découvre")');
+    await page.waitForSelector('text=Encore 3 jours pour « Je me débrouille »');
     await clic('[data-a="fermerVue"]');
   });
   await etape('Espace parent : mauvais code refusé', async () => {

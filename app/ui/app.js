@@ -267,8 +267,36 @@ function piedHtml() {
 }
 function majPied() { const p = $('#pied'); if (p) p.innerHTML = piedHtml(); }
 
+// ---------- Badges : un logiciel ou un site utilisé des jours différents (pas le temps passé, pas les clics) ----------
+const PALIERS = [{ jours: 1, nom: 'Je découvre' }, { jours: 4, nom: 'Je me débrouille' }, { jours: 10, nom: 'Je maîtrise' }];
+const cleBadge = (t) => t.type + ':' + t.ref;
+function palier(t) {
+  const b = (S.profil.badges || {})[cleBadge(t)]; const n = b ? b.jours.length : 0;
+  let p = 0; PALIERS.forEach((x, i) => { if (n >= x.jours) p = i + 1; });
+  return p;
+}
+function noterBadge(t) {
+  if (t.type !== 'logiciel' && t.type !== 'site') return;
+  const jour = new Date().toISOString().slice(0, 10);
+  S.profil.badges = S.profil.badges || {};
+  const b = S.profil.badges[cleBadge(t)] = S.profil.badges[cleBadge(t)] || { jours: [] };
+  if (b.jours.includes(jour)) return;
+  const avant = palier(t);
+  b.jours = b.jours.concat([jour]).slice(-PALIERS[PALIERS.length - 1].jours);
+  const apres = palier(t);
+  sauverProfil();
+  if (apres > avant) toast(`Nouveau badge : « ${PALIERS[apres - 1].nom} » en ${t.nom} ${'★'.repeat(apres)}`, 6000);
+}
 function tuileHtml(t, i) {
-  return `<button class="tuile" data-a="tuile" data-i="${i}"><span class="ic" style="background:${t.couleur}">${ic(t.icone)}</span><span><span class="n">${esc(t.nom)}</span><br><span class="s">${esc(t.sous || '')}</span></span></button>`;
+  const p = palier(t);
+  const badge = p ? `<span class="badge-tuile" title="${esc(PALIERS[p - 1].nom)}">${'★'.repeat(p)}</span>` : '';
+  return `<button class="tuile" data-a="tuile" data-i="${i}">${badge}<span class="ic" style="background:${t.couleur}">${ic(t.icone)}</span><span><span class="n">${esc(t.nom)}</span><br><span class="s">${esc(t.sous || '')}</span></span></button>`;
+}
+function vueBadges() {
+  const toutes = D.catalogue.RUBRIQUES.flatMap((r) => r.tuiles);
+  const vus = toutes.filter((t, i) => palier(t) && toutes.findIndex((x) => cleBadge(x) === cleBadge(t)) === i);
+  if (!vus.length) return '<div class="panneau"><h3>Mes badges</h3><span class="muet">Chaque logiciel ou site que tu utilises des jours différents te donne un badge : « Je découvre », puis « Je me débrouille » au bout de 4 jours, et « Je maîtrise » au bout de 10.</span></div>';
+  return `<div class="panneau"><h3>Mes badges</h3><div class="badges">${vus.map((t) => { const p = palier(t); const n = S.profil.badges[cleBadge(t)].jours.length; const suite = PALIERS[p]; return `<div class="badge"><span class="etoiles">${'★'.repeat(p)}${'☆'.repeat(PALIERS.length - p)}</span><b>${esc(t.nom)}</b><span>${esc(PALIERS[p - 1].nom)}</span><span class="muet">${suite ? `Encore ${suite.jours - n} jour${suite.jours - n > 1 ? 's' : ''} pour « ${esc(suite.nom)} »` : 'Badge complet'}</span></div>`; }).join('')}</div></div>`;
 }
 
 function tuilesRubrique(r) {
@@ -303,8 +331,30 @@ function entete(titre, extra) { return `<div class="entete"><button class="retou
 
 function vueInterne() {
   const v = S.vue;
-  const fn = { permis: vuePermis, semaine: vueSemaine, agenda: vueAgenda, idee: vueIdee, galerie: vueGalerie, projet: vueProjet, exposes: vueExposes, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
+  const fn = { permis: vuePermis, semaine: vueSemaine, agenda: vueAgenda, idee: vueIdee, galerie: vueGalerie, projet: vueProjet, exposes: vueExposes, cahier: vueCahier, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
   return fn ? fn() : entete('Bientôt');
+}
+
+// ---------- Mon cahier : écrire sans se perdre dans un traitement de texte ----------
+function vueCahier() {
+  const v = S.vue; const liste = (S.docs.textes || []).slice().sort((a, b) => String(b.modifie || '').localeCompare(String(a.modifie || '')));
+  if (v.fichier) {
+    const x = liste.find((e) => e.fichier === v.fichier); if (!x) return entete('Mon cahier');
+    const mots = String(x.texte || '').trim().split(/\s+/).filter(Boolean).length;
+    return `<div class="section cahier">${entete('Mon cahier', `<span class="etiquette">${mots} mot${mots > 1 ? 's' : ''}</span>`)}
+      <input class="champ titre-texte" data-in="texteTitre" value="${esc(x.titre || '')}" placeholder="Le titre de mon texte">
+      <textarea class="champ page-texte" data-in="texteCorps" placeholder="Il était une fois…">${esc(x.texte || '')}</textarea>
+      <div class="rang entre"><span class="muet">Tout est enregistré au fur et à mesure, dans Documents, Mes textes.</span>
+      <span class="rang"><button class="btn doux" data-a="texteImprimer">Imprimer</button>${niveau() >= 2 ? '<button class="btn doux" data-a="texteWriter">Mettre en page dans Writer</button>' : ''}</span></div></div>`;
+  }
+  return `<div class="section">${entete('Mon cahier')}
+    <div class="panneau"><div class="rang"><input class="champ" data-in="nouveauTexte" placeholder="Le titre de ton nouveau texte" value="${esc(v.titre || '')}"><button class="btn" data-a="creerTexte">Commencer</button></div></div>
+    <div class="liste">${liste.map((x) => `<button class="ligne" data-a="ouvrirTexte" data-f="${esc(x.fichier)}"><span class="grow"><b>${esc(x.titre || 'Sans titre')}</b><br><span class="muet">${esc(String(x.texte || '').slice(0, 90))}</span></span><span class="muet">${x.modifie ? esc(new Date(x.modifie).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })) : ''}</span></button>`).join('') || '<p class="muet">Ton cahier est vide pour l’instant. Une histoire, une lettre, une liste de choses que tu aimes : tout commence par un titre.</p>'}</div></div>`;
+}
+function sauverTexte() {
+  const x = (S.docs.textes || []).find((e) => e.fichier === S.vue.fichier); if (!x) return;
+  x.modifie = new Date().toISOString();
+  const { fichier, ...c } = x; sauverPlusTard(() => F.ecrireDoc('textes', fichier, c));
 }
 
 function vueExposes() {
@@ -337,7 +387,7 @@ function vuePermis() {
       <div class="section" style="gap:8px">${suivant.missions.map((t, i) => { const k = suivant.n + '-' + i; return `<button class="coche ${m[k] ? 'on' : ''}" data-a="mission" data-k="${k}"><span class="case">${m[k] ? '✓' : ''}</span>${esc(t)}</button>`; }).join('')}</div>
       <div class="rang entre"><span class="etiquette">${faites} sur ${suivant.missions.length}</span><button class="btn" data-a="passerNiveau" ${faites === suivant.missions.length ? '' : 'disabled'}>Je le montre à un adulte</button></div></div>`;
   } else missions = '<div class="panneau"><b>Tu as ton permis complet.</b><span class="muet">Bravo : tu sais te servir d’un ordinateur, et t’arrêter quand tu as fini.</span></div>';
-  return `<div class="section">${entete('Mon permis')}<div class="liste">${niveaux}</div>${missions}</div>`;
+  return `<div class="section">${entete('Mon permis')}<div class="liste">${niveaux}</div>${missions}${vueBadges()}</div>`;
 }
 
 function seancesDeLaSemaine(sem) {
@@ -580,11 +630,18 @@ async function chargerDoc(nom, fichier, defaut) { const d = await F.lireDoc('car
 async function ecrireCarnet(nom, fichier) { await F.ecrireDoc('carnets', fichier, S.docs[nom]); }
 let minuterieSauver = null;
 function sauverPlusTard(fn) { clearTimeout(minuterieSauver); minuterieSauver = setTimeout(fn, 600); }
+// Avant d'imprimer : on n'attend pas la minuterie, on enregistre tout de suite.
+async function sauverTexteMaintenant() {
+  clearTimeout(minuterieSauver);
+  const x = (S.docs.textes || []).find((e) => e.fichier === S.vue.fichier); if (!x) return;
+  const { fichier, ...c } = x; await F.ecrireDoc('textes', fichier, c);
+}
 
 async function ouvrirVue(ref) {
   if (ref === 'journal' && S.profil.codeJournal && !S.journalOuvert) return demanderCodeJournal(() => { S.journalOuvert = true; ouvrirVue('journal'); });
   S.vue = { ref };
   if (ref === 'exposes') S.docs.exposes = await F.listerDocs('exposes');
+  if (ref === 'cahier') S.docs.textes = await F.listerDocs('textes');
   if (ref === 'pourquoi') await chargerDoc('pourquoi', 'grand-pourquoi.json', { questions: [] });
   if (ref === 'carnetLecture') await chargerDoc('lectures', 'lectures.json', { livres: [] });
   if (ref === 'journal') await chargerDoc('journal', 'journal.json', { pages: [] });
@@ -602,11 +659,12 @@ async function ouvrirVue(ref) {
 async function lancer(t, sansPas) {
   if (t.type === 'projet') { S.vue = { ref: 'projet', id: t.ref }; render(); return; }
   if (t.type === 'logiciel' && !sansPas && D.catalogue.PREMIERS_PAS[t.ref] && !((S.profil.vus || {})[t.ref])) { S.voile = { type: 'premiersPas', t }; render(); return; }
-  if (t.type === 'site') return ouvrirSite(D.catalogue.SITES[t.ref].url, D.catalogue.SITES[t.ref].nom);
+  if (t.type === 'site') { noterBadge(t); return ouvrirSite(D.catalogue.SITES[t.ref].url, D.catalogue.SITES[t.ref].nom); }
   if (t.type === 'interne') return ouvrirVue(t.ref);
   if (S.ouverture) return; // un seul lancement à la fois : un double clic ouvrirait le logiciel deux fois
   const r = await F.lancer({ type: t.type, ref: t.ref });
   if (r && r.ok) {
+    noterBadge(t);
     dire('C’est parti pour ' + t.nom + ' ! Il s’ouvre dans sa propre fenêtre.');
     // Certains logiciels (Scratch, Minecraft) mettent longtemps à apparaître : on le dit, au lieu de laisser croire que rien ne se passe.
     S.ouverture = { nom: t.nom, depuis: Date.now() }; render();
@@ -739,7 +797,8 @@ const A = {
   premiereSuiv: () => { if (!S.premiere) return; const n = S.docs.creations.length; if (S.premiere.i < n - 1) { S.premiere.i++; dessinerPremiere(); } else A.premiereFin(); },
   premierePrec: () => { if (!S.premiere) return; S.premiere.i = Math.max(0, S.premiere.i - 1); dessinerPremiere(); },
   premiereFin: async () => { S.premiere = null; dessinerPremiere(); await F.mode(false); dire('Bravo pour ta première ! Qu’est-ce que ta famille en a pensé ?'); render(); },
-  fermerVue: () => { S.vue = null; render(); },
+  // Dans un texte ou un exposé, le retour ramène à la liste ; sinon il ferme la vue.
+  fermerVue: () => { S.vue = S.vue && S.vue.fichier && (S.vue.ref === 'cahier' || S.vue.ref === 'exposes') ? { ref: S.vue.ref } : null; render(); },
   basculerFlocon: async () => { S.profil.floconVisible = !S.profil.floconVisible; await sauverProfil(); render(); },
   taire: async () => { S.profil.floconVisible = false; await sauverProfil(); render(); },
   conseilSuivant: () => { S.bulle = null; S.conseil++; $('#mascotte').innerHTML = vueMascotte(); },
@@ -795,6 +854,17 @@ const A = {
       else { v.saisie = ''; v.erreur = true; render(); }
     } else render();
   },
+  creerTexte: async () => {
+    const titre = String(S.vue.titre || '').trim() || 'Mon texte';
+    const fichier = titre.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w-]+/g, '-').replace(/^-|-$/g, '').toLowerCase().slice(0, 40) + '-' + Date.now().toString(36) + '.json';
+    const x = { titre, texte: '', cree: new Date().toISOString(), modifie: new Date().toISOString() };
+    await F.ecrireDoc('textes', fichier, x);
+    S.docs.textes = (S.docs.textes || []).concat([Object.assign({ fichier }, x)]);
+    S.vue = { ref: 'cahier', fichier }; render(); const z = document.querySelector('[data-in="texteCorps"]'); if (z) z.focus();
+  },
+  ouvrirTexte: (d) => { S.vue = { ref: 'cahier', fichier: d.f }; render(); },
+  texteImprimer: async () => { await sauverTexteMaintenant(); const r = await F.documentTexte(S.vue.fichier, 'imprimer'); toast(r && r.ok ? 'Ton texte part à l’imprimante.' : 'L’impression n’a pas marché.', 5000); },
+  texteWriter: async () => { await sauverTexteMaintenant(); const r = await F.documentTexte(S.vue.fichier, 'ouvrir'); toast(!(r && r.ok) ? 'Le document n’a pas pu être créé.' : r.garde ? 'Ton document a été retouché dans Writer : je l’ouvre tel quel.' : 'Ton texte s’ouvre dans Writer, pour la mise en page.', 6000); },
   mettreCodeJournal: () => choisirCodeJournal(),
   enleverCodeJournal: async () => { delete S.profil.codeJournal; await sauverProfil(); render(); toast('Ton journal n’a plus de code secret.'); },
   // Code oublié : un adulte l'efface avec son code, sans lire le journal.
@@ -850,6 +920,9 @@ const SAISIES = {
   nomCompaStyle: (v) => { S.profil.compagnon.nom = v; sauverPlusTard(sauverProfil); },
   libre: (v) => { S.accueil.libre = v; majBouton(!!(S.accueil.intention || v.trim())); },
   nouveauSujet: (v) => { S.vue.sujet = v; }, nouveauQuand: (v) => { S.vue.quand = v; },
+  nouveauTexte: (v) => { S.vue.titre = v; },
+  texteTitre: (v) => { const x = S.docs.textes.find((e) => e.fichier === S.vue.fichier); x.titre = v; sauverTexte(); },
+  texteCorps: (v) => { const x = S.docs.textes.find((e) => e.fichier === S.vue.fichier); x.texte = v; sauverTexte(); const n = String(v).trim().split(/\s+/).filter(Boolean).length; const et = document.querySelector('.cahier .entete .etiquette'); if (et) et.textContent = n + ' mot' + (n > 1 ? 's' : ''); },
   noteExpose: (v) => { const x = S.docs.exposes.find((e) => e.fichier === S.vue.fichier); const i = S.vue.etape; x.etapes[i] = Object.assign({}, x.etapes[i], { notes: v }); sauverPlusTard(() => { const { fichier, ...c } = x; F.ecrireDoc('exposes', fichier, c); }); },
   nouvelleQuestion: (v) => { S.vue.q = v; },
   reponse: (v, el) => { S.docs.pourquoi.questions[Number(el.dataset.i)].r = v; sauverPlusTard(() => ecrireCarnet('pourquoi', 'grand-pourquoi.json')); },

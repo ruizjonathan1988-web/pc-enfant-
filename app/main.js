@@ -32,6 +32,7 @@ function dossiers() {
   return {
     exposes: path.join(docs, 'Mes exposés'),
     carnets: path.join(docs, 'Mes carnets'),
+    textes: path.join(docs, 'Mes textes'),
     creations: path.join(docs, 'Mes créations'),
     photos: path.join(app.getPath('pictures'), 'Mes photos'),
     musique: app.getPath('music'),
@@ -338,21 +339,40 @@ poser('fermer', () => {
   if (!fen || (config().niveau || 1) < 4 || pleinEcran) return false;
   fen.setClosable(true); fen.close(); return true;
 });
+// Fabrique (ou refait) le .docx d'un document de l'enfant. Sans marque (document d'une version précédente)
+// ou retouché dans Writer depuis : on ne l'écrase jamais, on rend celui qui existe.
+function fabriquerDocx(docx, contenu) {
+  const marques = lireJson(FICHIER_DOCUMENTS, {}) || {};
+  let garde = fs.existsSync(docx) && !(marques[docx] && Math.abs(fs.statSync(docx).mtimeMs - marques[docx]) < 2000);
+  if (!garde) {
+    try {
+      fs.writeFileSync(docx, contenu());
+      marques[docx] = fs.statSync(docx).mtimeMs; ecrireJson(FICHIER_DOCUMENTS, marques);
+    } catch (e) { garde = fs.existsSync(docx); if (!garde) throw e; } // ouvert dans Writer : on l'ouvre tel quel
+  }
+  return garde;
+}
+function ouvrirDansWriter(docx) {
+  const writer = (CAT.LOGICIELS.writer.chemins || []).map(developper).find((c) => fs.existsSync(c));
+  if (writer) spawn(writer, [docx], { detached: true, stdio: 'ignore' }).unref(); else shell.openPath(docx);
+}
 poser('documentExpose', (fichier) => {
   const { p } = sur('exposes', fichier);
   const x = lireJson(p, null); if (!x) return { ok: false };
   const docx = p.replace(/\.json$/, '.docx');
-  const marques = lireJson(FICHIER_DOCUMENTS, {}) || {};
-  // Sans marque (document d'une version précédente) ou retouché depuis : on ne l'écrase jamais.
-  let garde = fs.existsSync(docx) && !(marques[docx] && Math.abs(fs.statSync(docx).mtimeMs - marques[docx]) < 2000);
-  if (!garde) {
-    try {
-      fs.writeFileSync(docx, require('./lib/docx').exposeDocx(x, CAT.EXPOSE_ETAPES));
-      marques[docx] = fs.statSync(docx).mtimeMs; ecrireJson(FICHIER_DOCUMENTS, marques);
-    } catch (e) { garde = fs.existsSync(docx); if (!garde) throw e; } // ouvert dans Writer : on l'ouvre tel quel
-  }
-  const writer = (CAT.LOGICIELS.writer.chemins || []).map(developper).find((c) => fs.existsSync(c));
-  if (writer) spawn(writer, [docx], { detached: true, stdio: 'ignore' }).unref(); else shell.openPath(docx);
+  const garde = fabriquerDocx(docx, () => require('./lib/docx').exposeDocx(x, CAT.EXPOSE_ETAPES));
+  ouvrirDansWriter(docx);
+  return { ok: true, chemin: docx, garde };
+});
+// Un texte du cahier : « imprimer » (par le logiciel qui ouvre les .docx) ou « ouvrir » dans Writer.
+poser('documentTexte', (fichier, action) => {
+  const { p } = sur('textes', fichier);
+  const x = lireJson(p, null); if (!x) return { ok: false };
+  const docx = p.replace(/\.json$/, '.docx');
+  const garde = fabriquerDocx(docx, () => require('./lib/docx').texteDocx(x));
+  if (action === 'imprimer') {
+    if (process.platform === 'win32') spawn('powershell.exe', ['-NoProfile', '-Command', 'Start-Process -FilePath $args[0] -Verb Print', docx], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+  } else ouvrirDansWriter(docx);
   return { ok: true, chemin: docx, garde };
 });
 poser('imprimer', (chemin) => {

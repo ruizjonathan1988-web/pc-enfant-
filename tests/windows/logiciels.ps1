@@ -28,6 +28,8 @@ $env:FLOCON_REPONSES = $f
 $code = $LASTEXITCODE
 Remove-Item Env:FLOCON_REPONSES
 if ($code) { throw "l'installateur s'est arrêté (code $code)" }
+# Identifiants winget des logiciels pour enfants, pour corriger l'installateur s'il se trompe.
+foreach ($nom in 'Tux Paint', 'TuxPaint', 'GCompris') { Write-Host "--- winget search $nom"; cmd.exe /d /c "winget search `"$nom`" --source winget --accept-source-agreements 2>&1" | Out-Host }
 $md = Join-Path $env:TEMP 'logiciels.md'
 & node (Join-Path $Ici 'logiciels.js') $md
 $code = $LASTEXITCODE
