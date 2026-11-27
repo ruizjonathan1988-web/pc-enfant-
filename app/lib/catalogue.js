@@ -41,7 +41,7 @@ const SITES = {
   lama: { nom: 'La Classe du Lama', url: 'https://laclassedulama.fr', domaines: ['laclassedulama.fr'] },
   khan: { nom: 'Khan Academy', url: 'https://fr.khanacademy.org', domaines: ['khanacademy.org'] },
   fondamentaux: { nom: 'Les Fondamentaux', url: 'https://lesfondamentaux.reseau-canope.fr/accueil.html', domaines: ['reseau-canope.fr'] },
-  calcul: { nom: 'Calcul mental', url: 'https://calculatice.ac-lille.fr', domaines: ['calculatice.ac-lille.fr'] },
+  calcul: { nom: 'Calcul mental', url: 'https://calculatice.ac-lille.fr/exercices/', domaines: ['calculatice.ac-lille.fr'] },
   dicoado: { nom: 'Dicoado', url: 'https://www.dicoado.org', domaines: ['dicoado.org'] },
   songmaker: { nom: 'Mélodies', url: 'https://musiclab.chromeexperiments.com/Song-Maker/', domaines: ['musiclab.chromeexperiments.com'] },
   teachable: { nom: 'Teachable Machine', url: 'https://teachablemachine.withgoogle.com/train/image', domaines: ['teachablemachine.withgoogle.com'], camera: true },
