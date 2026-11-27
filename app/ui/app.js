@@ -488,6 +488,7 @@ function vueVoile() {
       <div class="panneau"><h3>Ses jeux</h3>${steam.length ? `<div class="rang">${steam.map((j) => `<button class="puce ${jeuxOn.has(j.id) ? 'on' : ''}" data-a="pJeu" data-id="${esc(j.id)}" data-nom="${esc(j.nom)}">${esc(j.nom)}</button>`).join('')}</div>` : '<p class="muet" style="margin:0">Aucun jeu Steam trouvé sur cet ordinateur. Installez-les depuis Steam (Steam Families), puis revenez ici.</p>'}</div>
       <div class="panneau"><h3>Sites autorisés</h3><p class="muet" style="margin:0">Un domaine par ligne. Rien d’autre ne s’ouvre, et les autres navigateurs sont bloqués sur sa session.</p><textarea class="champ" data-in="pSites" rows="7">${esc(sites)}</textarea></div>
       <div class="panneau"><h3>Permis</h3><div class="rang">${D.catalogue.PERMIS.map((x) => `<button class="puce ${Number(v.niveau) === x.n ? 'on' : ''}" data-a="pNiveau" data-n="${x.n}">${x.n}. ${esc(x.nom)}</button>`).join('')}</div><p class="muet" style="margin:0">Au niveau 3, Edge s’ouvre sur sa session, limité aux sites autorisés. Au niveau 4, elle peut fermer Flocon et la fin de séance laisse cinq minutes.</p></div>
+      <div class="panneau"><h3>Programmes interdits</h3><p class="muet" style="margin:0">Les navigateurs, l’invite de commandes et le Microsoft Store le sont déjà. Ajoutez ici, un par ligne, le nom des programmes à bloquer sur sa session (par exemple les logiciels professionnels de la famille). Pour trouver un nom : clic droit sur le raccourci, Propriétés, la cible se termine par « nom.exe ».</p><textarea class="champ" data-in="pInterdits" rows="3" placeholder="exemple.exe">${esc(v.interdits || '')}</textarea></div>
       <div class="panneau"><h3>Atelier de première connexion</h3><div class="rang entre"><span class="muet">Pour que ${esc(prenom() || 'votre enfant')} choisisse elle-même ou lui-même son compagnon, son monde et son portrait. Ses créations et sa tirelire ne bougent pas.</span><button class="btn doux petit" data-a="pRefaireAtelier">Refaire l’atelier</button></div></div>
       <div class="panneau"><h3>Changer le code</h3><input class="champ" style="max-width:200px" data-in="pNouveauPin" inputmode="numeric" maxlength="8" placeholder="Nouveau code" value="${esc(v.nouveauPin || '')}"></div>
       <div class="rang entre"><span class="muet">Les changements sont appliqués dans la minute.</span><button class="btn" data-a="pEnregistrer">Enregistrer</button></div></div></div>`;
@@ -758,7 +759,7 @@ const A = {
   espaceParent: () => demanderPin('Espace parent', async (pin) => {
     const steam = await F.jeuxSteam();
     const sitesActuels = S.config.sites || Array.from(new Set(Object.values(D.catalogue.SITES).flatMap((s) => s.domaines)));
-    S.voile = { type: 'parent', pin, steam: Array.isArray(steam) ? steam : [], jeux: (S.config.jeux || []).slice(), jetonsSemaine: S.config.jetonsSemaine, maxParSeance: S.config.maxParSeance, niveau: niveau(), ajouter: 0, sites: sitesActuels.join('\n'), nouveauPin: '' };
+    S.voile = { type: 'parent', pin, steam: Array.isArray(steam) ? steam : [], jeux: (S.config.jeux || []).slice(), jetonsSemaine: S.config.jetonsSemaine, maxParSeance: S.config.maxParSeance, niveau: niveau(), ajouter: 0, sites: sitesActuels.join('\n'), interdits: (S.config.interdits || []).join('\n'), nouveauPin: '' };
     render();
   }),
   pRefaireAtelier: async () => {
@@ -786,7 +787,7 @@ const A = {
   pJeu: (d) => { const j = S.voile.jeux; const k = j.findIndex((x) => x.id === d.id); if (k >= 0) j.splice(k, 1); else j.push({ id: d.id, nom: d.nom }); render(); },
   pEnregistrer: async () => {
     const v = S.voile;
-    const ch = { niveau: Number(v.niveau), jetonsSemaine: Number(v.jetonsSemaine), maxParSeance: Number(v.maxParSeance), jeux: v.jeux, sites: String(v.sites).split(/\s+/).map((x) => x.trim()).filter(Boolean) };
+    const ch = { niveau: Number(v.niveau), jetonsSemaine: Number(v.jetonsSemaine), maxParSeance: Number(v.maxParSeance), jeux: v.jeux, sites: String(v.sites).split(/\s+/).map((x) => x.trim()).filter(Boolean), interdits: String(v.interdits || '').split(/\r?\n/).map((x) => x.trim().replace(/^.*[\\/]/, '')).filter((x) => /\.exe$/i.test(x)) };
     if (Number(v.ajouter) > 0) ch.ajouterJetons = Number(v.ajouter);
     if (v.nouveauPin && String(v.nouveauPin).length >= 4) ch.nouveauPin = String(v.nouveauPin);
     await F.parent({ pin: v.pin, changements: ch });
@@ -807,7 +808,7 @@ const SAISIES = {
   livreTitre: (v) => { S.vue.n = Object.assign({}, S.vue.n, { titre: v }); }, livreAuteur: (v) => { S.vue.n = Object.assign({}, S.vue.n, { auteur: v }); }, livreAvis: (v) => { S.vue.n = Object.assign({}, S.vue.n, { avis: v }); },
   pageJournal: (v) => { S.vue.texte = v; },
   fierteTexte: (v) => { S.fin.texte = v; },
-  pJetons: (v) => { S.voile.jetonsSemaine = v; }, pMax: (v) => { S.voile.maxParSeance = v; }, pAjout: (v) => { S.voile.ajouter = v; }, pSites: (v) => { S.voile.sites = v; }, evDate: (v) => { S.vue.date = v; }, evTitre: (v) => { S.vue.titre = v; }, pNouveauPin: (v) => { S.voile.nouveauPin = v.replace(/\D/g, ''); }
+  pJetons: (v) => { S.voile.jetonsSemaine = v; }, pMax: (v) => { S.voile.maxParSeance = v; }, pAjout: (v) => { S.voile.ajouter = v; }, pSites: (v) => { S.voile.sites = v; }, pInterdits: (v) => { S.voile.interdits = v; }, evDate: (v) => { S.vue.date = v; }, evTitre: (v) => { S.vue.titre = v; }, pNouveauPin: (v) => { S.voile.nouveauPin = v.replace(/\D/g, ''); }
 };
 function majBouton(ok) { const b = document.querySelector('[data-a="atelierSuiv"],[data-a="commencer"]'); if (b) b.disabled = !ok; }
 

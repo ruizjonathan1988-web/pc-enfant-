@@ -52,7 +52,7 @@ function configPublique() {
   const c = config();
   // Le sel et l'empreinte du code servent à vérifier le code à l'écran ; ce qui compte vraiment
   // (temps à deux, réglages) est revérifié par le gardien, que l'enfant ne peut pas contourner.
-  return { niveau: c.niveau || 1, enfant: { prenom: c.enfant && c.enfant.prenom }, jetonsSemaine: c.jetonsSemaine, maxParSeance: c.maxParSeance, aDeuxMaxMinutes: c.aDeuxMaxMinutes, sites: c.sites, jeux: c.jeux || [], pinSel: c.pinSel, pinHash: c.pinHash };
+  return { niveau: c.niveau || 1, enfant: { prenom: c.enfant && c.enfant.prenom }, jetonsSemaine: c.jetonsSemaine, maxParSeance: c.maxParSeance, aDeuxMaxMinutes: c.aDeuxMaxMinutes, sites: c.sites, jeux: c.jeux || [], interdits: c.interdits || [], pinSel: c.pinSel, pinHash: c.pinHash };
 }
 
 function creerFenetre() {

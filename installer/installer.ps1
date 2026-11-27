@@ -303,20 +303,21 @@ Start-ScheduledTask -TaskPath '\Flocon\' -TaskName 'Flocon Gardien'
 Ok 'Gardien installé (compte SYSTEM, chaque minute).'
 
 # ------------------------------------------------------------------ verrous des comptes enfants (si leur profil existe déjà)
+# C'est le gardien qui les pose, selon le niveau de chaque enfant : une seule liste, celle de app\gardien.js.
 foreach ($e in $enfants) {
   $sid = $e.sid
   if (-not $sid) { continue }
   $profil = (Get-CimInstance Win32_UserProfile | Where-Object { $_.SID -eq $sid }).LocalPath
   if ($profil -and (Test-Path (Join-Path $profil 'NTUSER.DAT'))) {
     $charge = Test-Path "Registry::HKEY_USERS\$sid"
-    $ruche = if ($charge) { "HKU\$sid" } else { reg load 'HKU\FloconEnfant' (Join-Path $profil 'NTUSER.DAT') | Out-Null; 'HKU\FloconEnfant' }
-    reg add "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableTaskMgr /t REG_DWORD /d 1 /f | Out-Null
-    reg add "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableRegistryTools /t REG_DWORD /d 1 /f | Out-Null
-    reg add "$ruche\Software\Policies\Microsoft\Windows\System" /v DisableCMD /t REG_DWORD /d 1 /f | Out-Null
-    reg add "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v DisallowRun /t REG_DWORD /d 1 /f | Out-Null
-    $i = 1; foreach ($x in 'powershell.exe','pwsh.exe','powershell_ise.exe','wt.exe','cmd.exe','regedit.exe','taskmgr.exe','mmc.exe','msedge.exe','chrome.exe','firefox.exe','brave.exe','opera.exe','Minecraft.Windows.exe') { reg add "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\DisallowRun" /v $i /t REG_SZ /d $x /f | Out-Null; $i++ }
-    if (-not $charge) { [GC]::Collect(); Start-Sleep -Milliseconds 500; reg unload 'HKU\FloconEnfant' | Out-Null }
-    Ok "$($e.prenom) : verrous posés (Gestionnaire des tâches, invite de commandes, navigateurs)."
+    if (-not $charge) { cmd.exe /d /c "reg load HKU\$sid `"$(Join-Path $profil 'NTUSER.DAT')`" >nul 2>&1" }
+    if (Test-Path "Registry::HKEY_USERS\$sid") {
+      $env:ELECTRON_RUN_AS_NODE = '1'
+      # Flocon.exe est une application graphique : le pipeline oblige PowerShell à attendre la fin.
+      try { & $exe $gardien verrous $e.compte | Out-String | Out-Null; $code = $LASTEXITCODE } finally { Remove-Item Env:ELECTRON_RUN_AS_NODE }
+      if (-not $charge) { [GC]::Collect(); Start-Sleep -Milliseconds 500; cmd.exe /d /c "reg unload HKU\$sid >nul 2>&1" }
+      if ($code -eq 0) { Ok "$($e.prenom) : verrous posés pour le niveau $($e.niveau)." } else { Attention "$($e.prenom) : verrous non posés (code $code), le gardien s'en chargera à sa connexion." }
+    } else { Info "$($e.prenom) : sa session est ouverte ailleurs, le gardien posera les verrous." }
   } else {
     Info "$($e.prenom) : session jamais ouverte, le gardien posera les verrous à la première connexion."
   }

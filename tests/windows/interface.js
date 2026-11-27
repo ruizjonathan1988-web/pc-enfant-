@@ -225,9 +225,11 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await clic('[data-a="pNiveau"][data-n="3"]');
     const sites = await page.inputValue('[data-in="pSites"]');
     await page.fill('[data-in="pSites"]', sites + '\nexample.org');
+    await page.fill('[data-in="pInterdits"]', 'C:\\Program Files\\Ameli\\AmeliPro.exe\nn’importe quoi');
     await clic('[data-a="pEnregistrer"]');
     tic();
     const t = enfant('Test');
+    assert.deepStrictEqual(t.interdits, ['AmeliPro.exe'], 'programme interdit enregistré, sans son chemin');
     assert.strictEqual(t.jetonsSemaine, 6); assert.strictEqual(t.niveau, 3); assert.ok(t.sites.includes('example.org'), 'site ajouté');
     const b = enfant('Brune'); assert.strictEqual(b.jetonsSemaine, 8, 'jetons de Brune inchangés'); assert.deepStrictEqual(b.sites, ['vikidia.org'], 'sites de Brune inchangés');
   });

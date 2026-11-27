@@ -31,6 +31,8 @@ foreach ($enfant in $liste) {
     reg delete "$ruche\Software\Policies\Microsoft\Windows\System" /v DisableCMD /f 2>$null | Out-Null
     reg delete "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v DisallowRun /f 2>$null | Out-Null
     reg delete "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\DisallowRun" /f 2>$null | Out-Null
+    foreach ($v in 'NoDesktop', 'NoControlPanel', 'NoStartMenuMorePrograms') { reg delete "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v $v /f 2>$null | Out-Null }
+    reg delete "$ruche\Software\Policies\Microsoft\Edge" /f 2>$null | Out-Null
     if (-not $charge) { [GC]::Collect(); Start-Sleep -Milliseconds 500; reg unload 'HKU\FloconEnfant' | Out-Null }
     Write-Host "  [ok] Verrous retirés pour $($enfant.prenom)." -ForegroundColor Green
   }

@@ -61,6 +61,17 @@ function reg(args) { try { execFileSync('reg', args, { windowsHide: true, stdio:
 
 // Remet les verrous du compte enfant si sa ruche de registre est chargée (session ouverte).
 // Ils dépendent du niveau du permis : au niveau 3, Edge s'ouvre, mais seulement sur les sites autorisés.
+// Programmes interdits sur sa session (lancés depuis Windows : menu Démarrer, bureau, explorateur).
+// Le Microsoft Store est toujours interdit : un compte standard peut y installer des applications.
+const INTERDITS_BASE = ['powershell.exe', 'pwsh.exe', 'powershell_ise.exe', 'wt.exe', 'cmd.exe', 'regedit.exe', 'taskmgr.exe', 'mmc.exe', 'chrome.exe', 'firefox.exe', 'brave.exe', 'opera.exe', 'Minecraft.Windows.exe', 'WinStore.App.exe'];
+function listeInterdits(config) {
+  const niveau = (config && config.niveau) || 1;
+  // Ceux que le parent ajoute (ameli, carte CPS…) : des noms de fichiers .exe, sans chemin.
+  const parent = ((config && config.interdits) || []).map((x) => String(x).trim()).filter((x) => /^[\w .()+-]+\.exe$/i.test(x));
+  const l = INTERDITS_BASE.concat(niveau >= 3 ? [] : ['msedge.exe'], parent);
+  return Array.from(new Set(l.map((x) => x.toLowerCase()))).map((x) => l.find((y) => y.toLowerCase() === x));
+}
+
 function verrous(sid, config) {
   const niveau = (config && config.niveau) || 1;
   if (C.DEV || !sid) return;
@@ -71,12 +82,19 @@ function verrous(sid, config) {
     [base + '\\Software\\Policies\\Microsoft\\Windows\\System', 'DisableCMD', '1'],
     [base + '\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer', 'DisallowRun', '1']
   ];
-  const interdits = ['powershell.exe', 'pwsh.exe', 'powershell_ise.exe', 'wt.exe', 'cmd.exe', 'regedit.exe', 'taskmgr.exe', 'mmc.exe', 'chrome.exe', 'firefox.exe', 'brave.exe', 'opera.exe', 'Minecraft.Windows.exe'].concat(niveau >= 3 ? [] : ['msedge.exe']);
+  const interdits = listeInterdits(config);
+  // Aux niveaux 1 et 2, tout passe par Flocon : bureau sans icônes, ni Paramètres ni « Toutes les applications ».
+  const explorer = base + '\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer';
+  const parNiveau = [[explorer, 'NoDesktop'], [explorer, 'NoControlPanel'], [explorer, 'NoStartMenuMorePrograms']];
   try {
     execFileSync('reg', ['query', base], { windowsHide: true, stdio: 'ignore' });
   } catch (e) { return; } // ruche non chargée : l'enfant n'est pas connectée
   for (const [cle, nom, val] of cles) {
     try { execFileSync('reg', ['add', cle, '/v', nom, '/t', 'REG_DWORD', '/d', val, '/f'], { windowsHide: true, stdio: 'ignore' }); } catch (e) { log('reg ' + nom + ' : ' + e.message); }
+  }
+  for (const [cle, nom] of parNiveau) {
+    if (niveau <= 2) reg(['add', cle, '/v', nom, '/t', 'REG_DWORD', '/d', '1', '/f']);
+    else reg(['delete', cle, '/v', nom, '/f']);
   }
   const cleDR = base + '\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\DisallowRun';
   reg(['delete', cleDR, '/f']);
@@ -150,5 +168,15 @@ function principal() {
 }
 
 // Lancé par le Planificateur : un tic. Chargé par un test : on expose les briques, sans rien lancer.
-if (require.main === module) { try { principal(); } catch (e) { log('erreur : ' + (e && e.stack || e)); } }
-module.exports = { verrous, listerSessions, deconnecter, principal };
+// « gardien.js verrous <compte> » : l'installateur fait poser les verrous par le gardien lui-même (une seule source).
+function verrousDe(compte) {
+  const c = E.normaliser(lireJson(C.config, null));
+  const e = c && E.trouver(c, compte);
+  if (!e || !e.sid) throw new Error('enfant inconnu : ' + compte);
+  verrous(e.sid, E.vue(c, e));
+}
+if (require.main === module) {
+  if (process.argv[2] === 'verrous') { try { verrousDe(process.argv[3]); } catch (e) { console.error(e.message); process.exit(1); } }
+  else { try { principal(); } catch (e) { log('erreur : ' + (e && e.stack || e)); } }
+}
+module.exports = { verrous, verrousDe, listeInterdits, listerSessions, deconnecter, principal };

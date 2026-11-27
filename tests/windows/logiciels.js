@@ -1,0 +1,53 @@
+'use strict';
+// Flocon trouve-t-il chaque logiciel de son catalogue sur cette machine ?
+// Même ordre que main.js : d'abord les chemins connus, puis le menu Démarrer (Get-StartApps).
+//   node logiciels.js <fichier de résultat .md>
+const fs = require('fs');
+const path = require('path');
+const { execFileSync } = require('child_process');
+const CAT = require('../../app/lib/catalogue');
+
+const developper = (p) => p.replace(/%([^%]+)%/g, (_, v) => process.env[v] || process.env[v.toUpperCase()] || '');
+let menu = [];
+try { menu = JSON.parse(execFileSync('powershell.exe', ['-NoProfile', '-Command', 'Get-StartApps | Select-Object Name, AppID | ConvertTo-Json'], { encoding: 'utf8' }) || '[]'); } catch (e) { /* rien */ }
+if (!Array.isArray(menu)) menu = [menu];
+
+// Où chercher un .exe quand le chemin du catalogue est faux : Program Files et les programmes de l'utilisateur.
+function chercher(exe) {
+  const racines = [process.env.ProgramFiles, process.env['ProgramFiles(x86)'], path.join(process.env.LOCALAPPDATA || '', 'Programs')].filter(Boolean);
+  const trouves = [];
+  const parcourir = (d, prof) => {
+    if (prof > 4 || trouves.length > 2) return;
+    let ent = []; try { ent = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { return; }
+    for (const x of ent) {
+      const p = path.join(d, x.name);
+      if (x.isDirectory()) parcourir(p, prof + 1); else if (x.name.toLowerCase() === exe.toLowerCase()) trouves.push(p);
+    }
+  };
+  racines.forEach((r) => parcourir(r, 0));
+  return trouves;
+}
+
+// Les logiciels que les tuiles de Flocon proposent vraiment.
+const refs = new Set(CAT.RUBRIQUES.flatMap((r) => r.tuiles).filter((t) => t.type === 'logiciel').map((t) => t.ref).concat(['minecraft']));
+const lignes = ['| Logiciel | Résultat |', '|---|---|'];
+let manquants = 0;
+for (const ref of refs) {
+  const l = CAT.LOGICIELS[ref];
+  if (l.uri) { lignes.push(`| ${l.nom} | adresse ${l.uri} (application Windows) |`); continue; }
+  const chemin = (l.chemins || []).map(developper).find((c) => fs.existsSync(c));
+  const noms = l.menus || (l.menu ? [l.menu] : []);
+  const entree = !chemin && noms.map((n) => menu.find((m) => m.Name && m.Name.toLowerCase().includes(n.toLowerCase()))).find(Boolean);
+  if (chemin) lignes.push(`| ${l.nom} | trouvé : ${chemin} |`);
+  else if (entree) lignes.push(`| ${l.nom} | par le menu Démarrer : ${entree.Name} |`);
+  else {
+    manquants++;
+    const exes = Array.from(new Set((l.chemins || []).map((c) => path.basename(c))));
+    const ailleurs = exes.flatMap(chercher);
+    lignes.push(`| ${l.nom} | INTROUVABLE${ailleurs.length ? ' ; installé ici : ' + ailleurs.join(', ') : ''} |`);
+  }
+}
+const texte = lignes.join('\n');
+console.log(texte);
+if (process.argv[2]) fs.writeFileSync(process.argv[2], texte + '\n');
+process.exit(manquants ? 1 : 0);
