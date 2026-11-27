@@ -1,0 +1,10 @@
+{
+  "name": "flocon",
+  "productName": "Flocon",
+  "version": "1.0.0",
+  "description": "Un ordinateur qui apprend à s'en passer : lanceur créatif et tirelire de temps d'écran pour enfant.",
+  "main": "main.js",
+  "author": "Jon",
+  "license": "UNLICENSED",
+  "private": true
+}
