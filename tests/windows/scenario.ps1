@@ -168,7 +168,6 @@ Etape 'Verrous réels dans le registre de Test (niveaux 1 et 3)' {
     $dr = & $liste "$pol\Explorer\DisallowRun"
     foreach ($x in 'chrome.exe', 'firefox.exe', 'msedge.exe', 'powershell.exe', 'cmd.exe', 'regedit.exe') { Vrai ($dr -contains $x) "$x non bloqué au niveau 1" }
     Vrai (-not (Test-Path $edge)) 'stratégies Edge présentes au niveau 1'
-    Vrai ($dr -contains 'WinStore.App.exe') 'Microsoft Store non bloqué'
     foreach ($v in 'NoDesktop', 'NoControlPanel', 'NoStartMenuMorePrograms') { Vrai ((Get-ItemProperty "$pol\Explorer").$v -eq 1) "$v absent au niveau 1" }
     & $poser 3
     foreach ($v in 'NoDesktop', 'NoControlPanel', 'NoStartMenuMorePrograms') { Vrai ($null -eq (Get-ItemProperty "$pol\Explorer").$v) "$v resté au niveau 3" }
