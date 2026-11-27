@@ -261,7 +261,7 @@ function entete(titre, extra) { return `<div class="entete"><button class="retou
 
 function vueInterne() {
   const v = S.vue;
-  const fn = { exposes: vueExposes, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
+  const fn = { idee: vueIdee, galerie: vueGalerie, projet: vueProjet, exposes: vueExposes, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
   return fn ? fn() : entete('Bientôt');
 }
 
@@ -282,6 +282,33 @@ function vueExposes() {
   return `<div class="section">${entete('Mes exposés')}
     <div class="panneau"><h3>Un nouvel exposé</h3><div class="rang"><input class="champ" style="flex:2" data-in="nouveauSujet" placeholder="Le sujet, par exemple : les loups" value="${esc(v.sujet || '')}"><input class="champ" style="flex:1" data-in="nouveauQuand" placeholder="Pour quand ?" value="${esc(v.quand || '')}"><button class="btn" data-a="creerExpose">Commencer</button></div></div>
     <div class="liste">${liste.length ? liste.map((e) => `<button class="ligne" data-a="ouvrirExpose" data-f="${esc(e.fichier)}">${ic(D.catalogue.ICONES.diapo, '#1F5FA8', 22)}<span class="grow"><b>${esc(e.sujet)}</b> <span class="muet">${e.pourQuand ? '· pour le ' + esc(e.pourQuand) : ''}</span></span><span class="etiquette">${(e.etapes || []).filter((z) => z && z.fait).length} / 6</span></button>`).join('') : '<p class="muet">Pas encore d’exposé. Le premier commence ici !</p>'}</div></div>`;
+}
+
+function vueIdee() {
+  const reste = 3 - ((S.seance && S.seance.tirages) || 0);
+  return `<div class="section">${entete('Une idée ?')}
+    <div class="idee">${esc(S.idee || '')}</div>
+    <div class="rang" style="justify-content:center">
+      <button class="btn" data-a="prendreIdee">Je prends celle-ci</button>
+      ${reste > 0 ? `<button class="btn doux" data-a="autreIdee">Une autre (encore ${reste})</button>` : '<span class="muet">C’était la dernière pour aujourd’hui : souvent, la bonne idée est déjà là.</span>'}
+    </div>
+    <p class="muet" style="text-align:center;margin:0">Tu peux aussi la transformer : une idée, c’est juste un point de départ.</p></div>`;
+}
+
+function vueGalerie() {
+  const l = S.docs.creations || [];
+  const carte = (o) => o.type === 'image' ? `<div class="oeuvre"><img src="${esc(o.url)}" alt="${esc(o.nom)}" loading="lazy"></div>` : o.type === 'video' ? `<div class="oeuvre"><video src="${esc(o.url)}" muted preload="metadata"></video></div>` : `<div class="oeuvre">${ic(D.catalogue.ICONES.note, '#7C5CFA', 40)}<span>${esc(o.nom)}</span></div>`;
+  return `<div class="section">${entete('Ma galerie', `<button class="btn petit" data-a="premiere" ${l.length ? '' : 'disabled'}>Première en famille</button><button class="btn doux petit" data-a="ouvrirDossier" data-d="creations">Ouvrir Mes créations</button>`)}
+    <p class="muet" style="margin:0">Tout ce que tu enregistres dans Documents, « Mes créations », arrive ici : dessins, films, musiques, émissions.</p>
+    ${l.length ? `<div class="galerie">${l.map(carte).join('')}</div>` : '<div class="panneau"><b>Ta galerie est encore vide.</b><span class="muet">Quand tu enregistres un dessin, un film ou un son, choisis le dossier Documents, puis « Mes créations ». C’est un geste à apprendre : il sert sur tous les ordinateurs.</span></div>'}</div>`;
+}
+
+function vueProjet() {
+  const p = D.catalogue.PROJETS[S.vue.id];
+  const outils = p.outils.map(([type, ref, nom]) => `<button class="btn petit" data-a="outilExpose" data-type="${type}" data-ref="${ref}" data-nom="${esc(nom)}">${esc(nom)}</button>`).join('');
+  return `<div class="section">${entete(p.titre)}<p class="chapo" style="margin:0">${esc(p.chapo)}</p>
+    <div class="panneau"><div class="etapes-projet">${p.etapes.map(([t, d]) => `<div><span><b>${esc(t)}</b><br><span class="muet">${esc(d)}</span></span></div>`).join('')}</div>
+    <div class="rang">${outils}<button class="btn doux petit" data-a="ouvrirDossier" data-d="creations">Mes créations</button></div></div></div>`;
 }
 
 function vuePourquoi() {
@@ -359,6 +386,13 @@ function vueVoile() {
     const cases = Array.from({ length: 4 }, (_, i) => `<span>${v.saisie[i] ? '•' : ''}</span>`).join('');
     return `<div class="voile"><div class="carte verre" style="width:380px;align-items:center"><h2 style="text-align:center">${esc(v.titre)}</h2><div class="code">${cases}</div>${v.erreur ? '<p style="color:#C0392B;margin:0">Ce n’est pas le bon code.</p>' : ''}<div class="pave">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((k) => `<button data-a="pin" data-k="${k}">${k}</button>`).join('')}<button data-a="pinAnnuler" style="font-size:14px">Annuler</button><button data-a="pin" data-k="0">0</button><button data-a="pinEffacer">⌫</button></div></div></div>`;
   }
+  if (v.type === 'premiersPas') {
+    const pas = D.catalogue.PREMIERS_PAS[v.t.ref] || [];
+    return `<div class="voile"><div class="carte verre" style="width:min(560px,92vw)"><div class="bulle-intro"><div class="compagnon" style="width:96px;height:96px"><img src="${imgCompa('montre')}" alt=""></div><h2>Premiers pas avec ${esc(v.t.nom)}</h2></div>
+      <ul class="pas-liste">${pas.map((p, i) => `<li><b>${i + 1}</b><span>${esc(p)}</span></li>`).join('')}</ul>
+      <p class="muet" style="margin:0">Pour le reste, essaie, cherche, trompe-toi : c’est comme ça qu’on apprend un logiciel. Et si tu bloques vraiment, demande.</p>
+      <div class="rang entre"><button class="btn doux" data-a="pasDebrouille">Je me débrouille</button><button class="btn" data-a="pasOuvrir">Ouvrir ${esc(v.t.nom)}</button></div></div></div>`;
+  }
   if (v.type === 'parent') {
     const c = S.config; const jeuxOn = new Set((v.jeux || []).map((j) => j.id));
     const steam = v.steam || [];
@@ -380,11 +414,14 @@ const CONSEILS = [
   () => 'Dans « Mon style », tu peux changer de monde ou mettre ta propre photo en fond d’écran.',
   () => 'Une question te trotte dans la tête ? Note-la dans le Grand Pourquoi, dans « J’apprends ».',
   () => 'Tes yeux ont besoin d’une pause de temps en temps : regarde loin par la fenêtre.',
-  () => 'Un livre t’a plu ? Range-le dans ton carnet de lecture.'
+  () => 'Un livre t’a plu ? Range-le dans ton carnet de lecture.',
+  () => 'Pas d’idée ? Clique sur « Une idée ? » dans Je crée.',
+  () => 'Tes créations enregistrées dans « Mes créations » apparaissent dans ta galerie.'
 ];
 function poseCompa() {
   if (S.bulle && /Bravo|Une étape|fier|Bienvenue|Super/.test(S.bulle)) return 'bravo';
-  if (S.vue && (S.vue.ref === 'exposes' || S.vue.ref === 'pourquoi')) return 'reflechir';
+  if (S.vue && (S.vue.ref === 'exposes' || S.vue.ref === 'pourquoi' || S.vue.ref === 'idee')) return 'reflechir';
+  if (S.vue && S.vue.ref === 'galerie') return 'bravo';
   if (S.rubrique === 'lire' || (S.vue && (S.vue.ref === 'carnetLecture' || S.vue.ref === 'journal'))) return 'lire';
   const texte = S.bulle || CONSEILS[S.conseil % CONSEILS.length]();
   if (/pause|yeux/.test(texte)) return 'baille';
@@ -442,13 +479,17 @@ async function ouvrirVue(ref) {
   if (ref === 'carnetLecture') await chargerDoc('lectures', 'lectures.json', { livres: [] });
   if (ref === 'journal') await chargerDoc('journal', 'journal.json', { pages: [] });
   if (ref === 'photos') S.docs.photos = await F.photos();
+  if (ref === 'galerie') S.docs.creations = await F.creations();
+  if (ref === 'idee') { S.idee = tirerIdee(); }
   if (ref === 'musique') S.docs.musique = await F.musique();
   if (ref === 'livresAudio') S.docs.musique = await F.livresAudio();
   if (ref === 'films') S.docs.films = await F.films();
   render();
 }
 
-async function lancer(t) {
+async function lancer(t, sansPas) {
+  if (t.type === 'projet') { S.vue = { ref: 'projet', id: t.ref }; render(); return; }
+  if (t.type === 'logiciel' && !sansPas && D.catalogue.PREMIERS_PAS[t.ref] && !((S.profil.vus || {})[t.ref])) { S.voile = { type: 'premiersPas', t }; render(); return; }
   if (t.type === 'site') return ouvrirSite(D.catalogue.SITES[t.ref].url, D.catalogue.SITES[t.ref].nom);
   if (t.type === 'interne') return ouvrirVue(t.ref);
   const r = await F.lancer({ type: t.type, ref: t.ref });
@@ -495,6 +536,23 @@ async function allerFin(temps) {
   render();
 }
 
+function tirerIdee() { const l = D.catalogue.IDEES; let i; do { i = Math.floor(Math.random() * l.length); } while (l.length > 1 && l[i] === S.idee); return l[i]; }
+
+// ---------- la première en famille ----------
+function dessinerPremiere() {
+  const p = S.premiere; const el = $('#premiere');
+  clearTimeout(dessinerPremiere.t);
+  if (!p) { el.classList.remove('ouvert'); el.innerHTML = ''; return; }
+  const l = S.docs.creations; const o = l[p.i];
+  let scene;
+  if (o.type === 'image') { scene = `<img src="${esc(o.url)}" alt="">`; dessinerPremiere.t = setTimeout(() => A.premiereSuiv(), 7000); }
+  else if (o.type === 'video') scene = `<video src="${esc(o.url)}" autoplay controls></video>`;
+  else scene = `<div class="section" style="align-items:center"><div class="compagnon"><img src="${imgCompa('lire')}" alt=""></div><audio src="${esc(o.url)}" autoplay controls style="width:420px"></audio></div>`;
+  el.innerHTML = `<div class="scene">${scene}</div><div class="barre"><button class="btn doux petit" data-a="premierePrec">‹</button><span class="grow">${esc(o.nom)} <span style="opacity:.6;font-size:14px">${p.i + 1} / ${l.length}</span></span><button class="btn doux petit" data-a="premiereSuiv">›</button><button class="btn petit" data-a="premiereFin">Fin de la projection</button></div>`;
+  el.classList.add('ouvert');
+  const m = el.querySelector('video,audio'); if (m) m.onended = () => A.premiereSuiv();
+}
+
 const A = {
   // atelier
   atelierSuiv: async () => {
@@ -539,6 +597,14 @@ const A = {
   reduire: () => F.reduire(),
   rubrique: (d) => { S.rubrique = d.id; S.vue = null; render(); },
   tuile: (d) => lancer(S.tuilesAffichees[Number(d.i)]),
+  pasOuvrir: async () => { const t = S.voile.t; S.profil.vus = Object.assign({}, S.profil.vus, { [t.ref]: true }); await sauverProfil(); S.voile = null; render(); lancer(t, true); },
+  pasDebrouille: async () => { const t = S.voile.t; S.profil.vus = Object.assign({}, S.profil.vus, { [t.ref]: true }); await sauverProfil(); S.voile = null; render(); dire('D’accord ! Si tu bloques, clique sur moi.'); lancer(t, true); },
+  autreIdee: () => { if (!S.seance) S.seance = { id: 'x', debut: Date.now(), prevu: 30 }; S.seance.tirages = (S.seance.tirages || 0) + 1; if (S.seance.tirages <= 3) S.idee = tirerIdee(); render(); },
+  prendreIdee: () => { S.vue = null; S.rubrique = 'creer'; dire('Bonne idée ! Choisis ton outil : « ' + S.idee + ' »'); render(); },
+  premiere: async () => { if (!(S.docs.creations || []).length) return; S.premiere = { i: 0 }; await F.mode(true); dessinerPremiere(); },
+  premiereSuiv: () => { if (!S.premiere) return; const n = S.docs.creations.length; if (S.premiere.i < n - 1) { S.premiere.i++; dessinerPremiere(); } else A.premiereFin(); },
+  premierePrec: () => { if (!S.premiere) return; S.premiere.i = Math.max(0, S.premiere.i - 1); dessinerPremiere(); },
+  premiereFin: async () => { S.premiere = null; dessinerPremiere(); await F.mode(false); dire('Bravo pour ta première ! Qu’est-ce que ta famille en a pensé ?'); render(); },
   fermerVue: () => { S.vue = null; render(); },
   basculerFlocon: async () => { S.profil.floconVisible = !S.profil.floconVisible; await sauverProfil(); render(); },
   taire: async () => { S.profil.floconVisible = false; await sauverProfil(); render(); },
@@ -562,7 +628,7 @@ const A = {
     if (x.etapes[i].fait) { dire('Une étape de plus pour ton exposé : bravo !'); if (i < 5) S.vue.etape = i + 1; }
     render();
   },
-  outilExpose: (d) => { if (d.type === 'site') lancer({ type: 'site', ref: d.ref }); else if (d.type === 'interne') ouvrirVue(d.ref); else lancer({ type: 'logiciel', ref: d.ref, nom: d.ref }); },
+  outilExpose: (d) => { if (d.type === 'site') lancer({ type: 'site', ref: d.ref }); else if (d.type === 'interne') ouvrirVue(d.ref); else lancer({ type: 'logiciel', ref: d.ref, nom: d.nom || ({ writer: 'Writer', impress: 'Impress', krita: 'Krita', audacity: 'Audacity', stopmotion: 'Stop Motion Studio' })[d.ref] || d.ref }); },
   dossierExposes: () => F.ouvrirDossier('exposes'),
   // carnets
   ajouterQuestion: async () => { const q = (S.vue.q || '').trim(); if (!q) return; S.docs.pourquoi.questions.unshift({ q, r: '', date: new Date().toISOString() }); S.vue.q = ''; await ecrireCarnet('pourquoi', 'grand-pourquoi.json'); render(); },
@@ -638,6 +704,7 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('input', (e) => { const el = e.target.closest('[data-in]'); if (el && SAISIES[el.dataset.in]) SAISIES[el.dataset.in](el.value, el); });
 document.addEventListener('keydown', (e) => {
+  if (S.premiere) { if (e.key === 'ArrowRight') A.premiereSuiv(); else if (e.key === 'ArrowLeft') A.premierePrec(); else if (e.key === 'Escape') A.premiereFin(); return; }
   if (S.voile && S.voile.type === 'pin') { if (/^\d$/.test(e.key)) A.pin({ k: e.key }); else if (e.key === 'Backspace') A.pinEffacer(); else if (e.key === 'Escape') A.pinAnnuler(); return; }
   if (e.key === 'Enter' && e.target.matches && e.target.matches('input[data-in="prenom"],input[data-in="nomCompa"]')) { const b = document.querySelector('[data-a="atelierSuiv"]'); if (b && !b.disabled) b.click(); }
 });

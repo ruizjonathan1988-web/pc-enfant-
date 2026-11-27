@@ -16,7 +16,8 @@ const LOGICIELS = {
   calculatrice: { nom: 'Calculatrice', chemins: ['%SystemRoot%\\System32\\calc.exe'], menu: 'Calculatrice' },
   camera: { nom: 'Caméra', uri: 'microsoft.windows.camera:' },
   minecraft: { nom: 'Minecraft', chemins: [PF86 + '\\Minecraft Launcher\\MinecraftLauncher.exe', PF + '\\Minecraft Launcher\\MinecraftLauncher.exe'], menu: 'Minecraft Launcher' },
-  klavaro: { nom: 'Klavaro', chemins: [PF86 + '\\Klavaro\\bin\\klavaro.exe', PF + '\\Klavaro\\bin\\klavaro.exe'], menu: 'Klavaro' }
+  // RapidTyping s'il a été installé (à la main, depuis rapidtyping.com), sinon Klavaro.
+  klavaro: { nom: 'Le clavier', chemins: [PF + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\Klavaro\\bin\\klavaro.exe', PF + '\\Klavaro\\bin\\klavaro.exe'], menus: ['RapidTyping', 'Klavaro'] }
 };
 
 // domaines : adresses autorisées en navigation (sous-domaines compris).
@@ -72,6 +73,8 @@ const I = {
 // type : logiciel | site | interne
 const RUBRIQUES = [
   { id: 'creer', nom: 'Je crée', tuiles: [
+    { type: 'interne', ref: 'idee', nom: 'Une idée ?', sous: 'Quand je ne sais pas quoi faire', icone: I.etoile, couleur: '#F2B33D' },
+    { type: 'interne', ref: 'galerie', nom: 'Ma galerie', sous: 'Et la première en famille', icone: I.photo, couleur: '#E0457B' },
     { type: 'logiciel', ref: 'scratch', nom: 'Scratch', sous: 'Jeux et animations', icone: I.code, couleur: '#F28C28' },
     { type: 'logiciel', ref: 'stopmotion', nom: 'Mon film', sous: 'Stop Motion Studio', icone: I.film, couleur: '#E0457B' },
     { type: 'logiciel', ref: 'krita', nom: 'Dessin', sous: 'Krita', icone: I.pinceau, couleur: '#FF7A45' },
@@ -79,7 +82,10 @@ const RUBRIQUES = [
     { type: 'site', ref: 'songmaker', nom: 'Mélodies', sous: 'Song Maker', icone: I.note, couleur: '#2B7BD6' },
     { type: 'logiciel', ref: 'writer', nom: 'Écrire', sous: 'Histoires et lettres', icone: I.texte, couleur: '#1F5FA8' },
     { type: 'logiciel', ref: 'audacity', nom: 'Ma voix', sous: 'Audacity', icone: I.micro, couleur: '#5B3FD6' },
-    { type: 'logiciel', ref: 'camera', nom: 'Photomaton', sous: 'La caméra', icone: I.camera, couleur: '#13A39F' }
+    { type: 'logiciel', ref: 'camera', nom: 'Photomaton', sous: 'La caméra', icone: I.camera, couleur: '#13A39F' },
+    { type: 'projet', ref: 'radio', nom: 'Ma radio', sous: 'Une émission à faire écouter', icone: I.micro, couleur: '#B0471B' },
+    { type: 'projet', ref: 'livre', nom: 'Mon livre', sous: 'Écrire, illustrer, imprimer', icone: I.livre, couleur: '#2FA36B' },
+    { type: 'projet', ref: 'papier', nom: 'Du papier à l\u2019écran', sous: 'Mes dessins prennent vie', icone: I.pinceau, couleur: '#7C5CFA' }
   ] },
   { id: 'lire', nom: 'Mes lectures', tuiles: [
     { type: 'interne', ref: 'carnetLecture', nom: 'Mon carnet de lecture', sous: 'Les livres que j’ai lus', icone: I.livre, couleur: '#B0471B' },
@@ -120,6 +126,55 @@ const RUBRIQUES = [
   { id: 'style', nom: 'Mon style', tuiles: [] }
 ];
 
+// Premiers pas : trois gestes, montrés la première fois qu'on ouvre un logiciel, puis plus jamais.
+const PREMIERS_PAS = {
+  scratch: ['Clique sur un bloc pour voir ce qu\u2019il fait.', 'Glisse les blocs les uns sous les autres : c\u2019est ton programme.', 'Le drapeau vert lance tout. Pour garder ton travail : Fichier, puis « Enregistrer sur ton ordinateur », dans Mes créations.'],
+  stopmotion: ['Pose la caméra bien stable : elle ne doit plus bouger.', 'Bouge ton personnage tout doucement, une photo à chaque fois.', 'Exporte ton film dans Documents, Mes créations : il ira dans ta galerie.'],
+  krita: ['Choisis un pinceau à gauche et une couleur à droite.', 'Ctrl+Z annule ton dernier trait : tu peux tout essayer.', 'Fichier, puis Exporter en PNG, dans Documents, Mes créations.'],
+  writer: ['Écris d\u2019abord, la mise en forme viendra après.', 'Pour un titre, sélectionne-le et choisis « Titre 1 ».', 'Fichier, puis Enregistrer sous : choisis bien ton dossier, et donne un nom qui veut dire quelque chose.'],
+  impress: ['Une diapo = une idée et une image.', 'Insertion, puis Image, pour ajouter un dessin ou une photo.', 'F5 lance le diaporama, Échap l\u2019arrête.'],
+  audacity: ['Le bouton rouge enregistre, le carré arrête.', 'Un passage raté ? Sélectionne-le et appuie sur Suppr.', 'Fichier, puis Exporter en MP3, dans Mes créations.'],
+  klavaro: ['Pose tes index sur F et J : ils ont une petite bosse.', 'Regarde l\u2019écran, pas tes doigts. C\u2019est dur au début, c\u2019est normal.', 'Dix minutes souvent valent mieux qu\u2019une heure de temps en temps.']
+};
+
+// Idées de départ : de l'étincelle, pas de récompense. Trois tirages par séance, pas plus.
+const IDEES = [
+  'Un film de 10 secondes avec un objet de la cuisine.', 'Invente le cri d\u2019un animal qui n\u2019existe pas, et enregistre-le.', 'Dessine ta rue dans 100 ans.',
+  'Une histoire qui commence par : « Ce matin-là, mon ombre a refusé de me suivre. »', 'Fais un jeu Scratch où le chat attrape des étoiles.', 'Une musique qui donne l\u2019impression qu\u2019il pleut.',
+  'Photographie cinq choses rouges dans la maison, puis fais-en une affiche.', 'Interviewe quelqu\u2019un de ta famille sur son enfance.', 'Invente une recette impossible et écris-la comme un vrai livre de cuisine.',
+  'Un film en pâte à modeler où une boule devient un animal.', 'Dessine ton compagnon dans ta chambre.', 'Écris une lettre à toi-même dans dix ans.',
+  'Fais une carte au trésor de ton jardin ou de ton quartier.', 'Une BD de quatre cases sur une dispute entre deux chaussettes.', 'Invente un pays : son drapeau, sa langue, sa spécialité.',
+  'Lis un poème à voix haute et ajoute des bruitages.', 'Un exposé d\u2019une minute sur ton animal préféré.', 'Dessine un monstre gentil et raconte sa journée.',
+  'Fais une affiche pour un spectacle imaginaire.', 'Un jeu Scratch où on doit éviter des gouttes de pluie.', 'Une chanson pour réveiller quelqu\u2019un doucement.',
+  'Construis une ville en Lego, puis fais-en un film où elle se construit toute seule.', 'Raconte ton dernier rêve en trois dessins.', 'Invente une machine qui sert à quelque chose d\u2019inutile.',
+  'Fais le journal télévisé de la maison.', 'Dessine la même maison au printemps, en été, en automne et en hiver.', 'Écris la suite de ton livre préféré.',
+  'Un quiz de dix questions pour ta famille.', 'Une musique de film pour une course-poursuite.', 'Fais le portrait de quelqu\u2019un sans montrer son visage.'
+];
+
+// Projets guidés : des étapes et les bons outils, pas de note ni de score.
+const PROJETS = {
+  radio: { titre: 'Ma radio', chapo: 'Une vraie émission, à faire écouter à la famille ou à copier sur ton casque.', etapes: [
+    ['Choisis ton émission', 'Une interview de mamie, un conte lu, la chronique du week-end, un quiz…'],
+    ['Prépare ton texte', 'Écris tes questions ou ce que tu vas dire. Pas tout mot à mot : des notes suffisent.'],
+    ['Fais un petit jingle', 'Quelques notes dans Mélodies, pour ouvrir et fermer l\u2019émission.'],
+    ['Enregistre-toi', 'Parle lentement, sourire aux lèvres : ça s\u2019entend !'],
+    ['Exporte et fais écouter', 'En MP3, dans Mes créations : ton émission apparaît dans ta galerie.']
+  ], outils: [['logiciel', 'writer', 'Mes notes'], ['site', 'songmaker', 'Mon jingle'], ['logiciel', 'audacity', 'M\u2019enregistrer']] },
+  livre: { titre: 'Mon livre', chapo: 'Une histoire écrite et illustrée par toi, imprimée en vrai petit livre.', etapes: [
+    ['Écris ton histoire', 'Un début, un problème, une fin. Courte, c\u2019est très bien.'],
+    ['Découpe-la en pages', 'Une ou deux phrases par page, pour laisser de la place aux dessins.'],
+    ['Dessine les illustrations', 'Sur papier puis en photo, ou directement dans Krita.'],
+    ['Mets en page', 'Une image et son texte par page, dans LibreOffice Writer.'],
+    ['Imprime en livret', 'Fichier, Imprimer, puis choisis « Brochure » : tu n\u2019as plus qu\u2019à plier et agrafer.']
+  ], outils: [['logiciel', 'writer', 'Écrire'], ['logiciel', 'krita', 'Dessiner']] },
+  papier: { titre: 'Du papier à l\u2019écran', chapo: 'Tes dessins sur papier deviennent des images en couleur ou des films.', etapes: [
+    ['Dessine sur papier', 'Avec un feutre bien noir, des traits nets.'],
+    ['Prends-le en photo', 'Bien à plat, à la lumière du jour, sans ombre.'],
+    ['Importe tes photos', 'Branche l\u2019appareil et va dans Mes photos.'],
+    ['Donne-lui vie', 'Colorie-le dans Krita, ou anime-le image par image dans Stop Motion.']
+  ], outils: [['interne', 'photos', 'Mes photos'], ['logiciel', 'krita', 'Colorier'], ['logiciel', 'stopmotion', 'Animer']] }
+};
+
 const EXPOSE_ETAPES = [
   { nom: 'Mon sujet', titre: 'Choisir et cerner mon sujet', consigne: 'Un sujet trop grand, c’est un exposé qui déborde. Écris trois questions auxquelles ton exposé va répondre.', astuce: 'Pas « Les loups », mais « Comment vivent les loups, et pourquoi en a-t-on peur ? »', outils: [] },
   { nom: 'Chercher', titre: 'Chercher dans plusieurs sources', consigne: 'Lis au moins deux sources différentes, et un livre de la bibliothèque si tu peux. Pour chaque info, note d’où elle vient.', astuce: 'Si deux sources disent la même chose, l’info est solide. Si elles se contredisent, demande à un adulte.', outils: [['site', 'vikidia'], ['site', 'wikimini'], ['site', 'unjour']] },
@@ -149,4 +204,4 @@ function urlAutorisee(url, domaines) {
   return domaines.some((d) => h === d || h.endsWith('.' + d));
 }
 
-module.exports = { LOGICIELS, SITES, RUBRIQUES, EXPOSE_ETAPES, INTENTIONS, ICONES: I, domainesAutorises, urlAutorisee };
+module.exports = { LOGICIELS, SITES, RUBRIQUES, EXPOSE_ETAPES, PREMIERS_PAS, IDEES, PROJETS, INTENTIONS, ICONES: I, domainesAutorises, urlAutorisee };

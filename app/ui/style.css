@@ -130,3 +130,18 @@ textarea.champ{height:auto;min-height:110px;padding:12px 14px;line-height:1.45;r
 .etapes-expose button.on{background:#1F5FA8;color:#fff}
 .etapes-expose button.fait{background:#EAF3DE;color:#27500A;box-shadow:inset 0 0 0 2px #97C459}
 audio,video{width:100%;border-radius:14px}
+.idee{font-family:'Outfit';font-weight:700;font-size:30px;line-height:1.25;text-align:center;padding:26px 30px;background:linear-gradient(135deg,#FFF6DE,#FFE9F0);border-radius:22px}
+.oeuvre{border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 4px 12px rgba(20,24,60,.12);aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:6px;font-size:12px;font-weight:700}
+.oeuvre img,.oeuvre video{width:100%;height:100%;object-fit:cover;border-radius:0}
+.etapes-projet{counter-reset:e;display:flex;flex-direction:column;gap:10px}
+.etapes-projet div{display:flex;gap:12px;align-items:flex-start}
+.etapes-projet div::before{counter-increment:e;content:counter(e);flex:none;width:30px;height:30px;border-radius:50%;background:#2B7BD6;color:#fff;font-family:'Outfit';font-weight:800;display:flex;align-items:center;justify-content:center}
+#premiere{position:fixed;inset:0;z-index:60;display:none;background:#0b0b18;color:#fff}
+#premiere.ouvert{display:flex;flex-direction:column}
+#premiere .scene{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:30px}
+#premiere .scene img,#premiere .scene video{width:100%;height:100%;border-radius:12px;object-fit:contain}
+#premiere .barre{height:70px;display:flex;align-items:center;gap:14px;padding:0 24px;background:rgba(255,255,255,.06)}
+#premiere .barre .grow{flex:1;font-family:'Outfit';font-size:20px;font-weight:700}
+.pas-liste{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.pas-liste li{display:flex;gap:12px;align-items:flex-start;font-size:16px;line-height:1.45}
+.pas-liste li b{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Outfit'}

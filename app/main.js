@@ -129,8 +129,8 @@ async function lancerLogiciel(ref) {
   for (const c of (l.chemins || []).map(developper)) {
     if (fs.existsSync(c)) { spawn(c, [], { detached: true, stdio: 'ignore', cwd: path.dirname(c) }).unref(); return { ok: true }; }
   }
-  if (l.menu) {
-    const id = await idDemarrer(l.menu);
+  for (const m of (l.menus || (l.menu ? [l.menu] : []))) {
+    const id = await idDemarrer(m);
     if (id) { spawn('explorer.exe', ['shell:AppsFolder\\' + id], { detached: true, stdio: 'ignore' }).unref(); return { ok: true }; }
   }
   return { ok: false, raison: 'absent', nom: l.nom };
@@ -237,7 +237,7 @@ poser('init', () => {
   }
   return {
     dev: C.DEV, plateforme: process.platform,
-    catalogue: { RUBRIQUES: CAT.RUBRIQUES, SITES: CAT.SITES, EXPOSE_ETAPES: CAT.EXPOSE_ETAPES, INTENTIONS: CAT.INTENTIONS, ICONES: CAT.ICONES },
+    catalogue: { PREMIERS_PAS: CAT.PREMIERS_PAS, IDEES: CAT.IDEES, PROJETS: CAT.PROJETS, RUBRIQUES: CAT.RUBRIQUES, SITES: CAT.SITES, EXPOSE_ETAPES: CAT.EXPOSE_ETAPES, INTENTIONS: CAT.INTENTIONS, ICONES: CAT.ICONES },
     config: configPublique(), etat: lireJson(C.etat, null), profil: lireJson(FICHIER_PROFIL, null), compagnons
   };
 });
@@ -262,6 +262,7 @@ poser('ouvrirDossier', (dossier) => { const { d } = sur(dossier, ''); fs.mkdirSy
 poser('photos', () => listerRecursif(dossiers().photos, EXT_IMG, 300));
 poser('musique', () => listerRecursif(dossiers().musique, EXT_SON, 400));
 poser('livresAudio', () => listerRecursif(dossiers().livresAudio, EXT_SON, 400));
+poser('creations', () => listerRecursif(dossiers().creations, /\.(jpe?g|png|gif|webp|bmp|mp4|webm|m4v|mov|mp3|m4a|ogg|wav)$/i, 300).map((f) => Object.assign(f, { type: EXT_IMG.test(f.chemin) ? 'image' : EXT_VID.test(f.chemin) ? 'video' : 'son' })));
 poser('films', () => listerRecursif(dossiers().films, EXT_VID, 200));
 poser('importerPhotos', () => importerPhotos());
 poser('casque', () => ({ dossier: dossierCasque() }));
