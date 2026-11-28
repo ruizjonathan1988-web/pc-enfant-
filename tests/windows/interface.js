@@ -454,6 +454,29 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.strictEqual(await page.evaluate(() => FILM.p.images.length), 2, 'deux images dessinées dans la frise');
     await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
   });
+  await etape('Studio : glisser une image dans la frise, pot de peinture, aperçu, film en MP4 ou WebM', async () => {
+    await rubrique('Je crée'); await tuile('Mon film');
+    await page.fill('[data-in="filmTitre"]', 'Le saut'); await clic('[data-a="filmNouveau"]');
+    await page.waitForFunction(() => FILM.flux && document.getElementById('anim-video').readyState >= 2, null, { timeout: 15000 });
+    for (let i = 0; i < 3; i++) await clic('.declencheur');
+    await page.waitForFunction(() => FILM.p.images.length === 3, null, { timeout: 10000 });
+    const avant = await page.evaluate(() => FILM.p.images[0]);
+    const a = await page.locator('#anim-frise .vignette >> nth=0').boundingBox(); const b = await page.locator('#anim-frise .vignette >> nth=2').boundingBox();
+    await page.mouse.move(a.x + 20, a.y + 20); await page.mouse.down(); await page.mouse.move(b.x + b.width - 5, b.y + 20, { steps: 10 }); await page.mouse.up(); await pause(300);
+    assert.notStrictEqual(await page.evaluate(() => FILM.p.images[0]), avant, 'image déplacée dans la frise');
+    await clic('[data-a="filmDessiner"]'); const t = await page.locator('#fd-trait').boundingBox();
+    await clic('#film-dessin [data-d="pot"]'); await page.mouse.click(t.x + 50, t.y + 50); await pause(300);
+    assert.ok(await page.evaluate(() => document.getElementById('fd-trait').getContext('2d').getImageData(10, 10, 1, 1).data[3] === 255), 'zone remplie');
+    await clic('#film-dessin [data-d="apercu"]'); await pause(500);
+    assert.ok(await page.evaluate(() => !document.getElementById('fd-apercu').hidden), 'aperçu animé');
+    await clic('#film-dessin [data-d="apercu"]'); await clic('#film-dessin [data-d="fermer"]');
+    await clic('[data-a="filmOnglet"][data-o="musique"]'); await clic('[data-a="filmMusique"][data-m="joyeuse"]');
+    await clic('[data-a="filmFaire"]'); await page.waitForSelector('.bravo-film', { timeout: 60000 });
+    const f = fs.readdirSync(path.join(os.homedir(), 'Documents', 'Mes créations')).find((x) => /^Le saut\.(mp4|webm)$/.test(x));
+    assert.ok(f, 'film enregistré en MP4 ou WebM');
+    assert.ok(fs.statSync(path.join(os.homedir(), 'Documents', 'Mes créations', f)).size > 20000, 'vidéo non vide (' + f + ')');
+    await clic('[data-a="filmContinuer"]'); await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
   // ---------- Apprendre à se servir de l'ordinateur ----------
   await etape('L’école de l’ordinateur : clic, double-clic, glisser, clic droit, accents, Ctrl+Z', async () => {
     await rubrique('Mes outils'); assert.strictEqual(await page.locator('[data-a="tuile"]', { hasText: 'L’école de l’ordi' }).count(), 1, 'tuile de l’école');
