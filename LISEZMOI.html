@@ -16,76 +16,78 @@ td,th{padding:8px 10px;border-bottom:1px solid #E6E1D6;text-align:left;vertical-
 </head>
 <body>
 <h1>Flocon</h1>
-<p class="chapo">Un ordinateur qui apprend à s'en passer : une session Windows créative pour votre enfant, avec une tirelire de temps d'écran qu'il ou elle gère, et un compagnon qui sait se taire.</p>
+<p class="chapo">Un ordinateur qui apprend à s'en passer : une session Windows créative pour votre enfant de 8 à 12 ans, avec une tirelire de temps d'écran qu'elle ou il gère, un permis pour apprendre l'ordinateur pas à pas, et des outils qui renvoient vers le papier, les feutres, les Lego et la famille.</p>
 
-<h2>Installer en trois gestes</h2>
-<p><b>1. Débloquer l'archive.</b> Avant de l'extraire : clic droit sur le fichier .zip, <i>Propriétés</i>, cochez <i>Débloquer</i> en bas, puis <i>OK</i>. Sans ça, Windows peut refuser de lancer l'installateur.</p>
-<p><b>2. Extraire</b> le dossier où vous voulez (le Bureau convient), depuis <b>votre</b> session d'administrateur.</p>
-<p><b>3. Double-cliquer sur « Installer Flocon.cmd »</b>, accepter la demande d'administrateur, et répondre aux questions : le prénom, le nom du compte, un code parent à 4 chiffres, le nombre de jetons par semaine. Comptez une dizaine de minutes, surtout des téléchargements.</p>
-<div class="encart ok">Ensuite, fermez votre session et ouvrez la sienne, <b>avec elle ou lui</b> : l'atelier de première connexion démarre tout seul.</div>
+<h2>Installer</h2>
+<p>Depuis <b>votre</b> session d'administrateur, ouvrez <i>Terminal (administrateur)</i> (clic droit sur le menu Démarrer) et collez :</p>
+<pre>irm https://raw.githubusercontent.com/ruizjonathan1988-web/pc-enfant-/main/en-ligne.ps1 | iex</pre>
+<p>Un petit menu propose : <b>1</b> mettre à jour, <b>2</b> ajouter un enfant, <b>3</b> tout recommencer. Répondez ensuite aux questions : le prénom, le nom du compte, un code parent à 4 chiffres, les jetons par semaine. Comptez une dizaine de minutes, surtout des téléchargements.</p>
+<p>Sans Internet : téléchargez l'archive de la dernière version, clic droit, <i>Propriétés</i>, cochez <i>Débloquer</i>, extrayez-la, puis double-cliquez sur <b>« Installer Flocon.cmd »</b>.</p>
+<div class="encart ok">Ensuite, fermez votre session et ouvrez la sienne, <b>avec elle ou lui</b> : l'atelier de première connexion démarre tout seul. La même commande sert plus tard à mettre à jour (choix 1).</div>
 
 <h3>Ce que fait l'installateur</h3>
 <table>
-<tr><td>Le compte</td><td>Crée un compte local <b>standard</b> (ou reprend celui qui existe et lui retire les droits d'administrateur).</td></tr>
-<tr><td>Les logiciels</td><td>Scratch, Krita, LibreOffice, Audacity, Steam et le lanceur Minecraft, via <code>winget</code>.</td></tr>
-<tr><td>L'application</td><td>Télécharge le moteur Electron depuis GitHub, vérifie son empreinte, l'installe dans <code>C:\Program Files\Flocon</code>.</td></tr>
-<tr><td>La tirelire</td><td>Crée <code>C:\ProgramData\Flocon</code> : les réglages et la tirelire sont lisibles mais <b>non modifiables</b> depuis sa session.</td></tr>
-<tr><td>Le gardien</td><td>Une tâche planifiée qui tourne chaque minute avec le compte SYSTEM : elle compte le temps, rend les jetons non commencés, ferme la session quand le temps est écoulé. Sa session ne peut pas l'arrêter.</td></tr>
-<tr><td>Le lancement</td><td>Une tâche qui ouvre Flocon à sa connexion et le relance dans la minute s'il est fermé. La fenêtre n'a pas de bouton fermer ; Alt+F4 est neutralisé.</td></tr>
-<tr><td>Les verrous</td><td>Sur sa session seulement : Gestionnaire des tâches, invite de commandes, PowerShell, éditeur du registre et navigateurs (Edge, Chrome, Firefox) bloqués. Le web passe uniquement par Flocon, sur les sites autorisés.</td></tr>
+<tr><td>Les comptes</td><td>Un compte local <b>standard</b> par enfant (ou reprend un compte existant et lui retire les droits d'administrateur). Chaque enfant a sa tirelire et ses réglages.</td></tr>
+<tr><td>Les logiciels</td><td>Scratch, Tux Paint, MyPaint, Krita, LibreOffice, Audacity, Steam et le lanceur Minecraft, via <code>winget</code>.</td></tr>
+<tr><td>L'application</td><td>Le moteur Electron, téléchargé depuis GitHub avec vérification de son empreinte, dans <code>C:\Program Files\Flocon</code>. Tout le reste (studio de films, coloriages, 3D…) est intégré : rien d'autre à installer.</td></tr>
+<tr><td>La tirelire</td><td><code>C:\ProgramData\Flocon</code> : réglages et tirelire lisibles mais <b>non modifiables</b> depuis sa session.</td></tr>
+<tr><td>Le gardien</td><td>Une tâche planifiée qui tourne chaque minute avec le compte SYSTEM : elle compte le temps, rend les jetons non commencés, ferme la session quand le temps est écoulé, applique vos réglages. Sa session ne peut pas l'arrêter.</td></tr>
+<tr><td>Le lancement</td><td>Flocon s'ouvre à sa connexion et revient dans la minute s'il est fermé.</td></tr>
+<tr><td>Les verrous</td><td>Sur sa session seulement : Gestionnaire des tâches, invite de commandes, PowerShell, éditeur du registre et navigateurs bloqués. Aux niveaux 1 et 2 du permis, <b>seuls les logiciels de Flocon se lancent</b> (pas de Word, pas de programmes téléchargés). Au niveau 3, Edge s'ouvre, limité aux sites autorisés.</td></tr>
+<tr><td>Votre téléphone</td><td>Un petit serveur sur le Wi-Fi de la maison (port 4747) pour suivre et régler la tirelire depuis votre téléphone. Le réseau Wi-Fi doit être déclaré <b>Privé</b> dans Windows.</td></tr>
 </table>
 
 <h2>La première connexion : l'atelier</h2>
-<p>Sept étapes, une dizaine de minutes, qui changent l'ordinateur en direct : son prénom, son compagnon et son nom, son monde (le fond change derrière la fenêtre au moment où elle clique), son portrait dessiné, ses envies (qui réordonnent les rubriques), et le pacte. Tout se modifie plus tard dans <i>Mon style</i>.</p>
-<p>Le pacte se lit <b>ensemble</b> : la tirelire y est expliquée avec vos réglages, elle coche trois engagements, vous signez tous les deux, et vous tapez votre code pour valider.</p>
+<p>Sept étapes, une dizaine de minutes : son prénom, son compagnon et son nom, son monde (le fond change en direct), son portrait dessiné, ses envies (qui réordonnent les rubriques), et le pacte. Le pacte se lit <b>ensemble</b> : la tirelire y est expliquée avec vos réglages, elle coche trois engagements, vous signez tous les deux, et vous tapez votre code.</p>
 
 <h2>Au quotidien</h2>
-<p><b>À l'ouverture</b>, en plein écran : bonjour, la tirelire, le nombre de jetons qu'elle prend (15 minutes chacun, dans la limite par séance), puis « Aujourd'hui, je viens pour… ». Ensuite la fenêtre Flocon s'ouvre sur le vrai bureau Windows : on peut la réduire, pas la fermer.</p>
-<p><b>À deux</b> : sur l'écran de la tirelire, « À deux avec un adulte » + votre code = séance gratuite (deux heures au plus).</p>
-<p><b>« J'ai fini »</b> : un petit moment « de quoi es-tu fière ou fier ? », puis la session se ferme. Les jetons non commencés retournent dans la tirelire. Quand le temps est écoulé, l'écran d'au revoir s'affiche et la session se ferme une à deux minutes plus tard. Un avertissement apparaît deux minutes avant.</p>
-<p><b>Chaque lundi</b>, la tirelire se remplit. Les jetons de la semaine passée ne s'accumulent pas.</p>
-<p>Ses créations vont dans ses dossiers habituels : <code>Documents\Mes exposés</code>, <code>Documents\Mes carnets</code>, <code>Images\Mes photos</code>, <code>Vidéos\Mes films</code>.</p>
+<p><b>À l'ouverture</b> : la tirelire, le nombre de jetons qu'elle prend (15 minutes chacun, dans la limite par séance), puis « Aujourd'hui, je viens pour… ». Ensuite la fenêtre Flocon s'ouvre sur le bureau Windows.</p>
+<p><b>À deux</b> : « À deux avec un adulte » + votre code = séance gratuite.</p>
+<p><b>La pause bricolage</b> : quand elle lance un défi de « Mes mains », l'écran se met en pause et son temps d'écran ne défile pas (45 minutes au plus par séance). Elle revient prendre sa création en photo.</p>
+<p><b>« J'ai fini »</b> : un petit moment « de quoi es-tu fière ? », puis la session se ferme. Les jetons non commencés retournent dans la tirelire. Quand le temps est écoulé, l'écran d'au revoir arrive tout seul, avec un avertissement deux minutes avant.</p>
+<p><b>Chaque lundi</b>, la tirelire se remplit. Les jetons ne s'accumulent pas d'une semaine à l'autre.</p>
+
+<h2>Le permis : apprendre l'ordinateur pas à pas</h2>
+<table>
+<tr><td>Niveau 1<br>Premiers pas</td><td><b>L'école de l'ordinateur</b> : dix petits jeux validés tout seuls (clic, double-clic, glisser, molette, clic droit, prénom, accents, effacer, Ctrl+Z, fenêtres). Tout se passe dans Flocon.</td></tr>
+<tr><td>Niveau 2<br>J'explore</td><td>L'explorateur de fichiers, l'impression, les clés USB, MyPaint et l'atelier 3D.</td></tr>
+<tr><td>Niveau 3<br>Je navigue</td><td>Un vrai navigateur limité aux sites autorisés, Krita, Audacity, MakeCode Arcade.</td></tr>
+<tr><td>Niveau 4<br>En autonomie</td><td>Elle peut fermer Flocon ; une fin de séance plus douce.</td></tr>
+</table>
+<p>Pour chaque mission, un bouton <b>« Montre-moi »</b> donne le pas-à-pas, avec un dossier d'entraînement où tout essayer sans risque. C'est <b>vous</b> qui validez le passage au niveau suivant, avec votre code : on ne gagne jamais de niveau avec du temps d'écran.</p>
+
+<h2>Ce qu'il y a dedans</h2>
+<table>
+<tr><td>Je crée</td><td><b>Mon film</b> : un studio de stop motion (webcam, image fantôme, retardateur, fond vert avec 25 décors, filtres, musiques, sa voix, dessin image par image), la vidéo arrive dans sa galerie. <b>Coloriages</b> magiques (tables, conjugaison, nature des mots), mandalas et pixel art, à imprimer d'abord. <b>Atelier 3D</b> en cubes, avec un plan de montage pour le construire en Lego et un fichier pour imprimante 3D. <b>Mes mains</b> : 42 défis manuels ouverts, sans modèle à recopier. Et Scratch, Tux Paint, la musique, Ma radio, Mon livre…</td></tr>
+<tr><td>J'écris</td><td><b>Histoire à choix</b> (un livre-jeu imprimé, pages mélangées), <b>Ma BD</b> (planches vides à imprimer, planches dessinées photographiées, album imprimé), <b>Mon cahier</b>.</td></tr>
+<tr><td>Mes lectures</td><td>Carnet de lecture, journal secret (avec son propre code), livres audio.</td></tr>
+<tr><td>Je découvre, J'apprends</td><td>Vikidia, sites choisis, <b>Mes fiches</b> de révision en quiz, exposés guidés en six étapes, le Grand Pourquoi.</td></tr>
+<tr><td>Mes outils</td><td>L'école de l'ordinateur, Mon permis, <b>Écrans malins</b> (bien utiliser Internet), minuteur, agenda, Ma semaine.</td></tr>
+</table>
+<div class="encart">Les outils sont pensés comme un <b>tremplin</b> : livrets, BD, coloriages et plans de montage s'impriment ; les défis se font loin de l'écran ; les films se montrent en famille.</div>
 
 <h2>L'espace parent</h2>
-<p>Dans sa session : <i>Mon style</i>, bouton <i>Espace parent</i> en bas, votre code. Vous y réglez les jetons par semaine et par séance, vous pouvez ajouter des jetons tout de suite, cocher ses jeux Steam (la liste vient des jeux installés), modifier la liste des sites autorisés et changer le code. C'est le gardien qui applique les changements, dans la minute, et seulement si le code est bon.</p>
+<p>Dans sa session : <i>Mon style</i>, puis <b>Espace parent</b> et votre code. Ou depuis votre téléphone (adresse affichée dans l'espace parent). Vous y réglez les jetons par semaine et par séance, ajoutez des jetons, terminez une séance, changez le niveau du permis, cochez ses jeux Steam, ajoutez des sites, bloquez des programmes, et changez le code. Le gardien applique les changements dans la minute, et seulement si le code est bon.</p>
 
-<h2>Les trois choses à faire à la main</h2>
-<p><b>Steam Families.</b> Créez-lui un compte Steam enfant dans votre famille Steam, installez ses jeux, puis ouvrez Steam une fois dans sa session et connectez son compte. Dans les contrôles parentaux de son compte, <b>coupez l'accès au magasin, à la communauté et à la discussion</b> : elle n'a besoin que de sa bibliothèque. Ensuite, cochez ses jeux dans l'espace parent de Flocon.</p>
-<p><b>Minecraft : l'édition Java seulement.</b> Ouvrez le lanceur une fois dans sa session, connectez son compte Microsoft enfant et lancez l'édition Java. N'installez pas l'édition Bedrock : c'est elle qui contient la Place de marché et ses achats en Minecoins. Le multijoueur est coupé par défaut sur les comptes enfants.</p>
-<p><b>Stop Motion Studio.</b> Il vient du Microsoft Store et s'installe compte par compte. Lors de la première séance, ouvrez le Store depuis sa session, cherchez « Stop Motion Studio », installez. La tuile « Mon film » le trouvera toute seule.</p>
-<p><b>RapidTyping (conseillé).</b> Pour l'entraînement au clavier, téléchargez la version Setup sur rapidtyping.com et installez-la depuis votre session : la tuile « Taper au clavier » l'ouvrira à la place de Klavaro, installé par défaut.</p>
-<p>Si vous lui confiez de la musique, des livres audio ou des films, déposez-les dans son dossier <code>Musique</code>, <code>Musique\Mes livres audio</code> ou <code>Vidéos\Mes films</code>. Pour les livres audio gratuits, Littérature audio.com est une bonne source, mais son catalogue mélange enfants et adultes : choisissez-les vous-même.</p>
+<h2>Les choses à faire à la main</h2>
+<p><b>Steam Families.</b> Créez-lui un compte Steam enfant dans votre famille Steam, installez ses jeux, connectez son compte une fois dans sa session, et coupez magasin, communauté et discussion dans ses contrôles parentaux. Cochez ensuite ses jeux dans l'espace parent.</p>
+<p><b>Minecraft.</b> La tuile ouvre Minecraft pour Windows (Bedrock) s'il est installé, sinon le lanceur. Utilisez un compte Microsoft enfant et réglez achats et multijoueur dans le contrôle parental Microsoft (Xbox Family Settings).</p>
+<p><b>GCompris</b> : à installer depuis gcompris.net (le paquet automatique n'installe que l'outil des enseignants). <b>RapidTyping</b> (clavier) : version Setup depuis rapidtyping.com. Les deux depuis votre session.</p>
+<p><b>Ses propres décors</b> pour le fond vert : déposez des images dans <code>Images\Mes décors</code> de sa session.</p>
+<p><b>Imprimante 3D</b> : les fichiers STL sont dans <code>Documents\Mes créations 3D</code> (1 cube = 5 mm), à ouvrir dans votre trancheur.</p>
 
-<h2>Ajouter des compagnons</h2>
-<p>Quatorze compagnons sont livrés, en deux familles. <b>Tout doux</b> (pensés pour le CE2 et le CM1) : pingouin, renard polaire, phoque, loutre, hibou, axolotl, petit dragon. <b>Les aventuriers</b> (pensés pour le CM1 et la 6e) : panda roux, renard, raton laveur, lynx, corbeau, caméléon, capybara. L'atelier les montre sans mention d'âge, et elle peut en changer à tout moment dans <i>Mon style</i>. Pour en ajouter un nouveau, donnez une planche existante comme <b>image de référence</b> à votre IA d'image, avec ce prompt :</p>
-<pre>Character design sheet, in exactly the same art style as the reference image: hand-drawn children's book illustration, watercolor and colored pencil, soft graphite outlines, gentle paper texture, muted natural colors with one accent color, plain white background, soft grey ground shadow under the feet. Same proportions and level of detail as the penguin.
-
-CHARACTER: [voir ci-dessous]
-
-Show 8 poses in a 4 x 2 grid, full body, evenly spaced, no text, no logo:
-1. waving hello  2. sitting and reading a book  3. thinking, hand on chin
-4. cheering with both arms up  5. yawning sleepily  6. pointing to the side
-7. sitting patiently, waiting  8. waving goodbye while walking away, looking back</pre>
-<table>
-<tr><th>Exemples</th><th>Ligne CHARACTER (déjà faits, à titre de modèle)</th></tr>
-<tr><td>renard</td><td>a small arctic fox kit, fluffy cream-white fur, big bushy tail, curious amber eyes, a tiny mustard-yellow knitted beanie</td></tr>
-<tr><td>loutre</td><td>a young river otter, warm brown fur with a lighter face, round little glasses, a small coral-red bandana around the neck</td></tr>
-<tr><td>hibou</td><td>a small tawny owlet, speckled brown and cream feathers, large wise eyes, a tiny orange leather satchel across the body</td></tr>
-<tr><td>phoque</td><td>a harbor seal pup, soft grey fur with darker spots, big dark eyes, a small navy-blue knitted beanie</td></tr>
-<tr><td>axolotl</td><td>a pale pink axolotl standing upright, feathery magenta gills, gentle smile, a tiny yellow raincoat</td></tr>
-<tr><td>dragon</td><td>a small sage-green dragon, soft round belly, tiny folded wings, little blunt horns, a plum-purple knitted scarf</td></tr>
-</table>
-<p><b>Installer un compagnon :</b> découpez chaque pose en image carrée (fond blanc, 300 à 600 pixels), nommez-les <code>salut</code>, <code>lire</code>, <code>reflechir</code>, <code>bravo</code>, <code>baille</code>, <code>montre</code>, <code>attend</code>, <code>aurevoir</code> (en .jpg ou .png), et déposez-les dans <code>C:\Program Files\Flocon\resources\app\ui\img\compagnons\&lt;dossier&gt;\</code>, par exemple <code>…\compagnons\renard\salut.jpg</code>. Il apparaît alors dans l'atelier et dans <i>Mon style</i>. Le mieux : qu'elle choisisse entre deux propositions, ou qu'elle dessine le sien avant que l'IA le mette au propre.</p>
+<h2>Où sont ses créations</h2>
+<p>Dans sa session : <code>Documents\Mes créations</code> (galerie : dessins, films, PDF des livrets), <code>Documents\Mes animations</code> (films en cours), <code>Documents\Mes histoires</code>, <code>Documents\Mes BD</code>, <code>Documents\Mes créations 3D</code>, <code>Documents\Mes textes</code>, <code>Documents\Mes exposés</code>, <code>Images\Mes photos</code> (photos importées, y compris d'un appareil photo pour enfant type KidiZoom). Pensez à les sauvegarder.</p>
 
 <h2>À savoir</h2>
 <div class="encart">
-<p><b>Première connexion.</b> Les verrous de sa session (Gestionnaire des tâches, navigateurs) sont posés par le gardien dès sa première connexion, mais Windows ne les applique pleinement qu'<b>à partir de la deuxième</b>. Faites l'atelier avec elle, c'est prévu pour.</p>
+<p><b>Après chaque changement de niveau ou de verrou</b>, les règles Windows s'appliquent à la connexion suivante : fermez et rouvrez sa session.</p>
 <p><b>Solidité.</b> Le verrouillage tient pour un enfant de cet âge. Il ne résiste pas à quelqu'un qui démarre l'ordinateur sur une clé USB ou qui connaît votre mot de passe administrateur.</p>
-<p><b>Les sites.</b> Un site peut changer d'adresse ou rediriger ailleurs : si une tuile affiche « pas dans la liste autorisée », ajoutez le domaine dans l'espace parent.</p>
-<p><b>Le casque et l'appareil photo.</b> Flocon cherche un dossier <code>DCIM</code> (appareil photo) ou <code>MUSIC</code> (casque) sur les clés et appareils branchés. Si le casque n'apparaît pas comme une clé USB, il faudra le logiciel du fabricant.</p>
+<p><b>Les sites.</b> Un site peut changer d'adresse : si une tuile affiche « pas dans la liste autorisée », ajoutez le domaine dans l'espace parent.</p>
+<p><b>La 3D</b> a besoin d'une carte graphique avec un pilote à jour ; sinon, l'atelier 3D l'indique.</p>
 </div>
 
 <h3>En cas de souci</h3>
-<p>Journal du gardien : <code>C:\ProgramData\Flocon\gardien.log</code>. Journal de l'installation : <code>%TEMP%\flocon-installation.log</code>. Les deux tâches sont visibles dans le Planificateur de tâches, dossier <i>Flocon</i>. Pour tout retirer : <b>« Désinstaller Flocon.cmd »</b> (ses créations ne sont jamais supprimées).</p>
+<p>Journal du gardien : <code>C:\ProgramData\Flocon\gardien.log</code>. Journal de l'installation : <code>%TEMP%\flocon-installation.log</code>. Les tâches sont dans le Planificateur de tâches, dossier <i>Flocon</i>. Pour tout retirer : <b>« Désinstaller Flocon.cmd »</b> (ses créations restent dans ses dossiers).</p>
 </body>
 </html>
