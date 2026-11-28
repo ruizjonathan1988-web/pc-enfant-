@@ -305,7 +305,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await clic('[data-a="filmChoisir"][data-i="1"]'); await clic('[data-a="filmDupliquer"]');
     assert.strictEqual(await nbImages(), 5);
     await clic('[data-a="filmEffacer"]'); assert.strictEqual(await nbImages(), 4);
-    await clic('[data-a="filmChoisir"][data-i="1"]'); await clic('[data-a="filmAnnuler"]');
+    await clic('.actions-frise [data-a="filmChoisir"]'); await clic('[data-a="filmAnnuler"]');
     assert.strictEqual(await nbImages(), 3); await pause(800);
     assert.strictEqual(lire(path.join(dossierFilm(), 'film.json')).images.length, 3, 'frise enregistrée');
   });

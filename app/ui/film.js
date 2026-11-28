@@ -550,9 +550,11 @@ async function ouvrirFilm(id) {
   FILM.id = id; FILM.p = Object.assign(projetNeuf(p.titre), p); FILM.p.vert = Object.assign(projetNeuf().vert, p.vert || {});
   FILM.imgs = {}; FILM.sel = -1; FILM.fini = null; FILM.photos = null; FILM.cache = null; FILM.onglet = 'vert';
   S.vue = { ref: 'animation', id }; render();
-  F.animDecors().then((l) => { FILM.decors = Array.isArray(l) ? l : []; if (FILM.onglet === 'vert') majBas(); });
+  rafraichirDecors();
   await chargerToutes(); await chargerDecor(); majBas(true); majEcran();
 }
+// Les décors sont relus à chaque fois : elle peut en ajouter pendant que le studio est ouvert.
+async function rafraichirDecors() { const l = await F.animDecors(); const avant = JSON.stringify((FILM.decors || []).map((x) => x.chemin)); FILM.decors = Array.isArray(l) ? l : []; if (FILM.onglet === 'vert' && !FILM.photos && !FILM.export && !FILM.fini && avant !== JSON.stringify(FILM.decors.map((x) => x.chemin))) majBas(); }
 function choisirPhoto(chemin) { const i = FILM.choix.indexOf(chemin); if (i >= 0) FILM.choix.splice(i, 1); else FILM.choix.push(chemin); majBas(); }
 Object.assign(A, {
   filmNouveau: async () => {
@@ -583,8 +585,8 @@ Object.assign(A, {
   filmDupliquer: () => { const p = FILM.p, i = FILM.sel; if (i < 0) return; p.images.splice(i + 1, 0, p.images[i]); FILM.sel = i + 1; filmSauver(); majBas(true); majEcran(); },
   filmEffacer: () => { const p = FILM.p, i = FILM.sel; if (i < 0) return; const nom = p.images.splice(i, 1)[0]; if (!p.images.includes(nom)) F.animEffacer(FILM.id, nom); FILM.sel = Math.min(i, p.images.length - 1); if (!p.images.length) FILM.sel = -1; filmSauver(); majBas(true); majEcran(); },
   filmAnnuler: () => { const p = FILM.p; const nom = p.images.pop(); if (nom && !p.images.includes(nom)) F.animEffacer(FILM.id, nom); filmSauver(); majBas(true); majEcran(); },
-  filmOnglet: (d) => { FILM.onglet = d.o; FILM.pipette = false; majBas(); majEcran(); },
-  filmVert: () => { FILM.p.vert.actif = !FILM.p.vert.actif; FILM.cache = null; filmSauver(); if (FILM.p.vert.actif) toast('Fond vert activé ! Choisis ton décor en dessous.'); majBas(); majEcran(); },
+  filmOnglet: (d) => { FILM.onglet = d.o; FILM.pipette = false; majBas(); majEcran(); if (d.o === 'vert') rafraichirDecors(); },
+  filmVert: () => { rafraichirDecors(); FILM.p.vert.actif = !FILM.p.vert.actif; FILM.cache = null; filmSauver(); if (FILM.p.vert.actif) toast('Fond vert activé ! Choisis ton décor en dessous.'); majBas(); majEcran(); },
   filmPipette: () => { FILM.pipette = !FILM.pipette; if (FILM.pipette) toast('Touche le fond vert sur l’image de la caméra.'); majBas(); majEcran(); },
   filmDecor: async (d) => { FILM.p.vert.decor = d.t === 'dessine' ? { type: 'dessine', ref: d.r } : { type: 'fichier', chemin: d.r }; FILM.p.vert.actif = true; FILM.cache = null; await chargerDecor(); filmSauver(); majBas(); majEcran(); },
   filmFiltre: (d) => { FILM.p.filtre = d.f; FILM.cache = null; filmSauver(); majBas(); majEcran(); },
