@@ -484,11 +484,12 @@ poser('animEcrire', (id, nom, donnees) => {
 });
 poser('animEffacer', (id, nom) => { if (!NOM_ANIM.test(String(nom))) return false; try { fs.unlinkSync(path.join(dossierAnim(id), nom)); } catch (e) { /* déjà parti */ } return true; });
 poser('animSupprimer', (id) => { fs.rmSync(dossierAnim(id), { recursive: true, force: true }); return true; });
-poser('animExporter', (titre, donnees) => {
+poser('animExporter', (titre, donnees, ext) => {
+  const e = ext === 'mp4' ? 'mp4' : 'webm'; // seulement ces deux formats de vidéo
   const dossier = dossiers().creations; fs.mkdirSync(dossier, { recursive: true });
   const base = (String(titre || 'Mon film').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim().slice(0, 60)) || 'Mon film';
-  let cible = path.join(dossier, base + '.webm');
-  for (let i = 2; fs.existsSync(cible); i++) cible = path.join(dossier, `${base} (${i}).webm`);
+  let cible = path.join(dossier, base + '.' + e);
+  for (let i = 2; fs.existsSync(cible); i++) cible = path.join(dossier, `${base} (${i}).${e}`);
   fs.writeFileSync(cible, Buffer.from(donnees)); return { ok: true, nom: path.basename(cible), url: versUrl(cible) };
 });
 // Mes mains : la photo d'une création faite loin de l'écran rejoint « Mes créations ».
