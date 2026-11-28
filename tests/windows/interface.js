@@ -553,8 +553,9 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await rubrique('Je crée'); await tuile('Mon film');
     await page.fill('[data-in="filmTitre"]', 'Le bonhomme'); await clic('[data-a="filmNouveau"]');
     await clic('[data-a="filmDessiner"]');
-    for (let i = 0; i < 2; i++) { const b = await page.locator('#fd-trait').boundingBox(); await page.mouse.move(b.x + 100 + i * 30, b.y + 120); await page.mouse.down(); await page.mouse.move(b.x + 200 + i * 30, b.y + 220, { steps: 6 }); await page.mouse.up(); await clic('#film-dessin [data-d="ajouter"]'); await pause(600); }
+    for (let i = 0; i < 2; i++) { const b = await page.locator('#fd-trait').boundingBox(); await page.mouse.move(b.x + 100 + i * 30, b.y + 120); await page.mouse.down(); await page.mouse.move(b.x + 200 + i * 30, b.y + 220, { steps: 6 }); await page.mouse.up(); await clic('#film-dessin [data-d="ajouter"]'); if (i === 0) await page.waitForFunction(() => FILM.p.images.length === 1, null, { timeout: 10000 }); } // la 2e : Fermer tout de suite, comme une enfant pressée
     await clic('#film-dessin [data-d="fermer"]');
+    await page.waitForSelector('#film-dessin', { state: 'detached', timeout: 10000 });
     assert.strictEqual(await page.evaluate(() => FILM.p.images.length), 2, 'deux images dessinées dans la frise');
     await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
   });

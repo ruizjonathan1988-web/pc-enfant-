@@ -450,8 +450,12 @@ async function actionDessin(d, v, el) {
   else if (d === 'annuler') { const im = DES.pile.pop(); if (im) x.putImageData(im, 0, 0); }
   else if (d === 'vider') { DES.pile.push(x.getImageData(0, 0, FW, FH)); x.clearRect(0, 0, FW, FH); }
   else if (d === 'copier') { if (DES.dernierTrait) { DES.pile.push(x.getImageData(0, 0, FW, FH)); x.putImageData(DES.dernierTrait, 0, 0); } else toast('Il n’y a pas encore de dessin d’avant.'); }
-  else if (d === 'fermer') fermerDessin();
+  // « Fermer » juste après « Ajouter » attend que l'image soit vraiment rangée dans la frise (sinon elle arrivait après coup).
+  else if (d === 'fermer') { if (DES.enCours) await DES.enCours; fermerDessin(); }
   else if (d === 'ajouter') {
+    if (DES.enCours) return; // un double clic n'ajoute pas deux fois la même image
+    let fini; DES.enCours = new Promise((r) => { fini = r; });
+    try {
     const c = document.createElement('canvas'); c.width = FW; c.height = FH; const cx = c.getContext('2d');
     cx.fillStyle = '#fff'; cx.fillRect(0, 0, FW, FH); const b = derniereImage(); if (DES.fond === 'photo' && b) couvrir(cx, b, b.width, b.height, FW, FH);
     cx.drawImage(t, 0, 0);
@@ -459,7 +463,8 @@ async function actionDessin(d, v, el) {
     const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.92));
     await ajouterImage(new Uint8Array(await blob.arrayBuffer()));
     // image suivante : on repart d'une feuille vide, avec ce dessin en fantôme
-    x.clearRect(0, 0, FW, FH); DES.pile = []; preparerFondDessin(); toast('Image ajoutée ! Dessine la suivante en décalant un peu.');
+    x.clearRect(0, 0, FW, FH); DES.pile = []; if (document.getElementById('film-dessin')) preparerFondDessin(); toast('Image ajoutée ! Dessine la suivante en décalant un peu.');
+    } finally { DES.enCours = null; fini(); }
   }
 }
 
@@ -558,10 +563,13 @@ function vueAnimation() {
         <button class="declencheur" data-a="filmClic" aria-label="Prendre la photo"><span></span></button>
         <div class="muet centre" id="anim-compteur"></div>
         <button class="btn lecture-btn" data-a="filmLecture" id="anim-lire">▶ Lecture</button>
+        <button class="btn doux petit plus-reglages ${FILM.reglages ? 'on' : ''}" data-a="filmReglages" aria-expanded="${FILM.reglages ? 'true' : 'false'}">⚙️ Réglages ${FILM.reglages ? '▴' : '▾'}</button>
+        <div class="reglages-film" ${FILM.reglages ? '' : 'hidden'}>
         <div class="reglage"><b>Retardateur</b><span class="rang">${[0, 3, 5].map((r) => `<button class="puce ${(p.retard || 0) === r ? 'on' : ''}" data-a="filmRetard" data-r="${r}">${r ? r + ' s' : 'Non'}</button>`).join('')}</span></div>
-        <div class="reglage"><b>Photo automatique</b><span class="rang" id="anim-auto">${autoHtml()}</span></div>
-        <div class="reglage"><b>Image fantôme</b><input type="range" min="0" max="80" step="5" value="${Math.round((p.oignon === undefined ? 0.35 : p.oignon) * 100)}" data-in="filmOignon"></div>
-        <div class="rang"><button class="puce ${p.grille ? 'on' : ''}" data-a="filmGrille">Grille</button><button class="puce" data-a="filmCamera" id="anim-cam">Autre caméra</button></div>
+          <div class="reglage"><b>Photo automatique</b><span class="rang" id="anim-auto">${autoHtml()}</span></div>
+          <div class="reglage"><b>Image fantôme</b><input type="range" min="0" max="80" step="5" value="${Math.round((p.oignon === undefined ? 0.35 : p.oignon) * 100)}" data-in="filmOignon"></div>
+          <div class="rang"><button class="puce ${p.grille ? 'on' : ''}" data-a="filmGrille">Grille</button><button class="puce" data-a="filmCamera" id="anim-cam">Autre caméra</button></div>
+        </div>
         <button class="btn doux" data-a="filmPhotos">📷 Ajouter mes photos</button>
         <button class="btn doux" data-a="filmDessiner">✏️ Dessiner une image</button>
       </div>
@@ -709,6 +717,8 @@ Object.assign(A, {
   filmVitesse: (d) => { FILM.p.fps = Number(d.fps); filmSauver(); document.querySelectorAll('.puces-vitesse .puce').forEach((b) => b.classList.toggle('on', b.dataset.fps === d.fps)); majBas(); },
   filmRetard: (d) => { FILM.p.retard = Number(d.r); filmSauver(); document.querySelectorAll('[data-a="filmRetard"]').forEach((b) => b.classList.toggle('on', b.dataset.r === d.r)); },
   filmAuto: (d) => lancerAuto(Number(d.s)),
+  // Retardateur, photo automatique, image fantôme, grille et caméra : repliés au départ, pour ne pas tout montrer d'un coup.
+  filmReglages: () => { FILM.reglages = !FILM.reglages; render(); },
   filmGrille: () => { FILM.p.grille = !FILM.p.grille; filmSauver(); document.querySelector('[data-a="filmGrille"]').classList.toggle('on', FILM.p.grille); majEcran(); },
   filmCamera: () => { FILM.camera++; couperCamera(); demarrerCamera(); },
   filmPhotos: () => ouvrirPhotos(),

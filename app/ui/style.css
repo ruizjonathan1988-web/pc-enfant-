@@ -500,3 +500,17 @@ button.on .case{border-color:#2FA36B;background:#fff}
 /* Débutante : ce qui se clique se voit */
 button:focus-visible,[data-a]:focus-visible{outline:3px solid #FFD54F;outline-offset:2px}
 .tuile:active,.btn:active,.puce:active{transform:scale(.97)}
+
+.reglages-film{display:flex;flex-direction:column;gap:10px}
+.reglages-film[hidden]{display:none}
+/* Petits écrans (portable avec mise à l'échelle, environ 1280×670) : l'écran du studio rétrécit pour que la frise reste visible. */
+@media (max-height:780px){
+  .ecran-film{width:min(100%,calc((100vh - 420px) * 4 / 3));min-width:260px}
+  .frise-film{min-height:78px;padding-bottom:6px}.frise-film .vignette{width:88px}
+  .commandes-film .btn{height:38px;font-size:14px}
+  .commandes-film .lecture-btn{height:42px}
+  .studio-haut{gap:10px}
+  .commandes-film{gap:8px}
+  .declencheur{width:78px;height:78px}.declencheur span{width:54px;height:54px}
+  .studio .entete{margin-bottom:0}
+}
