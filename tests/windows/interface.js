@@ -586,6 +586,32 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await clic('[data-a="filmContinuer"]'); await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
   });
   // ---------- Apprendre à se servir de l'ordinateur ----------
+  await etape('Retours de Papa : photo automatique qu’on arrête, idée qui ouvre ses outils, planches vides préparées page par page', async () => {
+    await rubrique('Je crée'); await tuile('Mon film');
+    await page.fill('[data-in="filmTitre"]', 'Le chrono'); await clic('[data-a="filmNouveau"]');
+    await page.waitForFunction(() => FILM.flux && document.getElementById('anim-video').readyState >= 2, null, { timeout: 15000 });
+    await page.evaluate(() => A.filmAuto({ s: '2' }));
+    await page.waitForSelector('#anim-auto-bandeau:not([hidden])');
+    assert.strictEqual(await page.evaluate(() => FILM.p.images.length), 0, 'pas de photo avant le compte à rebours');
+    await clic('#anim-auto-bandeau [data-a="filmAuto"]');
+    assert.ok(await page.evaluate(() => FILM.auto === null), 'photo automatique arrêtée par le bandeau');
+    await page.evaluate(() => A.filmAuto({ s: '2' })); await clic('.declencheur');
+    assert.ok(await page.evaluate(() => FILM.auto === null), 'le bouton rouge arrête aussi la photo automatique');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+    await page.evaluate(async () => { await ouvrirVue('idee'); S.idee = 'Un film de 10 secondes avec un objet de la cuisine.'; render(); });
+    await clic('[data-a="prendreIdee"]'); await page.waitForSelector('.idee-outils [data-a="ideeOutil"]');
+    await clic('.idee-outils [data-a="ideeOutil"] >> nth=0');
+    await page.waitForFunction(() => S.vue && S.vue.ref === 'animation', null, { timeout: 5000 });
+    await clic('[data-a="fermerVue"]');
+    await rubrique('J’écris'); await tuile('Ma BD');
+    await clic('[data-a="bdVidesDirect"]'); await page.waitForSelector('#atelier-vides');
+    await clic('[data-a="bdVideG"][data-g="g4"]'); await clic('[data-a="bdVpAjout"]'); await clic('[data-a="bdVideG"][data-g="g3"]'); await clic('[data-a="bdVideBulles"]');
+    assert.deepStrictEqual(await page.evaluate(() => S.vue.vp.map((x) => x.g + (x.bulles ? '+b' : ''))), ['g4', 'g3+b'], 'deux pages préparées différemment');
+    assert.strictEqual(await page.locator('.vides-apercu .vignette-bd').count(), 3, 'aperçu de la page 2 (3 bandes)');
+    await clic('[data-a="bdImprimerVides"]'); await pause(3000);
+    assert.ok(creationsAvec(/^Planches de BD vides( \(\d+\))?\.pdf$/).length, 'planches vides en PDF');
+    await clic('[data-a="fermerVue"]');
+  });
   await etape('L’école de l’ordinateur : clic, double-clic, glisser, clic droit, accents, Ctrl+Z', async () => {
     await rubrique('Mes outils'); assert.strictEqual(await page.locator('[data-a="tuile"]', { hasText: 'L’école de l’ordi' }).count(), 1, 'tuile de l’école');
     await page.evaluate(() => ouvrirVue('ecole'));

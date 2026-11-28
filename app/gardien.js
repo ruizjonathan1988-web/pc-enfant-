@@ -78,9 +78,9 @@ function listeInterdits(config) {
 // ou l'Explorateur, que Flocon et les logiciels de son catalogue (Word, jeux téléchargés, .exe double-cliqués : refusés).
 // Les logiciels que Flocon lance lui-même ne passent pas par là.
 const PERMIS_EN_PLUS = ['Flocon.exe', 'soffice.exe', 'soffice.bin', 'Minecraft.Windows.exe', 'CalculatorApp.exe', 'WindowsCamera.exe', 'SoundRec.exe', 'VoiceRecorder.exe', 'gcompris-qt.exe', 'GCompris.exe', 'RapidTyping.exe', 'steam.exe'];
-function listeAutorises() {
-  // Edge n'y est pas : il reste interdit avant le niveau 3.
-  const l = Object.values(CAT.LOGICIELS).flatMap((x) => (x.chemins || []).map((c) => c.split('\\').pop())).concat(PERMIS_EN_PLUS).filter((x) => x.toLowerCase() !== 'msedge.exe');
+function listeAutorises(niveau) {
+  // Edge n'y est qu'à partir du niveau 3.
+  const l = Object.values(CAT.LOGICIELS).flatMap((x) => (x.chemins || []).map((c) => c.split('\\').pop())).concat(PERMIS_EN_PLUS).filter((x) => x.toLowerCase() !== 'msedge.exe').concat(niveau >= 3 ? ['msedge.exe'] : []);
   return Array.from(new Set(l.map((x) => x.toLowerCase()))).map((x) => l.find((y) => y.toLowerCase() === x));
 }
 
@@ -109,12 +109,16 @@ function verrous(sid, config) {
     if (niveau <= 2) reg(['add', cle, '/v', nom, '/t', 'REG_DWORD', '/d', '1', '/f']);
     else reg(['delete', cle, '/v', nom, '/f']);
   }
+  // Liste blanche jusqu'au niveau 3 compris : avec Edge ouvert, on ne lance pas pour autant un programme
+  // trouvé en fouillant le disque C:. Le disque C: est caché dans « Ce PC », et Win+R désactivé.
   const cleRR = explorer + '\\RestrictRun';
   reg(['delete', cleRR, '/f']);
-  if (niveau <= 2) {
+  if (niveau <= 3) {
     reg(['add', explorer, '/v', 'RestrictRun', '/t', 'REG_DWORD', '/d', '1', '/f']);
-    listeAutorises().forEach((exe, i) => reg(['add', cleRR, '/v', String(i + 1), '/t', 'REG_SZ', '/d', exe, '/f']));
-  } else reg(['delete', explorer, '/v', 'RestrictRun', '/f']);
+    listeAutorises(niveau).forEach((exe, i) => reg(['add', cleRR, '/v', String(i + 1), '/t', 'REG_SZ', '/d', exe, '/f']));
+    reg(['add', explorer, '/v', 'NoDrives', '/t', 'REG_DWORD', '/d', '4', '/f']);
+    reg(['add', explorer, '/v', 'NoRun', '/t', 'REG_DWORD', '/d', '1', '/f']);
+  } else ['RestrictRun', 'NoDrives', 'NoRun'].forEach((v) => reg(['delete', explorer, '/v', v, '/f']));
   const cleDR = base + '\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\DisallowRun';
   reg(['delete', cleDR, '/f']);
   interdits.forEach((exe, i) => reg(['add', cleDR, '/v', String(i + 1), '/t', 'REG_SZ', '/d', exe, '/f']));

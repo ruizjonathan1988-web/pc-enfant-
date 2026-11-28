@@ -162,7 +162,11 @@ function permisCamera(url) {
   return Object.values(CAT.SITES).some((s) => s.camera && s.domaines.some((d) => h === d || h.endsWith('.' + d)));
 }
 app.whenReady().then(() => {
+  veillerApplisStore();
   const ses = require('electron').session.fromPartition('persist:sites');
+  // Certains sites (Wikimini…) renvoient une page blanche à un navigateur qui se dit « Electron » : on se présente
+  // comme un Chrome ordinaire.
+  ses.setUserAgent(`Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36`);
   ses.setPermissionRequestHandler((wc, perm, cb, details) => {
     const url = (details && (details.requestingUrl || details.securityOrigin)) || wc.getURL();
     const media = perm === 'media' && (!details || !details.mediaTypes || details.mediaTypes.every((t) => t === 'video'));
@@ -184,6 +188,31 @@ app.on('web-contents-created', (_e, wc) => {
     if (!CAT.urlAutorisee(params.src, domaines())) e.preventDefault();
   });
 });
+
+// ---------- Applications du Microsoft Store ----------
+// Windows Famille ne sait pas interdire le Store à un seul compte, et les applications qui en viennent (WhatsApp…)
+// échappent à la liste blanche. Flocon tourne dans sa session : toutes les 3 secondes, il ferme les applications
+// du Store qui ont une fenêtre et ne sont pas prévues (le Store lui-même compris). Rien à faire au niveau 4.
+const APPLIS_STORE_PERMISES = /^(Minecraft\.Windows|CalculatorApp|WindowsCamera|SoundRec|VoiceRecorder|Incredibox.*|Flocon)$/i;
+let veilleur = null;
+function veillerApplisStore() {
+  if (process.platform !== 'win32' || veilleur || C.DEV) return;
+  const cmd = "while ($true) { Get-Process | Where-Object { $_.MainWindowHandle -ne 0 -and $_.Path -like '*\\WindowsApps\\*' } | ForEach-Object { '' + $_.Id + '|' + $_.ProcessName + '|' + $_.MainWindowTitle }; '--'; Start-Sleep -Seconds 3 }";
+  veilleur = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
+  let reste = ''; const dejaDit = new Set();
+  veilleur.stdout.on('data', (b) => {
+    reste += b.toString(); const lignes = reste.split(/\r?\n/); reste = lignes.pop();
+    if ((config().niveau || 1) >= 4) return;
+    for (const l of lignes) {
+      const [pid, nom, titre] = l.split('|'); if (!pid || !nom || l === '--' || APPLIS_STORE_PERMISES.test(nom)) continue;
+      try { process.kill(Number(pid)); } catch (e) { continue; }
+      const lisible = /WinStore/i.test(nom) ? 'Le Microsoft Store' : (titre || nom);
+      if (!dejaDit.has(nom)) { dejaDit.add(nom); setTimeout(() => dejaDit.delete(nom), 60000); if (fen) fen.webContents.send('appli-fermee', { nom: lisible }); }
+    }
+  });
+  veilleur.on('exit', () => { veilleur = null; setTimeout(veillerApplisStore, 10000); });
+}
+app.on('will-quit', () => { if (veilleur) { veilleur.removeAllListeners('exit'); try { veilleur.kill(); } catch (e) { /* rien */ } } });
 
 // ---------- Lancement des logiciels ----------
 function developper(p) { return p.replace(/%([^%]+)%/g, (_, v) => process.env[v] || process.env[v.toUpperCase()] || ''); }
@@ -371,6 +400,8 @@ poser('init', () => {
   return {
     dev: C.DEV, plateforme: process.platform,
     test: process.env.FLOCON_CAMERA_FACTICE === '1',
+    // Logiciels à installer à la main (GCompris) pas encore là : leur tuile est cachée plutôt que de dire « pas installé ».
+    absents: process.platform === 'win32' ? Object.entries(CAT.LOGICIELS).filter(([, l]) => l.manuel && !(l.chemins || []).map(developper).some((c) => fs.existsSync(c))).map(([k]) => k) : [],
     catalogue: { PERMIS: CAT.PERMIS, PREMIERS_PAS: CAT.PREMIERS_PAS, IDEES: CAT.IDEES, PROJETS: CAT.PROJETS, RUBRIQUES: CAT.RUBRIQUES, SITES: CAT.SITES, EXPOSE_ETAPES: CAT.EXPOSE_ETAPES, INTENTIONS: CAT.INTENTIONS, ICONES: CAT.ICONES, ...require('./lib/fiches'), DEFIS: require('./lib/defis').DEFIS, PLACARD: require('./lib/defis').PLACARD, CATEGORIES_DEFIS: require('./lib/defis').CATEGORIES, METHODE: require('./lib/defis').METHODE, METHODE_ARTISTE: require('./lib/defis').METHODE_ARTISTE, COUPS_DE_POUCE: require('./lib/defis').COUPS_DE_POUCE },
     config: configPublique(), etat: lireJson(fichiers().etat, null), profil: lireJson(FICHIER_PROFIL, null), compagnons
   };
@@ -424,6 +455,23 @@ poser('imprimer', (chemin) => {
   const c = path.resolve(String(chemin || ''));
   if (!permis.some((d) => c.startsWith(d + path.sep)) || !fs.existsSync(c)) return { ok: false };
   if (process.platform !== 'win32') return { ok: true, simule: true };
+  // Images et PDF : imprimés par Flocon lui-même (le lecteur par défaut, souvent Edge, est interdit aux premiers niveaux).
+  if (/\.(png|jpe?g|gif|webp)$/i.test(c)) {
+    const tmp = path.join(os.tmpdir(), 'flocon-image-' + Date.now() + '.html');
+    const url = require('url').pathToFileURL(c).href;
+    fs.writeFileSync(tmp, `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page{size:A4;margin:10mm}html,body{margin:0;height:100%}img{display:block;max-width:100%;max-height:277mm;margin:auto;object-fit:contain}</style></head><body><img src="${url}"></body></html>`, 'utf8');
+    const w = new BrowserWindow({ show: false, webPreferences: { javascript: false, sandbox: true, partition: 'flocon-pdf' } });
+    w.loadFile(tmp).then(() => w.webContents.print({ silent: false, printBackground: true }, () => { w.destroy(); try { fs.unlinkSync(tmp); } catch (e) { /* rien */ } }));
+    return { ok: true, dialogue: true };
+  }
+  if (/\.pdf$/i.test(c)) {
+    // Une fenêtre Flocon montre le PDF ; son bouton imprimante (en haut à droite) ouvre l'impression.
+    const w = new BrowserWindow({ width: 900, height: 1000, parent: fen || undefined, autoHideMenuBar: true, title: path.basename(c), webPreferences: { plugins: true, javascript: true, sandbox: true, partition: 'flocon-pdf-vue' } });
+    w.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    w.webContents.on('will-navigate', (e, u) => { if (!u.startsWith('file:')) e.preventDefault(); });
+    w.loadURL(require('url').pathToFileURL(c).href);
+    return { ok: true, apercu: true };
+  }
   spawn('powershell.exe', ['-NoProfile', '-Command', 'Start-Process -FilePath $args[0] -Verb Print', c], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
   return { ok: true };
 });
@@ -436,6 +484,18 @@ poser('reduire', () => { if (fen && !pleinEcran) fen.minimize(); return true; })
 poser('lancer', async (t) => {
   if (t.type === 'logiciel') return lancerLogiciel(t.ref);
   if (t.type === 'jeu') { await shell.openExternal('steam://rungameid/' + encodeURIComponent(t.ref)); return { ok: true }; }
+  return { ok: false };
+});
+// Un site qui existe aussi en application (Incredibox) : si l'application est installée (Steam ou Microsoft Store,
+// achetée par le parent), on l'ouvre ; sinon la tuile ouvre le site.
+poser('appliSite', async (ref) => {
+  const a = (CAT.SITES[ref] || {}).appli; if (!a || process.platform !== 'win32') return { ok: false };
+  if (a.steam && jeuxSteam().some((j) => j.id === a.steam)) { await shell.openExternal('steam://rungameid/' + a.steam); return { ok: true }; }
+  if (a.store && /^[\w.-]+$/.test(a.store)) {
+    const cmd = `$p = Get-AppxPackage -Name '*${a.store}*' | Select-Object -First 1; if ($p) { $id = (Get-AppxPackageManifest $p).Package.Applications.Application | Select-Object -First 1 -ExpandProperty Id; Start-Process ('shell:AppsFolder\\' + $p.PackageFamilyName + '!' + $id); 'ok' }`;
+    const sortie = await new Promise((ok) => { execFile('powershell.exe', ['-NoProfile', '-Command', cmd], { windowsHide: true, timeout: 20000 }, (e, so) => ok(String(so || ''))); });
+    if (/ok/.test(sortie)) return { ok: true };
+  }
   return { ok: false };
 });
 poser('urlAutorisee', (u) => CAT.urlAutorisee(u, domaines()));
@@ -515,6 +575,7 @@ poser('fairePdf', async (titre, html, options) => {
   const tmp = path.join(os.tmpdir(), 'flocon-pdf-' + process.pid + '-' + Date.now() + '.html');
   fs.writeFileSync(tmp, String(html || ''), 'utf8');
   const w = new BrowserWindow({ show: false, webPreferences: { javascript: false, sandbox: true, partition: 'flocon-pdf' } });
+  let garder = false;
   try {
     w.webContents.session.webRequest.onBeforeRequest((d, cb) => cb({ cancel: !/^(file|data):/.test(d.url) }));
     await w.loadFile(tmp);
@@ -522,9 +583,15 @@ poser('fairePdf', async (titre, html, options) => {
     const dossier = dossiers().creations; fs.mkdirSync(dossier, { recursive: true });
     const base = (String(titre || 'Mon livret').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim().slice(0, 60)) || 'Mon livret';
     const cible = path.join(dossier, base + '.pdf'); fs.writeFileSync(cible, pdf);
-    if (o.imprimer && process.platform === 'win32') spawn('powershell.exe', ['-NoProfile', '-Command', 'Start-Process -FilePath $args[0] -Verb Print', cible], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
-    return { ok: true, nom: path.basename(cible), chemin: cible };
-  } finally { w.destroy(); try { fs.unlinkSync(tmp); } catch (e) { /* rien */ } }
+    // Imprimer : la fenêtre d'impression de Windows s'ouvre ici même. (Avant, le PDF partait vers le lecteur PDF
+    // par défaut, souvent Edge, interdit aux niveaux 1 et 2 : rien ne s'ouvrait.)
+    if (o.imprimer && !process.env.FLOCON_CAMERA_FACTICE) {
+      garder = true;
+      const fin = () => { try { w.destroy(); } catch (e) { /* rien */ } try { fs.unlinkSync(tmp); } catch (e) { /* rien */ } };
+      setTimeout(() => w.webContents.print({ silent: false, printBackground: true, landscape: !!o.paysage, pageSize: o.format === 'A5' ? 'A5' : 'A4', margins: { marginType: 'none' } }, (ok, raison) => { if (!ok && raison && raison !== 'Print job canceled') console.error('impression : ' + raison); fin(); }), 50);
+    }
+    return { ok: true, nom: path.basename(cible), chemin: cible, imprime: !!o.imprimer };
+  } finally { if (!garder) { w.destroy(); try { fs.unlinkSync(tmp); } catch (e) { /* rien */ } } }
 });
 poser('jeuxSteam', () => jeuxSteam());
 poser('lireDoc', (dossier, fichier) => { const { p } = sur(dossier, fichier); return lireJson(p, null); });

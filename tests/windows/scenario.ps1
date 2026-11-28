@@ -183,8 +183,10 @@ Etape 'Verrous réels dans le registre de Test (niveaux 1 et 3)' {
     foreach ($x in 'Flocon.exe', 'swriter.exe', 'tuxpaint.exe', 'Scratch 3.exe') { Vrai ($rr -contains $x) "$x absent de la liste blanche" }
     Vrai (-not ($rr -contains 'WINWORD.EXE')) 'Word dans la liste blanche'
     & $poser 3
-    foreach ($v in 'NoDesktop', 'NoControlPanel', 'NoStartMenuMorePrograms', 'TaskbarNoPinnedList', 'RestrictRun') { Vrai ($null -eq (Get-ItemProperty "$pol\Explorer").$v) "$v resté au niveau 3" }
-    Vrai (-not (Test-Path "$pol\Explorer\RestrictRun")) 'liste blanche restée au niveau 3'
+    foreach ($v in 'NoDesktop', 'NoControlPanel', 'NoStartMenuMorePrograms', 'TaskbarNoPinnedList') { Vrai ($null -eq (Get-ItemProperty "$pol\Explorer").$v) "$v resté au niveau 3" }
+    Vrai ((Get-ItemProperty "$pol\Explorer").RestrictRun -eq 1) 'liste blanche levée au niveau 3'
+    Vrai ((& $liste "$pol\Explorer\RestrictRun") -contains 'msedge.exe') 'Edge absent de la liste blanche au niveau 3'
+    Vrai ((Get-ItemProperty "$pol\Explorer").NoDrives -eq 4) 'disque C: visible au niveau 3'
     $dr = & $liste "$pol\Explorer\DisallowRun"
     Vrai (-not ($dr -contains 'msedge.exe')) 'Edge encore interdit au niveau 3'
     Vrai ($dr -contains 'chrome.exe') 'Chrome autorisé au niveau 3'

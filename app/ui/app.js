@@ -314,7 +314,7 @@ function tuilesRubrique(r) {
     const jeux = (S.config.jeux || []).map((j) => ({ type: 'jeu', ref: j.id, nom: j.nom, sous: 'Choisi avec un adulte', icone: D.catalogue.ICONES.manette, couleur: '#5B3FD6' }));
     return [{ type: 'logiciel', ref: 'minecraft', nom: 'Minecraft', sous: 'Édition Java, en solo', icone: D.catalogue.ICONES.cube, couleur: '#2FA36B' }].concat(jeux);
   }
-  return r.tuiles.filter((t) => !t.niveau || t.niveau <= niveau());
+  return r.tuiles.filter((t) => (!t.niveau || t.niveau <= niveau()) && !(t.type === 'logiciel' && (D.absents || []).includes(t.ref)));
 }
 
 function vueRubrique(r) {
@@ -538,7 +538,31 @@ function vueIdee() {
       <button class="btn" data-a="prendreIdee">Je prends celle-ci</button>
       ${reste > 0 ? `<button class="btn doux" data-a="autreIdee">Une autre (encore ${reste})</button>` : '<span class="muet">C’était la dernière pour aujourd’hui : souvent, la bonne idée est déjà là.</span>'}
     </div>
-    <p class="muet" style="text-align:center;margin:0">Tu peux aussi la transformer : une idée, c’est juste un point de départ.</p></div>`;
+    <p class="muet" style="text-align:center;margin:0">Tu peux aussi la transformer : une idée, c’est juste un point de départ.</p>
+    ${S.ideeOutils && S.ideeOutils.idee === S.idee ? `<div class="panneau idee-outils"><h3>Avec quoi tu commences ?</h3>
+      <div class="tuiles">${S.ideeOutils.l.map((t, k) => `<button class="tuile" data-a="ideeOutil" data-k="${k}"><span class="ic" style="background:${t.couleur}">${ic(t.icone)}</span><span><span class="n">${esc(t.nom)}</span><br><span class="s">${esc(t.sous || '')}</span></span></button>`).join('')}</div>
+      <p class="muet" style="margin:8px 0 0">Ou sur une feuille, avec tes crayons : l’écran peut attendre.</p></div>` : ''}</div>`;
+}
+// Les outils qui vont avec une idée (devinés d'après ses mots).
+const OUTILS_IDEES = [
+  [/film|journal t[ée]l[ée]vis/i, ['interne:animation']],
+  [/enregistre|interview|bruitage|à voix haute|journal t[ée]l/i, ['logiciel:magneto', 'logiciel:audacity']],
+  [/musique|chanson/i, ['site:songmaker', 'site:incredibox']],
+  [/\bBD\b|case/i, ['interne:bd']],
+  [/histoire|suite de ton livre|raconte/i, ['interne:histoires', 'interne:cahier']],
+  [/lettre|recette|écris|pays/i, ['interne:cahier', 'logiciel:writer']],
+  [/Scratch/i, ['logiciel:scratch']],
+  [/dessine|portrait|monstre|affiche|carte|drapeau|r[êe]ve/i, ['logiciel:tuxpaint', 'logiciel:mypaint']],
+  [/photographie|portrait/i, ['logiciel:camera']],
+  [/Lego|construis|machine|ville/i, ['interne:cubes', 'interne:mains']],
+  [/exposé|animal préféré/i, ['interne:exposes']],
+  [/quiz/i, ['interne:fiches']]
+];
+function outilsPourIdee(idee) {
+  const toutes = D.catalogue.RUBRIQUES.flatMap((r) => r.tuiles); const cles = [];
+  OUTILS_IDEES.forEach(([re, l]) => { if (re.test(idee)) l.forEach((k) => { if (!cles.includes(k)) cles.push(k); }); });
+  if (!cles.length) cles.push('logiciel:tuxpaint', 'interne:cahier');
+  return cles.map((k) => toutes.find((t) => t.type + ':' + t.ref === k)).filter(Boolean).slice(0, 4);
 }
 
 function vueGalerie() {
@@ -769,7 +793,11 @@ async function lancer(t, sansPas) {
   noterTuileVue(t);
   if (t.type === 'projet') { S.vue = { ref: 'projet', id: t.ref }; render(); return; }
   if (t.type === 'logiciel' && !sansPas && D.catalogue.PREMIERS_PAS[t.ref] && !((S.profil.vus || {})[t.ref])) { S.voile = { type: 'premiersPas', t }; render(); return; }
-  if (t.type === 'site') { noterBadge(t); return ouvrirSite(D.catalogue.SITES[t.ref].url, D.catalogue.SITES[t.ref].nom); }
+  if (t.type === 'site') {
+    noterBadge(t);
+    if (D.catalogue.SITES[t.ref].appli) { const r = await F.appliSite(t.ref); if (r && r.ok) { S.ouverture = { nom: t.nom, depuis: Date.now() }; render(); clearTimeout(S.minuteOuverture); S.minuteOuverture = setTimeout(finOuverture, 90000); return; } }
+    return ouvrirSite(D.catalogue.SITES[t.ref].url, D.catalogue.SITES[t.ref].nom);
+  }
   if (t.type === 'interne') return ouvrirVue(t.ref);
   if (S.ouverture) return; // un seul lancement à la fois : un double clic ouvrirait le logiciel deux fois
   const r = await F.lancer({ type: t.type, ref: t.ref });
@@ -815,6 +843,11 @@ async function ouvrirSite(url, nom, recherche) {
   $('#site-fermer').onclick = fermerSite;
   if (recherche) $('#site-cherche').onsubmit = (e) => { e.preventDefault(); const q = $('#site-q').value.trim(); if (q) w.loadURL(recherche + encodeURIComponent(q)); };
   w.addEventListener('did-navigate', (e) => { try { $('#site-adresse').textContent = nom + ' · ' + new URL(e.url).hostname; } catch (x) { /* rien */ } });
+  // Un site qui ne répond pas : un message clair plutôt qu'une page blanche.
+  w.addEventListener('did-fail-load', (e) => {
+    if (!e.isMainFrame || e.errorCode === -3) return; // -3 : navigation interrompue (une redirection), pas une panne
+    toast(nom + ' ne répond pas en ce moment (pas d’Internet, ou le site est en panne). Réessaie plus tard avec « Accueil ».', 8000);
+  });
 }
 
 function fermerSite() { const s = $('#site'); s.classList.remove('ouvert'); s.innerHTML = ''; }
@@ -914,7 +947,8 @@ const A = {
   pasOuvrir: async () => { const t = S.voile.t; S.profil.vus = Object.assign({}, S.profil.vus, { [t.ref]: true }); await sauverProfil(); S.voile = null; render(); lancer(t, true); },
   pasDebrouille: async () => { const t = S.voile.t; S.profil.vus = Object.assign({}, S.profil.vus, { [t.ref]: true }); await sauverProfil(); S.voile = null; render(); dire('D’accord ! Si tu bloques, clique sur moi.'); lancer(t, true); },
   autreIdee: () => { if (!S.seance) S.seance = { id: 'x', debut: Date.now(), prevu: 30 }; S.seance.tirages = (S.seance.tirages || 0) + 1; if (S.seance.tirages <= 3) S.idee = tirerIdee(); render(); },
-  prendreIdee: () => { S.vue = null; S.rubrique = 'creer'; dire('Bonne idée ! Choisis ton outil : « ' + S.idee + ' »'); render(); },
+  prendreIdee: () => { S.ideeOutils = { idee: S.idee, l: outilsPourIdee(S.idee || '') }; render(); const p = document.querySelector('.idee-outils'); if (p) p.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); },
+  ideeOutil: (d) => { const t = S.ideeOutils && S.ideeOutils.l[Number(d.k)]; if (t) { dire('Ton idée : « ' + S.idee + ' »'); lancer(t); } },
   premiere: async () => { if (!(S.docs.creations || []).length) return; S.premiere = { i: 0 }; await F.mode(true); dessinerPremiere(); },
   premiereSuiv: () => { if (!S.premiere) return; const n = S.docs.creations.length; if (S.premiere.i < n - 1) { S.premiere.i++; dessinerPremiere(); } else A.premiereFin(); },
   premierePrec: () => { if (!S.premiere) return; S.premiere.i = Math.max(0, S.premiere.i - 1); dessinerPremiere(); },
@@ -1140,6 +1174,7 @@ async function demarrer() {
   if (!S.profil.atelierFait) F.demande({ atelier: true });
   F.surFenetreQuittee(() => { if (S.ouverture && Date.now() - S.ouverture.depuis > 800) finOuverture(); });
   F.surSiteRefuse(() => toast('Cette page n’est pas dans la liste autorisée : elle ne s’ouvre pas.', 5000));
+  if (F.surAppliFermee) F.surAppliFermee((r) => { dire(`${r.nom} n’est pas prévu sur ton ordinateur, alors je l’ai fermé. Si tu en as besoin, demande à un adulte.`); $('#mascotte').innerHTML = vueMascotte(); });
   F.surLogicielEchec((r) => { finOuverture(); dire(`${r.nom} n’a pas réussi à s’ouvrir. Ce n’est pas ta faute : demande à un adulte de regarder (il trouvera des indices dans le journal de Flocon).`); });
   F.surTelechargement((r) => toast(r.ok ? `C’est enregistré : « ${r.nom} » est rangé dans Mes créations.` : `« ${r.nom} » ne peut pas être enregistré ici : seules tes créations (images, sons, musiques, projets) le peuvent.`, 7000));
   const reprise = seanceAReprendre();

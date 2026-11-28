@@ -81,20 +81,47 @@ function vueBD() {
   const v = S.vue;
   if (v.fichier && album()) return v.planche !== undefined && planche() ? vuePlancheBD(album(), planche()) : vueAlbumBD(album());
   const l = (S.docs.bd || []).slice().sort((a, b) => String(b.modifie || '').localeCompare(String(a.modifie || '')));
+  if (v.vides) return `<div class="section bd">${entete('Ma BD')}${vuePlanchesVides()}</div>`;
   return `<div class="section bd">${entete('Ma BD')}
     <div class="panneau affiche-bd"><div class="grow"><h3>Une BD, au crayon d’abord</h3><p class="muet" style="margin:4px 0 10px">Imprime des planches vides, dessine sur papier, puis photographie tes planches pour faire ton album. Tu peux aussi composer à l’écran avec tes photos et tes dessins.</p>
       <div class="rang"><input class="champ" data-in="bdNouveau" maxlength="60" placeholder="Le titre de ta BD" value="${esc(v.titre || '')}"><button class="btn" style="background:#E0457B" data-a="bdCreer">Nouvel album</button><button class="btn doux" data-a="bdVidesDirect">🖨 Juste des planches vides</button></div></div><div class="grande-e">💬</div></div>
     ${l.length ? `<div class="grille-albums">${l.map((a) => `<div class="carte-album"><button data-a="bdOuvrir" data-f="${esc(a.fichier)}"><div class="mini">${a.planches[0] ? plancheHtml(a.planches[0]) : '<div class="planche vide"></div>'}</div><b>${esc(a.titre)}</b><span class="muet">${a.planches.length} planche${a.planches.length > 1 ? 's' : ''}</span></button><button class="film-jeter" data-a="bdSupprimer" data-f="${esc(a.fichier)}">${BD.aSupprimer === a.fichier ? 'Sûr ?' : '🗑'}</button></div>`).join('')}</div>` : ''}
-    ${vuePlanchesVides()}</div>`;
+    </div>`;
+}
+// Planches vides : on prépare chaque page (son découpage, des bulles ou non), on voit exactement
+// ce qui sortira de l'imprimante, puis on imprime.
+function pagesVides() { const v = S.vue; if (!v.vp) v.vp = [{ g: v.videG || 'g6', bulles: false }]; if (v.vsel === undefined || v.vsel >= v.vp.length) v.vsel = 0; return v.vp; }
+function planchesVides() {
+  return pagesVides().map((x) => { const p = planchePapier(x.g); if (x.bulles) p.cases.forEach((c, i) => c.bulles.push({ type: 'parole', texte: '', x: i % 2 ? 40 : 8, y: 6 })); return p; });
 }
 function vuePlanchesVides() {
-  const v = S.vue; const g = v.videG || 'g6';
-  if (!v.vides) return '';
-  return `<div class="panneau"><h3>Planches vides à imprimer</h3><p class="muet" style="margin:0">Choisis le découpage. Les bulles vides sont facultatives : tu peux aussi les dessiner toi-même.</p>
-    <div class="gabarits">${Object.entries(GABARITS).map(([k, x]) => `<button class="${g === k ? 'on' : ''}" data-a="bdVideG" data-g="${k}"><div class="mini">${plancheHtml(planchePapier(k))}</div><span>${esc(x.nom)}</span></button>`).join('')}</div>
-    <div class="rang"><button class="puce ${v.videBulles ? 'on' : ''}" data-a="bdVideBulles">Avec des bulles vides</button><span class="muet">Nombre de pages</span>${[1, 2, 4].map((n) => `<button class="puce ${(v.videN || 2) === n ? 'on' : ''}" data-a="bdVideN" data-n="${n}">${n}</button>`).join('')}
-    <button class="btn" data-a="bdImprimerVides">🖨 Imprimer</button></div></div>`;
+  const v = S.vue; if (!v.vides) return '';
+  const l = pagesVides(); const k = v.vsel; const cur = l[k]; const pl = planchesVides();
+  return `<div class="panneau atelier-vides" id="atelier-vides"><div class="rang entre"><h3>Mes planches à imprimer</h3><button class="btn doux petit" data-a="bdVides">Fermer</button></div>
+    <p class="muet" style="margin:0 0 10px">Prépare chaque page : choisis ses cases. Ce que tu vois ici, c’est exactement ce qui sortira de l’imprimante.</p>
+    <div class="vides-grand">
+      <div class="vides-pages">${pl.map((p, i) => `<button class="${i === k ? 'on' : ''}" data-a="bdVpSel" data-k="${i}"><div class="mini">${plancheHtml(p, { vide: true })}</div><span>Page ${i + 1}</span></button>`).join('')}
+        ${l.length < 8 ? '<button class="ajout-page" data-a="bdVpAjout">+ Une page</button>' : ''}</div>
+      <div class="vides-apercu">${plancheHtml(pl[k], { vide: true })}</div>
+      <div class="vides-outils">
+        <b>Page ${k + 1} : les cases</b>
+        <div class="gabarits">${Object.entries(GABARITS).map(([g, x]) => `<button class="${cur.g === g ? 'on' : ''}" data-a="bdVideG" data-g="${g}"><div class="mini">${plancheHtml(planchePapier(g))}</div><span>${esc(x.nom)}</span></button>`).join('')}</div>
+        <div class="rang wrap"><button class="puce ${cur.bulles ? 'on' : ''}" data-a="bdVideBulles">💬 Des bulles vides sur cette page</button>
+          ${l.length > 1 ? `<button class="puce" data-a="bdVpPartout">Ces cases sur toutes les pages</button><button class="puce" data-a="bdVpSuppr">🗑 Enlever cette page</button>` : ''}</div>
+        <button class="btn" style="background:#E0457B" data-a="bdImprimerVides">🖨 Imprimer ${l.length > 1 ? 'mes ' + l.length + ' pages' : 'ma page'}</button>
+        <p class="muet" style="margin:0;font-size:13px">La fenêtre de l’imprimante s’ouvre. Tes planches restent aussi dans ta galerie, en PDF.</p>
+      </div></div></div>`;
 }
+(() => { const st = document.createElement('style'); st.textContent = `
+  .atelier-vides .vides-grand{display:grid;grid-template-columns:110px minmax(220px,340px) 1fr;gap:16px;align-items:start}
+  .atelier-vides .vides-pages{display:flex;flex-direction:column;gap:8px;max-height:480px;overflow:auto;padding:3px}
+  .atelier-vides .vides-pages button{background:#fff;border-radius:10px;padding:5px;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .atelier-vides .vides-pages button.on{outline:3px solid #E0457B}
+  .atelier-vides .vides-pages .mini{width:80px}
+  .atelier-vides .ajout-page{border:2px dashed #E0457B !important;color:#E0457B;font-weight:700;min-height:60px;justify-content:center}
+  .atelier-vides .vides-apercu .planche{box-shadow:0 8px 24px rgba(0,0,0,.18);border-radius:4px}
+  .atelier-vides .vides-outils{display:flex;flex-direction:column;gap:10px}
+  @media (max-width:900px){.atelier-vides .vides-grand{grid-template-columns:90px 1fr}.atelier-vides .vides-outils{grid-column:1/-1}}`; document.head.appendChild(st); })();
 function vueAlbumBD(a) {
   return `<div class="section bd">${entete(a.titre, `<button class="btn doux petit" data-a="bdVides">🖨 Planches vides</button><button class="btn petit" style="background:#E0457B" data-a="bdImprimerAlbum" ${a.planches.length ? '' : 'disabled'}>🖨 Imprimer l’album</button>`)}
     ${S.vue.vides ? vuePlanchesVides() : ''}
@@ -206,16 +233,17 @@ Object.assign(A, {
     if (BD.aSupprimer !== d.f) { BD.aSupprimer = d.f; render(); setTimeout(() => { if (BD.aSupprimer === d.f) { BD.aSupprimer = null; render(); } }, 4000); return; }
     BD.aSupprimer = null; await F.effacerDoc('bd', d.f); S.docs.bd = await F.listerDocs('bd'); render();
   },
-  bdVidesDirect: () => { S.vue.vides = !S.vue.vides; render(); },
-  bdVides: () => { S.vue.vides = !S.vue.vides; render(); },
-  bdVideG: (d) => { S.vue.videG = d.g; render(); },
-  bdVideBulles: () => { S.vue.videBulles = !S.vue.videBulles; render(); },
-  bdVideN: (d) => { S.vue.videN = Number(d.n); render(); },
+  bdVidesDirect: () => { S.vue.vides = !S.vue.vides; render(); const z = document.getElementById('atelier-vides'); if (z) z.scrollIntoView({ block: 'start', behavior: 'smooth' }); },
+  bdVides: () => { S.vue.vides = !S.vue.vides; render(); const z = document.getElementById('atelier-vides'); if (z) z.scrollIntoView({ block: 'start', behavior: 'smooth' }); },
+  bdVideG: (d) => { pagesVides()[S.vue.vsel].g = d.g; render(); },
+  bdVideBulles: () => { const x = pagesVides()[S.vue.vsel]; x.bulles = !x.bulles; render(); },
+  bdVpSel: (d) => { S.vue.vsel = Number(d.k); render(); },
+  bdVpAjout: () => { const l = pagesVides(); l.push(Object.assign({}, l[S.vue.vsel])); S.vue.vsel = l.length - 1; render(); },
+  bdVpSuppr: () => { const l = pagesVides(); if (l.length > 1) { l.splice(S.vue.vsel, 1); S.vue.vsel = Math.max(0, S.vue.vsel - 1); } render(); },
+  bdVpPartout: () => { const l = pagesVides(); const c = l[S.vue.vsel]; l.forEach((x) => { x.g = c.g; x.bulles = c.bulles; }); toast('Toutes tes pages ont maintenant ces cases.'); render(); },
   bdImprimerVides: async () => {
-    const g = S.vue.videG || 'g6'; const n = S.vue.videN || 2;
-    const pages = Array.from({ length: n }, () => { const p = planchePapier(g); if (S.vue.videBulles) p.cases.forEach((c, i) => c.bulles.push({ type: 'parole', texte: '', x: i % 2 ? 40 : 8, y: 6 })); return p; });
-    const r = await F.fairePdf('Planches de BD vides', pageImpression('', pages, { vide: true }), { imprimer: true });
-    toast(r && r.ok ? 'Tes planches partent à l’imprimante. À tes crayons !' : 'Je n’ai pas pu préparer les planches.', 6000);
+    const r = await F.fairePdf('Planches de BD vides', pageImpression('', planchesVides(), { vide: true }), { imprimer: true });
+    toast(r && r.ok ? 'La fenêtre de l’imprimante s’ouvre. À tes crayons !' : 'Je n’ai pas pu préparer les planches.', 6000);
   },
   bdPlanche: (d) => { S.vue.planche = Number(d.i); S.vue.casesel = undefined; S.vue.bullesel = undefined; BD.picker = null; render(); },
   bdAjouter: (d) => { const a = album(); a.planches.push(planchePapier(d.g)); sauverAlbum(); S.vue.planche = a.planches.length - 1; S.vue.casesel = 0; render(); },

@@ -306,11 +306,36 @@ async function avecRetardateur(fn) {
   const el = document.getElementById('anim-compte'); if (el) el.textContent = '';
   FILM.compte = false; if (el) return fn();
 }
-function arreterAuto() { if (FILM.auto) { clearInterval(FILM.auto.iv); FILM.auto = null; } }
+// Photo automatique : un compte à rebours avant la première photo, un bandeau bien visible avec « Arrêter »,
+// et le gros bouton rouge (ou Échap) l'arrête aussi.
+function majBandeauAuto() {
+  const b = document.getElementById('anim-auto-bandeau'); if (!b) return;
+  if (!FILM.auto) { b.hidden = true; return; }
+  b.hidden = false;
+  b.innerHTML = `<span>📸 Photo automatique : une photo toutes les ${FILM.auto.sec} s</span><button class="btn petit" data-a="filmAuto" data-s="0">■ Arrêter</button>`;
+  const d = document.querySelector('.declencheur'); if (d) { d.classList.add('arret-auto'); d.setAttribute('aria-label', 'Arrêter la photo automatique'); }
+}
+function arreterAuto() {
+  if (FILM.auto) { clearInterval(FILM.auto.iv); clearTimeout(FILM.auto.depart); FILM.auto = null; }
+  const c = document.getElementById('anim-compte'); if (c && !FILM.compte) c.textContent = '';
+  const d = document.querySelector('.declencheur'); if (d) { d.classList.remove('arret-auto'); d.setAttribute('aria-label', 'Prendre la photo'); }
+  majBandeauAuto();
+}
 function lancerAuto(sec) {
-  arreterAuto(); if (!sec) { majBas(); return; }
-  FILM.auto = { sec, iv: setInterval(() => { if (!document.getElementById('anim-direct')) return arreterAuto(); bip(990, 0.08, 0.08); photographier(); }, sec * 1000) };
-  toast(`Une photo toutes les ${sec} secondes. Bouge ton personnage entre deux bips !`); majBas();
+  const avait = !!FILM.auto; arreterAuto();
+  if (!sec) { majBas(); if (avait) toast('Photo automatique arrêtée.'); return; }
+  const a = { sec, iv: null, depart: null }; FILM.auto = a;
+  // 3, 2, 1… le temps de retourner à son personnage avant la première photo.
+  let reste = 3; const c = document.getElementById('anim-compte');
+  const tic = () => {
+    if (FILM.auto !== a) return;
+    const el = document.getElementById('anim-compte');
+    if (reste > 0) { if (el) { el.textContent = reste; el.classList.remove('bat'); void el.offsetWidth; el.classList.add('bat'); } bip(660, 0.12); reste--; a.depart = setTimeout(tic, 1000); return; }
+    if (el) el.textContent = '';
+    a.iv = setInterval(() => { if (!document.getElementById('anim-direct')) return arreterAuto(); bip(990, 0.08, 0.08); photographier(); }, sec * 1000);
+  };
+  if (c) tic(); else a.depart = setTimeout(tic, 0);
+  toast(`Une photo toutes les ${sec} secondes. Bouge ton personnage entre deux bips ! « Arrêter » ou le bouton rouge pour finir.`); majBas(); majBandeauAuto();
 }
 
 // ---------- Lecture ----------
@@ -554,6 +579,7 @@ function vueAnimation() {
         <canvas id="anim-vue" width="${FW}" height="${FH}"></canvas>
         <div class="grille-tiers" id="anim-grille"></div>
         <div class="compte" id="anim-compte"></div>
+        <div class="bandeau-auto" id="anim-auto-bandeau" hidden></div>
         <div class="flash" id="anim-flash"></div>
         <div class="message-cam" id="anim-message"></div>
         <span class="etiquette-film" id="anim-numero"></span>
@@ -631,6 +657,7 @@ function majBas(defiler) {
   const fr2 = document.getElementById('anim-frise');
   if (fr2) { if (defiler) { const on = fr2.querySelector('.on'); if (on) on.scrollIntoView({ inline: 'center', block: 'nearest' }); else fr2.scrollLeft = fr2.scrollWidth; } else fr2.scrollLeft = g; }
   const au = document.getElementById('anim-auto'); if (au) au.innerHTML = autoHtml();
+  majBandeauAuto();
 }
 function majEcran() {
   const p = FILM.p; if (!p || !document.getElementById('anim-ecran')) return;
@@ -712,7 +739,7 @@ Object.assign(A, {
     if (FILM.aSupprimer !== d.id) { FILM.aSupprimer = d.id; render(); setTimeout(() => { if (FILM.aSupprimer === d.id) { FILM.aSupprimer = null; render(); } }, 4000); return; }
     FILM.aSupprimer = null; await F.animSupprimer(d.id); S.docs.animations = await F.animListe(); render();
   },
-  filmClic: () => { if (FILM.lecture) arreterLecture(); if (FILM.sel >= 0) { FILM.sel = -1; majEcran(); majBas(); } avecRetardateur(photographier); },
+  filmClic: () => { if (FILM.auto) { lancerAuto(0); return; } if (FILM.lecture) arreterLecture(); if (FILM.sel >= 0) { FILM.sel = -1; majEcran(); majBas(); } avecRetardateur(photographier); },
   filmLecture: () => { if (FILM.lecture) arreterLecture(); else lire(); },
   filmVitesse: (d) => { FILM.p.fps = Number(d.fps); filmSauver(); document.querySelectorAll('.puces-vitesse .puce').forEach((b) => b.classList.toggle('on', b.dataset.fps === d.fps)); majBas(); },
   filmRetard: (d) => { FILM.p.retard = Number(d.r); filmSauver(); document.querySelectorAll('[data-a="filmRetard"]').forEach((b) => b.classList.toggle('on', b.dataset.r === d.r)); },
@@ -786,3 +813,11 @@ document.addEventListener('keydown', (e) => {
   if (e.target && e.target.matches && e.target.matches('input,textarea,select')) return;
   if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); if (!e.repeat) A.filmClic(); }
 });
+
+// Échap arrête la photo automatique.
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && FILM.auto) { e.preventDefault(); lancerAuto(0); } });
+(() => { const st = document.createElement('style'); st.textContent = `
+  .bandeau-auto{position:absolute;left:50%;top:12px;transform:translateX(-50%);display:flex;gap:12px;align-items:center;background:rgba(224,69,123,.95);color:#fff;font-weight:700;padding:8px 10px 8px 16px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.3);z-index:5;white-space:nowrap}
+  .bandeau-auto[hidden]{display:none}
+  .bandeau-auto .btn{background:#fff;color:#C2185B}
+  .declencheur.arret-auto span{border-radius:10px;transform:scale(.6)}`; document.head.appendChild(st); })();
