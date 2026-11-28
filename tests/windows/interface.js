@@ -69,7 +69,7 @@ async function toutFermer() {
 }
 async function lancer() {
   await toutFermer();
-  appli = await electron.launch({ executablePath: EXE, env: Object.assign({}, process.env, { FLOCON_COMPTE: COMPTE }), timeout: 60000 });
+  appli = await electron.launch({ executablePath: EXE, env: Object.assign({}, process.env, { FLOCON_COMPTE: COMPTE, FLOCON_CAMERA_FACTICE: '1' }), timeout: 60000 });
   page = await appli.firstWindow();
   erreursPage = [];
   page.on('pageerror', (e) => erreursPage.push(e.message));
@@ -283,6 +283,73 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.ok(xml.includes('Le renard des neiges') && xml.includes('Il aimait la neige'), 'titre et texte dans le document');
     await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
   });
+  // ---------- Mon studio de films ----------
+  const dossierFilm = () => { const d = path.join(os.homedir(), 'Documents', 'Mes animations'); return path.join(d, fs.readdirSync(d).find((x) => fs.existsSync(path.join(d, x, 'film.json')))); };
+  const nbImages = () => page.evaluate(() => FILM.p.images.length);
+  await etape('Mon film : le studio s’ouvre avec la caméra', async () => {
+    await rubrique('Je crée'); await tuile('Mon film');
+    await page.fill('[data-in="filmTitre"]', 'La grande évasion'); await clic('[data-a="filmNouveau"]');
+    await page.waitForFunction(() => FILM.flux && document.getElementById('anim-video').readyState >= 2, null, { timeout: 15000 });
+    assert.strictEqual(lire(path.join(dossierFilm(), 'film.json')).titre, 'La grande évasion');
+  });
+  await etape('Mon film : le gros bouton et la barre d’espace prennent les photos', async () => {
+    for (let i = 0; i < 3; i++) await clic('.declencheur');
+    await page.keyboard.press('Space');
+    await page.waitForFunction(() => FILM.p.images.length === 4, null, { timeout: 10000 });
+    await pause(800);
+    assert.strictEqual(fs.readdirSync(dossierFilm()).filter((x) => x.endsWith('.jpg')).length, 4, '4 photos sur le disque');
+    assert.strictEqual(await page.locator('.frise-film .vignette').count(), 4);
+    assert.ok(await page.evaluate(() => getComputedStyle(document.getElementById('anim-oignon')).display === 'block'), 'image fantôme visible');
+  });
+  await etape('Mon film : copier, jeter, annuler dans la frise', async () => {
+    await clic('[data-a="filmChoisir"][data-i="1"]'); await clic('[data-a="filmDupliquer"]');
+    assert.strictEqual(await nbImages(), 5);
+    await clic('[data-a="filmEffacer"]'); assert.strictEqual(await nbImages(), 4);
+    await clic('[data-a="filmChoisir"][data-i="1"]'); await clic('[data-a="filmAnnuler"]');
+    assert.strictEqual(await nbImages(), 3); await pause(800);
+    assert.strictEqual(lire(path.join(dossierFilm(), 'film.json')).images.length, 3, 'frise enregistrée');
+  });
+  await etape('Mon film : les photos de son appareil photo', async () => {
+    const jpg = path.join(dossierFilm(), fs.readdirSync(dossierFilm()).find((x) => x.endsWith('.jpg')));
+    const mesPhotos = path.join(os.homedir(), 'Pictures', 'Mes photos', '2026-11-28'); fs.mkdirSync(mesPhotos, { recursive: true });
+    fs.copyFileSync(jpg, path.join(mesPhotos, 'PICT0001.JPG')); fs.copyFileSync(jpg, path.join(mesPhotos, 'PICT0002.JPG'));
+    await clic('[data-a="filmPhotos"]'); await clic('[data-a="filmToutPrendre"][data-k="0"]');
+    await clic('[data-a="filmAjouterPhotos"]');
+    await page.waitForFunction(() => FILM.p.images.length === 5, null, { timeout: 15000 });
+  });
+  await etape('Mon film : fond vert avec un décor à elle, filtre, musique', async () => {
+    const decors = path.join(os.homedir(), 'Pictures', 'Mes décors'); fs.mkdirSync(decors, { recursive: true });
+    fs.copyFileSync(path.join(os.homedir(), 'Pictures', 'Mes photos', '2026-11-28', 'PICT0001.JPG'), path.join(decors, 'chateau.jpg'));
+    await clic('[data-a="filmOnglet"][data-o="vert"]'); await clic('[data-a="filmVert"]');
+    await clic('[data-a="filmDecor"][data-r="mer"]');
+    await page.waitForSelector('[data-a="filmDecor"][data-t="fichier"]', { timeout: 10000 });
+    await clic('[data-a="filmDecor"][data-t="fichier"]');
+    await page.waitForFunction(() => FILM.decor && FILM.decor.bmp, null, { timeout: 10000 });
+    // la caméra simulée filme sur fond vert : le vert doit disparaître
+    const transparent = await page.evaluate(() => { const v = document.getElementById('anim-video'); const c = document.createElement('canvas'); c.width = 64; c.height = 48; const x = c.getContext('2d'); x.drawImage(v, 0, 0, 64, 48); const im = x.getImageData(0, 0, 64, 48); detourer(im, FILM.p.vert.couleur, FILM.p.vert.tolerance); let z = 0; for (let i = 3; i < im.data.length; i += 4) if (im.data[i] < 128) z++; return z / (64 * 48); });
+    assert.ok(transparent > 0.2, 'une bonne partie de l’image est détourée (' + Math.round(transparent * 100) + ' %)');
+    await clic('[data-a="filmOnglet"][data-o="filtre"]'); await clic('[data-a="filmFiltre"][data-f="vieux"]');
+    await clic('[data-a="filmOnglet"][data-o="musique"]'); await clic('[data-a="filmMusique"][data-m="aventure"]');
+    await pause(800);
+    const f = lire(path.join(dossierFilm(), 'film.json'));
+    assert.ok(f.vert.actif && f.vert.decor.type === 'fichier' && f.filtre === 'vieux' && f.musique === 'aventure', 'réglages enregistrés');
+  });
+  await etape('Mon film : lecture, puis sa voix enregistrée sur le film', async () => {
+    await clic('[data-a="filmLecture"]'); await pause(1500);
+    assert.ok(await page.evaluate(() => !!FILM.lecture), 'le film se joue'); await clic('[data-a="filmLecture"]');
+    await clic('[data-a="filmOnglet"][data-o="voix"]'); await clic('[data-a="filmVoix"]');
+    await page.waitForFunction(() => FILM.p.voix, null, { timeout: 30000 });
+    assert.ok(fs.statSync(path.join(dossierFilm(), await page.evaluate(() => FILM.p.voix))).size > 1000, 'voix sur le disque');
+  });
+  await etape('Mon film : « Faire mon film » le range dans la galerie', async () => {
+    await clic('[data-a="filmFaire"]');
+    await page.waitForSelector('.bravo-film', { timeout: 60000 });
+    const f = path.join(os.homedir(), 'Documents', 'Mes créations', 'La grande évasion.webm');
+    assert.ok(fs.existsSync(f) && fs.statSync(f).size > 20000, 'vidéo dans Mes créations');
+    await clic('[data-a="filmGalerie"]'); await page.waitForSelector('.galerie video');
+    assert.ok(await page.evaluate(() => !FILM.flux), 'caméra éteinte en quittant le studio');
+    await clic('[data-a="fermerVue"]');
+  });
   await etape('Badges : un site utilisé donne « Je découvre »', async () => {
     const p = lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json'));
     assert.ok(p.badges && p.badges['site:vikidia'] && p.badges['site:vikidia'].jours.length === 1, 'jour noté pour Vikidia');
@@ -419,7 +486,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.notStrictEqual(code, 'toujours ouvert', 'Flocon s’est rouvert tout seul');
   });
   await etape('Niveau 4 : rouvert par le menu Démarrer, il reprend la séance', async () => {
-    appli = await electron.launch({ executablePath: EXE, args: ['--ouvrir'], env: Object.assign({}, process.env, { FLOCON_COMPTE: COMPTE }), timeout: 60000 });
+    appli = await electron.launch({ executablePath: EXE, args: ['--ouvrir'], env: Object.assign({}, process.env, { FLOCON_COMPTE: COMPTE, FLOCON_CAMERA_FACTICE: '1' }), timeout: 60000 });
     page = await appli.firstWindow(); page.on('pageerror', (e) => erreursPage.push(e.message));
     await page.waitForSelector('.fenetre', { timeout: 30000 });
     await page.waitForSelector('text=Séance à deux');

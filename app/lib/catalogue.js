@@ -90,7 +90,7 @@ const RUBRIQUES = [
     { type: 'interne', ref: 'idee', nom: 'Une idée ?', sous: 'Quand je ne sais pas quoi faire', icone: I.etoile, couleur: '#F2B33D' },
     { type: 'interne', ref: 'galerie', nom: 'Ma galerie', sous: 'Et la première en famille', icone: I.photo, couleur: '#E0457B' },
     { type: 'logiciel', ref: 'scratch', nom: 'Scratch', sous: 'Jeux et animations', icone: I.code, couleur: '#F28C28' },
-    { type: 'logiciel', ref: 'stopmotion', nom: 'Mon film', sous: 'Stop Motion Studio', icone: I.film, couleur: '#E0457B' },
+    { type: 'interne', ref: 'animation', nom: 'Mon film', sous: 'Mon studio d\u2019animation', icone: I.film, couleur: '#E0457B' },
     { type: 'logiciel', ref: 'tuxpaint', nom: 'Dessin', sous: 'Tux Paint', icone: I.pinceau, couleur: '#FF7A45' },
     { type: 'logiciel', ref: 'mypaint', nom: 'Peinture', sous: 'MyPaint, des vrais pinceaux', icone: I.pinceau, couleur: '#E8692A', niveau: 2 },
     { type: 'logiciel', ref: 'krita', nom: 'Atelier de peinture', sous: 'Krita, pour aller plus loin', icone: I.pinceau, couleur: '#C2410C', niveau: 3 },
@@ -212,7 +212,7 @@ const PROJETS = {
     ['Prends-le en photo', 'Bien à plat, à la lumière du jour, sans ombre.'],
     ['Importe tes photos', 'Branche l\u2019appareil et va dans Mes photos.'],
     ['Donne-lui vie', 'Colorie-le dans MyPaint, ou anime-le image par image dans Stop Motion.']
-  ], outils: [['interne', 'photos', 'Mes photos'], ['logiciel', 'mypaint', 'Colorier'], ['logiciel', 'stopmotion', 'Animer']] }
+  ], outils: [['interne', 'photos', 'Mes photos'], ['logiciel', 'mypaint', 'Colorier'], ['interne', 'animation', 'Animer']] }
 };
 
 // Le permis : quatre niveaux. On passe au suivant quand les missions sont acquises, avec un adulte, jamais avec du temps d'écran.

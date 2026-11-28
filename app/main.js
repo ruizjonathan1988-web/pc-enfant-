@@ -37,13 +37,17 @@ function dossiers() {
     photos: path.join(app.getPath('pictures'), 'Mes photos'),
     musique: app.getPath('music'),
     livresAudio: path.join(app.getPath('music'), 'Mes livres audio'),
-    films: path.join(app.getPath('videos'), 'Mes films')
+    films: path.join(app.getPath('videos'), 'Mes films'),
+    animations: path.join(docs, 'Mes animations'),
+    decors: path.join(app.getPath('pictures'), 'Mes décors')
   };
 }
 
 // L'enfant de cette session : celui dont le compte Windows est ouvert.
 // En test (ou depuis un compte inconnu), le premier enfant de la configuration.
 const COMPTE = process.env.FLOCON_COMPTE || os.userInfo().username;
+// Robot de test : une caméra et un micro simulés (jamais en usage normal).
+if (process.env.FLOCON_CAMERA_FACTICE === '1') { app.commandLine.appendSwitch('use-fake-device-for-media-stream'); app.commandLine.appendSwitch('use-fake-ui-for-media-stream'); }
 function configComplete() { return E.normaliser(lireJson(C.config, null) || require('./lib/tirelire').configParDefaut()); }
 function enfantCourant(c) { return E.trouver(c, COMPTE) || c.enfants[0]; }
 function config() { const c = configComplete(); return E.vue(c, enfantCourant(c)); }
@@ -162,6 +166,11 @@ app.whenReady().then(() => {
     cb(media && permisCamera(url));
   });
   ses.setPermissionCheckHandler((wc, perm, origin) => perm === 'media' && permisCamera(origin));
+  // La fenêtre de Flocon elle-même : caméra et micro pour le studio d'animation, rien d'autre.
+  const def = require('electron').session.defaultSession;
+  const pageFlocon = (u) => String(u || '').startsWith('file:');
+  def.setPermissionRequestHandler((wc, perm, cb, details) => cb(perm === 'media' && pageFlocon((details && details.requestingUrl) || wc.getURL())));
+  def.setPermissionCheckHandler((wc, perm, origin) => perm === 'media' && pageFlocon(origin || (wc && wc.getURL())));
 });
 
 app.on('web-contents-created', (_e, wc) => {
@@ -319,8 +328,9 @@ function importerPhotos() {
   const dest = path.join(dossiers().photos, new Date().toISOString().slice(0, 10));
   let copies = 0, trouve = false;
   for (const r of lecteursAmovibles()) {
-    const dcim = path.join(r, 'DCIM');
-    if (!fs.existsSync(dcim)) continue;
+    // DCIM pour la plupart des appareils ; certains appareils pour enfants (KidiZoom…) rangent ailleurs.
+    const dcim = ['DCIM', 'PHOTO', 'PHOTOS', 'Photo', 'PICTURE', 'PICTURES'].map((n) => path.join(r, n)).find((d) => fs.existsSync(d));
+    if (!dcim) continue;
     trouve = true;
     for (const f of listerRecursif(dcim, /\.(jpe?g|png|mp4|mov|avi)$/i, 3000)) {
       const cible = path.join(dest, path.basename(f.chemin));
@@ -429,6 +439,53 @@ poser('urlAutorisee', (u) => CAT.urlAutorisee(u, domaines()));
 poser('adresseParent', () => {
   const ips = Object.values(os.networkInterfaces()).flat().filter((i) => i && i.family === 'IPv4' && !i.internal && !/^169\.254\./.test(i.address)).map((i) => i.address);
   return { adresses: ips.map((ip) => 'http://' + ip + ':4747'), nom: 'http://' + os.hostname().toLowerCase() + ':4747' };
+});
+// ---------- Studio d'animation : un dossier par film dans Documents, « Mes animations » ----------
+const versUrl = (p) => 'file:///' + p.replace(/\\/g, '/').replace(/^\//, '').split('/').map(encodeURIComponent).join('/').replace(/^([A-Za-z])%3A/, '$1:');
+function dossierAnim(id) {
+  const s = String(id || '');
+  if (!/^[a-z0-9-]{1,40}$/.test(s)) throw new Error('film inconnu');
+  return path.join(dossiers().animations, s);
+}
+const NOM_ANIM = /^[a-z0-9-]{1,40}\.(jpg|webm)$/;
+poser('animListe', () => {
+  const d = dossiers().animations; let ids = [];
+  try { ids = fs.readdirSync(d, { withFileTypes: true }).filter((x) => x.isDirectory() && /^[a-z0-9-]{1,40}$/.test(x.name)).map((x) => x.name); } catch (e) { return []; }
+  return ids.map((id) => {
+    const p = lireJson(path.join(d, id, 'film.json'), null); if (!p) return null;
+    const premiere = (p.images || [])[0];
+    return { id, titre: p.titre, modifie: p.modifie, n: (p.images || []).length, vignette: premiere ? versUrl(path.join(d, id, premiere)) : '' };
+  }).filter(Boolean).sort((a, b) => String(b.modifie || '').localeCompare(String(a.modifie || '')));
+});
+poser('animLire', (id) => lireJson(path.join(dossierAnim(id), 'film.json'), null));
+poser('animOctets', (id, nom) => { if (!NOM_ANIM.test(String(nom))) return null; try { return fs.readFileSync(path.join(dossierAnim(id), nom)); } catch (e) { return null; } });
+// Une image de ses dossiers (photos, créations, décors) en octets, pour la travailler dans le studio.
+const DECORS_FLOCON = path.join(__dirname, 'ui', 'img', 'decors');
+poser('lireOctets', (chemin) => {
+  const c = path.resolve(String(chemin || ''));
+  const permis = Object.values(dossiers()).concat([DECORS_FLOCON]).map((d) => path.resolve(d));
+  if (!permis.some((d) => c.startsWith(d + path.sep)) || !EXT_IMG.test(c)) return null;
+  try { return fs.readFileSync(c); } catch (e) { return null; }
+});
+poser('animDecors', () => {
+  try { fs.mkdirSync(dossiers().decors, { recursive: true }); } catch (e) { /* rien */ }
+  const tag = (l, origine) => l.map((f) => Object.assign(f, { origine }));
+  return tag(listerRecursif(DECORS_FLOCON, EXT_IMG, 60), 'flocon').concat(tag(listerRecursif(dossiers().decors, EXT_IMG, 120), 'mes'), tag(listerRecursif(dossiers().creations, EXT_IMG, 120), 'creations'));
+});
+poser('animProjet', (id, projet) => { const d = dossierAnim(id); fs.mkdirSync(d, { recursive: true }); ecrireJson(path.join(d, 'film.json'), projet); return true; });
+poser('animEcrire', (id, nom, donnees) => {
+  if (!NOM_ANIM.test(String(nom))) throw new Error('nom refusé');
+  const d = dossierAnim(id); fs.mkdirSync(d, { recursive: true });
+  const p = path.join(d, nom); fs.writeFileSync(p, Buffer.from(donnees)); return versUrl(p);
+});
+poser('animEffacer', (id, nom) => { if (!NOM_ANIM.test(String(nom))) return false; try { fs.unlinkSync(path.join(dossierAnim(id), nom)); } catch (e) { /* déjà parti */ } return true; });
+poser('animSupprimer', (id) => { fs.rmSync(dossierAnim(id), { recursive: true, force: true }); return true; });
+poser('animExporter', (titre, donnees) => {
+  const dossier = dossiers().creations; fs.mkdirSync(dossier, { recursive: true });
+  const base = (String(titre || 'Mon film').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim().slice(0, 60)) || 'Mon film';
+  let cible = path.join(dossier, base + '.webm');
+  for (let i = 2; fs.existsSync(cible); i++) cible = path.join(dossier, `${base} (${i}).webm`);
+  fs.writeFileSync(cible, Buffer.from(donnees)); return { ok: true, nom: path.basename(cible), url: versUrl(cible) };
 });
 poser('jeuxSteam', () => jeuxSteam());
 poser('lireDoc', (dossier, fichier) => { const { p } = sur(dossier, fichier); return lireJson(p, null); });

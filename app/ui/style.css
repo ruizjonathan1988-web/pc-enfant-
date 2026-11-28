@@ -188,3 +188,77 @@ audio,video{width:100%;border-radius:14px}
 .progression{height:10px;border-radius:999px;background:#EEF2F8;overflow:hidden}
 .progression span{display:block;height:100%;background:linear-gradient(90deg,#7FB8F0,#1F5FA8);border-radius:inherit;transition:width .6s}
 @media (prefers-reduced-motion: reduce){.pluie{display:none}.tampon{animation:none}}
+
+/* ---------- Mon studio de films ---------- */
+.affiche-studio{flex-direction:row;align-items:center;gap:18px;background:linear-gradient(135deg,#fff 0%,#FFE9F1 100%)}
+.clap{font-size:56px;line-height:1;filter:drop-shadow(0 6px 10px rgba(224,69,123,.35));animation:clap 2.4s ease-in-out infinite}
+@keyframes clap{0%,80%,100%{transform:rotate(0)}85%{transform:rotate(-12deg)}90%{transform:rotate(4deg)}}
+.grow{flex:1}
+.films-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.film-carte{position:relative}
+.film-ouvrir{width:100%;background:#fff;border-radius:18px;padding:10px;display:flex;flex-direction:column;gap:6px;text-align:left;box-shadow:0 8px 22px rgba(20,24,60,.10);transition:transform .15s}
+.film-ouvrir:hover{transform:translateY(-3px) rotate(-.5deg)}
+.film-ouvrir img,.film-ouvrir .vide{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;background:#1E2A4A;display:flex;align-items:center;justify-content:center;font-size:40px}
+.film-jeter{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.9);border-radius:999px;height:32px;min-width:32px;padding:0 8px;font-size:14px}
+.studio-haut{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:16px;align-items:start}
+.ecran-film{position:relative;aspect-ratio:4/3;width:min(100%,calc((100vh - 430px) * 4 / 3));min-width:320px;margin:0 auto;border-radius:22px;overflow:hidden;background:#11152A;box-shadow:0 16px 40px rgba(20,24,60,.35),inset 0 0 0 6px #1E2A4A}
+.ecran-film video{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.ecran-film canvas{position:absolute;inset:0;width:100%;height:100%}
+#anim-oignon{pointer-events:none;mix-blend-mode:normal}
+#anim-vue{display:none;background:#000}
+.ecran-film.pipette{cursor:crosshair;box-shadow:0 16px 40px rgba(20,24,60,.35),inset 0 0 0 6px #2FA36B}
+.grille-tiers{position:absolute;inset:0;display:none;pointer-events:none;background:linear-gradient(90deg,transparent 33.1%,rgba(255,255,255,.55) 33.3%,transparent 33.5%,transparent 66.4%,rgba(255,255,255,.55) 66.6%,transparent 66.8%),linear-gradient(180deg,transparent 33.1%,rgba(255,255,255,.55) 33.3%,transparent 33.5%,transparent 66.4%,rgba(255,255,255,.55) 66.6%,transparent 66.8%)}
+.compte{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 160px 'Outfit',sans-serif;color:#fff;text-shadow:0 8px 30px rgba(0,0,0,.5);pointer-events:none}
+.compte.bat{animation:bat .9s ease-out}
+@keyframes bat{0%{transform:scale(1.6);opacity:0}30%{transform:scale(1);opacity:1}100%{transform:scale(.8);opacity:.2}}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.flash.on{animation:flash .35s ease-out}
+@keyframes flash{0%{opacity:.9}100%{opacity:0}}
+.message-cam{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:30px;color:#fff;font:700 20px 'Outfit',sans-serif}
+.etiquette-film{position:absolute;left:14px;top:12px;background:rgba(0,0,0,.45);color:#fff;border-radius:999px;padding:4px 12px;font-size:14px}
+.rec{position:absolute;right:14px;top:12px;display:none;color:#fff;background:#D93A3A;border-radius:999px;padding:4px 12px;font-size:14px;animation:clignote 1s steps(2) infinite}
+@keyframes clignote{50%{opacity:.4}}
+.commandes-film{display:flex;flex-direction:column;gap:12px;align-items:stretch}
+.declencheur{align-self:center;width:104px;height:104px;border-radius:50%;background:#fff;box-shadow:0 10px 26px rgba(217,58,58,.35),inset 0 0 0 6px #1E2A4A;display:flex;align-items:center;justify-content:center;transition:transform .1s}
+.declencheur span{width:74px;height:74px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FF8A8A,#D93A3A 60%,#A82020);box-shadow:0 4px 10px rgba(0,0,0,.25)}
+.declencheur:hover{transform:scale(1.04)}.declencheur:active{transform:scale(.92)}
+.centre{text-align:center}
+.lecture-btn{background:#2FA36B}
+.reglage{display:flex;flex-direction:column;gap:6px}.reglage b,.reglage-ligne b{font-size:14px}
+.reglage input[type=range],.reglage-ligne input[type=range]{width:100%;accent-color:#E0457B}
+.reglage-ligne{display:flex;align-items:center;gap:10px;flex:1;min-width:220px}
+.bas-film{padding:12px 14px}
+.frise-film{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;min-height:96px;align-items:center;background:repeating-linear-gradient(90deg,#1E2A4A 0 10px,transparent 10px 18px) top/100% 6px no-repeat,repeating-linear-gradient(90deg,#1E2A4A 0 10px,transparent 10px 18px) bottom/100% 6px no-repeat}
+.frise-film .vignette{flex:0 0 auto;width:104px;aspect-ratio:4/3;border-radius:8px;overflow:hidden;position:relative;background:#11152A;box-shadow:0 2px 6px rgba(0,0,0,.2);transition:transform .12s}
+.frise-film .vignette img{width:100%;height:100%;object-fit:cover}
+.frise-film .vignette span{position:absolute;left:4px;bottom:3px;font-size:11px;color:#fff;background:rgba(0,0,0,.5);border-radius:6px;padding:0 5px}
+.frise-film .vignette.on{outline:4px solid #E0457B;transform:translateY(-4px)}
+.frise-vide{padding:0 10px}
+.actions-frise{flex-wrap:wrap}
+.onglets-film{display:flex;gap:6px;flex-wrap:wrap}
+.onglets-film button{padding:8px 14px;border-radius:12px;font-weight:800;background:rgba(20,24,60,.05)}
+.onglets-film button.on{background:#1E2A4A;color:#fff}
+.pastille{width:28px;height:28px;border-radius:50%;display:inline-block;box-shadow:inset 0 0 0 2px rgba(0,0,0,.15)}
+.pastille.gros{width:36px;height:36px}.pastille.on{outline:3px solid #1E2A4A;outline-offset:2px}
+.decors{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;max-height:300px;overflow-y:auto}
+.decors button{border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(20,24,60,.12);display:flex;flex-direction:column;font-size:13px}
+.decors button img{width:100%;aspect-ratio:4/3;object-fit:cover}
+.decors button span{padding:5px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.decors button.on{outline:4px solid #2FA36B}
+.choix-gros{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.choix-gros button{background:#fff;border-radius:16px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:800;box-shadow:0 2px 8px rgba(20,24,60,.12);transition:transform .12s}
+.choix-gros button .e{font-size:30px}
+.choix-gros button.on{background:#1E2A4A;color:#fff;transform:scale(1.04)}
+.faire-film{background:linear-gradient(135deg,#E0457B,#7C5CFA)}
+.barre-progres{height:16px;border-radius:999px;background:rgba(20,24,60,.1);overflow:hidden}
+.barre-progres span{display:block;height:100%;background:linear-gradient(90deg,#E0457B,#7C5CFA);transition:width .2s}
+.bravo-film{align-items:center;text-align:center;overflow:hidden}
+.groupe-photos{display:flex;flex-direction:column;gap:6px}
+.choix-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;max-height:260px;overflow-y:auto}
+.choix-photos button{position:relative;border-radius:8px;overflow:hidden;aspect-ratio:4/3;background:#eee}
+.choix-photos button img{width:100%;height:100%;object-fit:cover}
+.choix-photos button.on{outline:4px solid #E0457B}
+.choix-photos button span{position:absolute;top:4px;left:4px;background:#E0457B;color:#fff;border-radius:999px;min-width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.astuce-film{margin:0;color:var(--douce)}
+@media (max-width:900px){.studio-haut{grid-template-columns:1fr}}
+@media (prefers-reduced-motion: reduce){.clap,.compte.bat,.flash.on,.rec{animation:none}}
