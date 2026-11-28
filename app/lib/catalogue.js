@@ -101,6 +101,7 @@ const RUBRIQUES = [
     { type: 'site', ref: 'incredibox', nom: 'Mes beats', sous: 'Incredibox', icone: I.beat, couleur: '#7C5CFA' },
     { type: 'site', ref: 'songmaker', nom: 'Mélodies', sous: 'Song Maker', icone: I.note, couleur: '#2B7BD6' },
     { type: 'interne', ref: 'coloriages', nom: 'Coloriages', sous: 'Magiques, mandalas, pixels', icone: I.palette, couleur: '#F2B33D' },
+    { type: 'interne', ref: 'cubes', nom: 'Atelier 3D', sous: 'Des cubes, puis en vrai', icone: I.cube, couleur: '#2FA36B', niveau: 2 },
     { type: 'interne', ref: 'mains', nom: 'Mes mains', sous: 'Des défis loin de l\u2019écran', icone: I.ciseaux, couleur: '#F28C28' },
     { type: 'interne', ref: 'histoires', nom: 'Histoire à choix', sous: 'Le lecteur décide de la suite', icone: I.carte, couleur: '#7C5CFA' },
     { type: 'interne', ref: 'bd', nom: 'Ma BD', sous: 'Au crayon, puis en album', icone: I.bulle, couleur: '#E0457B' },

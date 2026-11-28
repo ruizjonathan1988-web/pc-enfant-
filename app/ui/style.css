@@ -409,3 +409,20 @@ button.on .case{border-color:#2FA36B;background:#fff}
 .legende-col .leg.on{outline:3px solid #1E2A4A}
 .bravo-col{position:relative;overflow:hidden;background:#E6F6EE;border-radius:12px;padding:10px;text-align:center}
 @media (max-width:1000px){.atelier-coloriage{grid-template-columns:1fr}.feuille-coloriage{height:auto;width:100%}}
+
+/* ---------- Atelier 3D ---------- */
+.affiche-cubes{flex-direction:row;align-items:center;gap:18px;background:linear-gradient(135deg,#fff,#E6F6EE)}
+.cubes .grande-e{font-size:64px;line-height:1}
+.atelier-cubes{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+.zone-cubes{height:calc(100vh - 270px);min-height:420px;border-radius:18px;overflow:hidden;box-shadow:0 12px 30px rgba(20,24,60,.2);background:#CFE8FF}
+.toile-cubes{width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
+.outils-cubes{gap:10px}
+.modes-cubes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.modes-cubes button{padding:10px 4px;border-radius:12px;font-weight:800;background:rgba(20,24,60,.05)}
+.modes-cubes button.on{background:#1E2A4A;color:#fff}
+.blocs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.blocs button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;background:#fff;border-radius:10px;padding:5px 2px;box-shadow:0 1px 4px rgba(20,24,60,.12)}
+.blocs button span{width:26px;height:26px;border-radius:5px;box-shadow:inset 0 -5px 0 rgba(0,0,0,.18),inset 0 0 0 1px rgba(0,0,0,.2)}
+.blocs button.on{outline:3px solid #1E2A4A}
+.aide-cubes{margin:0;font-size:13px}
+@media (max-width:1000px){.atelier-cubes{grid-template-columns:1fr}}

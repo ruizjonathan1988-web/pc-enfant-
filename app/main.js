@@ -50,7 +50,7 @@ function dossiers() {
 // En test (ou depuis un compte inconnu), le premier enfant de la configuration.
 const COMPTE = process.env.FLOCON_COMPTE || os.userInfo().username;
 // Robot de test : une caméra et un micro simulés (jamais en usage normal).
-if (process.env.FLOCON_CAMERA_FACTICE === '1') { app.commandLine.appendSwitch('use-fake-device-for-media-stream'); app.commandLine.appendSwitch('use-fake-ui-for-media-stream'); }
+if (process.env.FLOCON_CAMERA_FACTICE === '1') { app.commandLine.appendSwitch('use-fake-device-for-media-stream'); app.commandLine.appendSwitch('use-fake-ui-for-media-stream'); app.commandLine.appendSwitch('enable-unsafe-swiftshader'); }
 function configComplete() { return E.normaliser(lireJson(C.config, null) || require('./lib/tirelire').configParDefaut()); }
 function enfantCourant(c) { return E.trouver(c, COMPTE) || c.enfants[0]; }
 function config() { const c = configComplete(); return E.vue(c, enfantCourant(c)); }
