@@ -458,16 +458,19 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
   await etape('L’école de l’ordinateur : clic, double-clic, glisser, clic droit, accents, Ctrl+Z', async () => {
     await rubrique('Mes outils'); assert.strictEqual(await page.locator('[data-a="tuile"]', { hasText: 'L’école de l’ordi' }).count(), 1, 'tuile de l’école');
     await page.evaluate(() => ouvrirVue('ecole'));
-    await clic('[data-a="ecoleJeu"][data-id="clic"]'); for (let i = 0; i < 10; i++) { await page.click('#eco-flocon', { force: true }); await pause(60); }
+    let jeu = 'liste';
+    try {
+    jeu = 'clic'; await clic('[data-a="ecoleJeu"][data-id="clic"]'); for (let i = 0; i < 10; i++) { await page.click('#eco-flocon', { force: true }); await pause(60); }
     await page.waitForSelector('.bravo-ecole');
-    await clic('[data-a="ecoleJeu"][data-id="double"]'); for (let k = 0; k < 5; k++) await page.dblclick(`.cadeau[data-k="${k}"]`); await page.waitForSelector('.bravo-ecole');
-    await clic('[data-a="ecoleJeu"][data-id="glisser"]');
+    jeu = 'double'; await clic('[data-a="ecoleJeu"][data-id="double"]'); for (let k = 0; k < 5; k++) await page.dblclick(`.cadeau[data-k="${k}"]`); await page.waitForSelector('.bravo-ecole');
+    jeu = 'glisser'; await clic('[data-a="ecoleJeu"][data-id="glisser"]');
     for (let k = 0; k < 6; k++) { const b = await page.getAttribute(`.objet[data-k="${k}"]`, 'data-b'); const o = await page.locator(`.objet[data-k="${k}"]`).boundingBox(); const c = await page.locator(`.boite[data-b="${b}"]`).boundingBox();
       await page.mouse.move(o.x + o.width / 2, o.y + o.height / 2); await page.mouse.down(); await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2, { steps: 6 }); await page.mouse.up(); await pause(80); }
     await page.waitForSelector('.bravo-ecole');
-    await clic('[data-a="ecoleJeu"][data-id="droit"]'); await page.click('.fichier.cible', { button: 'right' }); await clic('#eco-menu [data-m="renommer"]'); await page.fill('#eco-saisie', 'mon chat'); await page.press('#eco-saisie', 'Enter'); await page.waitForSelector('.bravo-ecole');
-    await clic('[data-a="ecoleJeu"][data-id="accents"]'); for (const m of ['été', 'très', 'garçon', 'là']) { await page.fill('#eco-saisie', m); await pause(150); } await page.waitForSelector('.bravo-ecole');
-    await clic('[data-a="ecoleJeu"][data-id="annuler"]'); await page.type('#eco-saisie', 'flocon'); await clic('#eco-oups'); await page.keyboard.press('Control+z'); await page.waitForSelector('.bravo-ecole');
+    jeu = 'droit'; await clic('[data-a="ecoleJeu"][data-id="droit"]'); await page.click('.fichier.cible', { button: 'right' }); await clic('#eco-menu [data-m="renommer"]'); await page.fill('#eco-saisie', 'mon chat'); await page.press('#eco-saisie', 'Enter'); await page.waitForSelector('.bravo-ecole');
+    jeu = 'accents'; await clic('[data-a="ecoleJeu"][data-id="accents"]'); for (const m of ['été', 'très', 'garçon', 'là']) { await page.fill('#eco-saisie', m); await pause(150); } await page.waitForSelector('.bravo-ecole');
+    jeu = 'annuler'; await clic('[data-a="ecoleJeu"][data-id="annuler"]'); await page.type('#eco-saisie', 'flocon'); await clic('#eco-oups'); await page.keyboard.press('Control+z'); await page.waitForSelector('.bravo-ecole');
+    } catch (e) { await page.screenshot({ path: path.join(CAPTURES, 'ecole-' + jeu + '.png') }).catch(() => {}); throw new Error('jeu « ' + jeu + ' » : ' + e.message.split('\n')[0] + ' ' + (e.message.match(/<[^>]+> (from|subtree)[^\n]*/) || [''])[0]); }
     const p = lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json'));
     assert.strictEqual(Object.keys(p.ecole || {}).length, 6, 'six étoiles');
     await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
