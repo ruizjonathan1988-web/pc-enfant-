@@ -331,7 +331,7 @@ function entete(titre, extra) { return `<div class="entete"><button class="retou
 
 function vueInterne() {
   const v = S.vue;
-  const fn = { permis: vuePermis, semaine: vueSemaine, agenda: vueAgenda, idee: vueIdee, galerie: vueGalerie, projet: vueProjet, exposes: vueExposes, cahier: vueCahier, fiches: vueFiches, ecrans: vueEcrans, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, animation: () => vueAnimation(), mains: () => vueMains(), histoires: () => vueHistoires(), bd: () => vueBD(), coloriages: () => vueColoriages(), cubes: () => (window.vueCubes ? window.vueCubes() : ''), minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
+  const fn = { permis: vuePermis, semaine: vueSemaine, agenda: vueAgenda, idee: vueIdee, galerie: vueGalerie, projet: vueProjet, exposes: vueExposes, cahier: vueCahier, fiches: vueFiches, ecrans: vueEcrans, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, animation: () => vueAnimation(), mains: () => vueMains(), histoires: () => vueHistoires(), bd: () => vueBD(), coloriages: () => vueColoriages(), ecole: () => vueEcole(), cubes: () => (window.vueCubes ? window.vueCubes() : ''), minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
   return fn ? fn() : entete('Bientôt');
 }
 
@@ -464,7 +464,9 @@ function vuePermis() {
       <div class="section" style="gap:8px">${suivant.missions.map((t, i) => { const k = suivant.n + '-' + i; return `<button class="coche ${m[k] ? 'on' : ''}" data-a="mission" data-k="${k}"><span class="case">${m[k] ? '✓' : ''}</span>${esc(t)}</button>`; }).join('')}</div>
       <div class="rang entre"><span class="etiquette">${faites} sur ${suivant.missions.length}</span><button class="btn" data-a="passerNiveau" ${faites === suivant.missions.length ? '' : 'disabled'}>Je le montre à un adulte</button></div></div>`;
   } else missions = '<div class="panneau"><b>Tu as ton permis complet.</b><span class="muet">Bravo : tu sais te servir d’un ordinateur, et t’arrêter quand tu as fini.</span></div>';
-  return `<div class="section">${entete('Mon permis')}<div class="liste">${niveaux}</div>${missions}${vueBadges()}</div>`;
+  const ne = typeof nbEcole === 'function' ? nbEcole() : 0; const te = typeof ECOLE !== 'undefined' ? ECOLE.length : 10;
+  const ecole = `<div class="panneau affiche-ecole"><div class="grow"><h3>🖱️ L’école de l’ordinateur : ${ne} sur ${te} ★</h3><p class="muet" style="margin:4px 0 0">${ne === te ? 'Tous tes premiers pas sont faits. Bravo !' : 'Les premiers pas : la souris, le clavier, les fenêtres. Dix petits jeux, une étoile chacun.'}</p></div><button class="btn" style="background:#2FA36B" data-a="ouvrirEcole">${ne ? (ne === te ? 'Rejouer' : 'Continuer') : 'Commencer'}</button></div>`;
+  return `<div class="section">${entete('Mon permis')}${n === 1 || ne < te ? ecole : ''}<div class="liste">${niveaux}</div>${missions}${n > 1 && ne === te ? ecole : ''}${vueBadges()}</div>`;
 }
 
 function seancesDeLaSemaine(sem) {
@@ -697,6 +699,7 @@ function apresRendu() {
   if (typeof filmApresRendu === 'function') filmApresRendu();
   if (typeof mainsApresRendu === 'function') mainsApresRendu();
   if (typeof bdApresRendu === 'function') bdApresRendu();
+  if (typeof ecoleApresRendu === 'function') ecoleApresRendu();
   if (window.cubesApresRendu) window.cubesApresRendu();
 }
 function sauverToile(id) {
@@ -874,6 +877,7 @@ const A = {
   reduire: () => F.reduire(),
   rubrique: (d) => { S.rubrique = d.id; S.vue = null; render(); },
   tuile: (d) => lancer(S.tuilesAffichees[Number(d.i)]),
+  ouvrirEcole: () => ouvrirVue('ecole'),
   finOuverture: () => finOuverture(),
   pasOuvrir: async () => { const t = S.voile.t; S.profil.vus = Object.assign({}, S.profil.vus, { [t.ref]: true }); await sauverProfil(); S.voile = null; render(); lancer(t, true); },
   pasDebrouille: async () => { const t = S.voile.t; S.profil.vus = Object.assign({}, S.profil.vus, { [t.ref]: true }); await sauverProfil(); S.voile = null; render(); dire('D’accord ! Si tu bloques, clique sur moi.'); lancer(t, true); },

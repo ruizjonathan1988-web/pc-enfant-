@@ -435,3 +435,52 @@ button.on .case{border-color:#2FA36B;background:#fff}
 #fd-trait{cursor:crosshair;touch-action:none}
 .outils-dessin{flex-wrap:wrap;gap:8px}.outils-dessin .rang{flex-wrap:wrap;gap:6px}
 .point{display:inline-block;border-radius:50%;background:#1E2A4A}
+
+/* ---------- L'école de l'ordinateur ---------- */
+.affiche-ecole{flex-direction:row;align-items:center;gap:18px;background:linear-gradient(135deg,#fff,#E6F6EE)}
+.ecole .grande-e,.bravo-ecole .grande-e{font-size:64px;line-height:1}
+.grille-ecole{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.carte-ecole{position:relative;background:#fff;border-radius:18px;padding:16px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 8px 22px rgba(20,24,60,.10);transition:transform .15s}
+.carte-ecole:hover{transform:translateY(-3px)}
+.carte-ecole .e{font-size:40px;line-height:1;font-weight:800}
+.carte-ecole .num{position:absolute;top:8px;left:10px;width:26px;height:26px;border-radius:50%;background:#E8ECF4;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+.carte-ecole.fait{background:#FFF8E1}.carte-ecole.fait .num{background:#F2B33D;color:#fff}
+.consigne-ecole{display:flex;gap:14px;align-items:flex-start;background:#fff;border-radius:18px;padding:14px 18px;box-shadow:0 6px 16px rgba(20,24,60,.08)}
+.consigne-ecole .givre{font-size:40px;line-height:1}
+.aire-ecole{position:relative;min-height:380px;background:linear-gradient(180deg,#EAF4FF,#fff);border-radius:22px;box-shadow:inset 0 0 0 3px #D6E4F5;overflow:hidden;padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.cible-flocon{position:absolute;width:84px;height:84px;font-size:58px;line-height:1;background:none;transition:left .5s,top .5s;cursor:pointer}
+.cible-flocon.pop{animation:popF .3s}
+@keyframes popF{0%{transform:scale(1.4)}100%{transform:scale(1)}}
+.cadeaux{display:flex;gap:22px;flex-wrap:wrap;justify-content:center}
+.cadeau{font-size:70px;width:110px;height:110px;border-radius:20px;background:#fff;box-shadow:0 6px 16px rgba(20,24,60,.12)}
+.cadeau.ouvert{background:#FFF8E1;animation:popF .4s}
+.cadeau.secoue{animation:secoue .4s}
+@keyframes secoue{25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+.objets{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;min-height:80px}
+.objet{font-size:54px;cursor:grab;user-select:none;touch-action:none;z-index:5}
+.objet.porte{cursor:grabbing;z-index:900;filter:drop-shadow(0 8px 10px rgba(0,0,0,.25))}
+.objet.range{font-size:36px;cursor:default}
+.boites{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;width:100%}
+.boite{background:#fff;border:3px dashed #9AB3D6;border-radius:18px;min-height:130px;padding:10px;text-align:center}
+.boite .dedans{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.longue-page{position:absolute;inset:0;overflow-y:auto;padding:20px 30px;background:linear-gradient(180deg,#7FD3FF 0%,#1E6FB8 50%,#0A1E3C 100%);color:#fff;font:700 20px 'Outfit',sans-serif}
+.longue-page p{margin:0 0 260px}
+.tresor{display:block;margin:0 auto 30px;font:800 22px 'Outfit',sans-serif;background:#F2B33D;color:#3A230F;border-radius:16px;padding:14px 22px}
+.bureau-fictif{position:relative;width:100%;min-height:300px;background:#2B5FA8;border-radius:14px;display:flex;gap:40px;padding:30px;align-items:flex-start;justify-content:center}
+.fichier{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:54px;color:#fff;cursor:default;user-select:none;padding:8px;border-radius:10px}
+.fichier:hover{background:rgba(255,255,255,.15)}.fichier span{font-size:15px}
+.menu-fictif{position:absolute;background:#fff;border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,.3);display:flex;flex-direction:column;min-width:150px;overflow:hidden;z-index:10}
+.menu-fictif[hidden]{display:none}
+.menu-fictif button{text-align:left;padding:10px 14px;font-weight:600}.menu-fictif button:hover{background:#E8F0FE}
+.champ-ecole{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:560px}
+.grand-champ{font-size:26px;text-align:center;padding:14px}
+.mot-modele{font-size:20px;margin:0}
+.clavier-ecole{display:flex;flex-direction:column;gap:6px;align-items:center}
+.clavier-ecole .touches{display:flex;gap:5px}
+.touche{min-width:44px;height:48px;border-radius:8px;background:#fff;box-shadow:0 3px 0 #B9C3D6,0 0 0 1px #C9D3E6;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:17px;padding:0 6px}
+.touche small{font-size:11px;color:#8A93A8;line-height:1}.touche.large{min-width:80px;font-size:14px}
+.touche.brille{background:#FFF36B;box-shadow:0 3px 0 #D9B800,0 0 0 2px #F2B33D;animation:popF 1.2s infinite}
+.etapes-ecole{max-width:720px}.etapes-ecole li{opacity:.85}
+.bravo-ecole{position:relative;text-align:center;overflow:hidden;width:100%;padding:30px}
+.centre{text-align:center}
+@media (prefers-reduced-motion:reduce){.touche.brille,.cible-flocon.pop{animation:none}.cible-flocon{transition:none}}

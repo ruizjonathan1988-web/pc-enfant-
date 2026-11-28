@@ -158,6 +158,7 @@ const RUBRIQUES = [
     { type: 'interne', ref: 'dossiers', nom: 'Mes dossiers', sous: 'Tout ce que je fabrique', icone: I.dossier, couleur: '#F2B33D' },
     { type: 'interne', ref: 'agenda', nom: 'Mon agenda', sous: 'Ce qui m\u2019attend', icone: I.agenda, couleur: '#E0457B' },
     { type: 'interne', ref: 'semaine', nom: 'Ma semaine', sous: 'Le bilan du dimanche', icone: I.graphe, couleur: '#2FA36B' },
+    { type: 'interne', ref: 'ecole', nom: 'L\u2019école de l\u2019ordi', sous: 'Souris, clavier, fenêtres', icone: I.ecran, couleur: '#2FA36B' },
     { type: 'interne', ref: 'permis', nom: 'Mon permis', sous: 'Gagner en autonomie', icone: I.permis, couleur: '#1F5FA8' },
     { type: 'logiciel', ref: 'explorateur', nom: 'Explorateur', sous: 'Tous mes fichiers', icone: I.dossier, couleur: '#56607A', niveau: 2 }
   ] },
