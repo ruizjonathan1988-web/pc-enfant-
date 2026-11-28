@@ -31,7 +31,34 @@ const SPRITES = {
     '...WBBWWWBBW....', '...WWWWWWWWW....', '...WWWMMWWWW....', '...WWWMMWWWW....', 'GGGGGGMMGGGGGGGG', 'GGGGGGGGGGGGGGGG'] },
   arbre: { nom: 'L’arbre', couleurs: { '.': '#E3F2FD', V: '#43A047', L: '#81C784', R: '#E53935', M: '#6D4C41', G: '#9CCC65' }, lignes: [
     '.....VVVVV......', '...VVVLLVVVV....', '..VVLLVVVRVVV...', '.VVVVVVRVVLLVV..', '.VVRVVVVVVVVVV..', '.VVVVLLVVVRVVV..', '..VVVVVVVVVVV...', '...VVVVRVVVV....',
-    '.....VMMMV......', '.......MM.......', '.......MM.......', '......MMMM......', 'GGGGGGGGGGGGGGGG'] }
+    '.....VMMMV......', '.......MM.......', '.......MM.......', '......MMMM......', 'GGGGGGGGGGGGGGGG'] },
+  chouette: { nom: 'La chouette', couleurs: { '.': '#DCEBFF', M: '#8D6E63', L: '#E8CFA8', W: '#FFFFFF', K: '#2B2118', Y: '#FFB300' }, lignes: [
+    '................', '...M........M...', '...MM......MM...', '...MMMMMMMMMM...', '..MMWWWMMWWWMM..', '..MWWKKWWKKWWM..', '..MWWKKWWKKWWM..', '..MMWWWYYWWWMM..',
+    '..MMMMMYYMMMMM..', '..MMLLLLLLLLMM..', '..MLMLMLLMLMLM..', '..MLLMLMMLMLLM..', '..MMLLLLLLLLMM..', '...MMMMMMMMMM...', '....YY....YY....', '................'] },
+  baleine: { nom: 'La baleine', couleurs: { '.': '#BFE9FF', B: '#3F7FD0', L: '#DDF1FF', W: '#FFFFFF', K: '#10233F', C: '#7FD4FF' }, lignes: [
+    '.....C....C.....', '......C..C......', '.......CC...B..B', '.......CC...BBBB', '....BBBBBBB..BB.', '..BBBBBBBBBBBBB.', '.BBWKBBBBBBBBB..', 'BBBBBBBBBBBBBBB.',
+    'BBLLLLLLLBBBBBB.', '.BLLLLLLLLBBBB..', '..LLLLLLLLLB....', '....BBBBBB......'] },
+  cactus: { nom: 'Le cactus', couleurs: { '.': '#FFF3D6', G: '#43A047', L: '#9CCC65', P: '#FF6B9D', M: '#C1693C', S: '#E8C07D' }, lignes: [
+    '................', '.......PP.......', '......PPPP......', '.......GG.......', '......GGLG......', '..GG..GGLG......', '..GL..GGLG..GG..', '..GL..GGLG..GL..',
+    '..GGGGGGLG..GL..', '...GGGGGLGGGGG..', '......GGLGGGG...', '......GGLG......', '....MMMMMMMM....', '.....MMMMMM.....', '.....MMMMMM.....', 'SSSSSSSSSSSSSSSS'] },
+  papillon: { nom: 'Le papillon', couleurs: { '.': '#E8F8E8', P: '#E040A0', O: '#FF9800', Y: '#FFEB3B', K: '#3B2A20', V: '#7E57C2' }, lignes: [
+    '................', '......K..K......', '.PPP...KK...PPP.', 'PPOPP..KK..PPOPP', 'POYOPP.KK.PPOYOP', 'PPOPPP.KK.PPPOPP', 'PPPPPP.KK.PPPPPP', '.PPPPPPKKPPPPPP.',
+    '..VVVV.KK.VVVV..', '.VVYVVVKKVVVYVV.', '.VVVVV.KK.VVVVV.', '..VVV..KK..VVV..', '.......KK.......', '................'] },
+  robot: { nom: 'Le robot', couleurs: { '.': '#E3F2FD', S: '#B0BEC5', D: '#455A64', R: '#E53935', Y: '#FFD54F', B: '#4FC3F7' }, lignes: [
+    '.......RR.......', '.......DD.......', '...SSSSSSSSSS...', '...SBBSSSSBBS...', '...SBBSSSSBBS...', '...SSSSSSSSSS...', '...SSDDDDDDSS...', '...SSSSSSSSSS...',
+    '......DDDD......', '.DSSSSSSSSSSSSD.', '.DSSRRSSSSYYSSD.', '.DSSRRSSSSYYSSD.', '.DSSSSSSSSSSSSD.', '...SSSSSSSSSS...', '...DDD....DDD...', '..DDDD....DDDD..'] },
+  voiture: { nom: 'La voiture', couleurs: { '.': '#DFF3FF', R: '#E53935', B: '#90CAF9', K: '#263238', G: '#CFD8DC', Y: '#FFD54F' }, lignes: [
+    '................', '................', '.....RRRRRR.....', '....RBBRRBBR....', '...RBBBRRBBBR...', '.RRRRRRRRRRRRRR.', 'YRRRRRRRRRRRRRRY', 'RRRRRRRRRRRRRRRR',
+    '.RKKKRRRRRRKKKR.', '..KGK......KGK..', '..KKK......KKK..', '................'] },
+  pingouin: { nom: 'Le pingouin', couleurs: { '.': '#D6F0FF', K: '#263238', W: '#FFFFFF', Y: '#FF9800', C: '#9FD8F5', R: '#E53935' }, lignes: [
+    '................', '......KKKK......', '.....KKKKKK.....', '....KKWKKWKK....', '....KKKYYKKK....', '....RRRRRRRR....', '...KKWWWWWWKK...', '..KKWWWWWWWWKK..',
+    '..KKWWWWWWWWKK..', '..KKWWWWWWWWKK..', '...KWWWWWWWWK...', '...KKWWWWWWKK...', '....KKKKKKKK....', '....YYY..YYY....', 'CCCCCCCCCCCCCCCC'] },
+  fraise: { nom: 'La fraise', couleurs: { '.': '#FFF0F5', R: '#E53935', D: '#B71C1C', Y: '#FFEB3B', G: '#43A047', L: '#8BC34A' }, lignes: [
+    '.......GG.......', '....LGGGGGGL....', '...GGLGGGGLGG...', '..RRRRGGGGRRRR..', '.RRYRRRRRRRYRDD.', '.RRRRRYRRYRRRRD.', '.RYRRRRRRRRRRYD.', '.RRRRYRRRRYRRRD.',
+    '..RRRRRRRRRRRD..', '..RYRRRYRRRYDD..', '...RRRRRRRRDD...', '....RRYRRYDD....', '.....RRRRDD.....', '......RRDD......'] },
+  chateau: { nom: 'Le château', couleurs: { '.': '#CDEBFF', S: '#B0BEC5', B: '#6D4C41', R: '#E53935', Y: '#FFD54F', G: '#66BB6A' }, lignes: [
+    '.......BRR......', '.......BRRR.....', '.......B........', '......SSSS......', '.S.S..SSSS..S.S.', '.SSSS.SYYS.SSSS.', '.SYSS.SSSS.SSYS.', '.SSSSSSSSSSSSSS.',
+    '.SBSSSSSSSSSSBS.', '.SSSSSSBBSSSSSS.', '.SSSSSBBBBSSSSS.', '.SSSSSBBBBSSSSS.', '.SSSSSBBBBSSSSS.', 'GGGGGGGGGGGGGGGG'] }
 };
 const PALETTE_LIBRE = ['#E53935', '#FF7043', '#FFB300', '#FFEB3B', '#9CCC65', '#43A047', '#26A69A', '#4FC3F7', '#1E88E5', '#3949AB', '#8E24AA', '#F06292', '#8D6E63', '#FFFFFF', '#9E9E9E', '#212121'];
 
@@ -134,8 +161,10 @@ function vueColoriages() {
         <button class="carte-coloriage" data-a="colMode" data-m="magique"><span class="e">✨</span><b>Coloriage magique</b><span class="muet">Calcule ou conjugue pour trouver la couleur.</span></button>
         <button class="carte-coloriage" data-a="colMode" data-m="mandala"><span class="e">🌸</span><b>Mandala</b><span class="muet">Un nouveau à chaque fois, aussi compliqué que tu veux.</span></button>
         <button class="carte-coloriage" data-a="colMode" data-m="pixel"><span class="e">👾</span><b>Pixel art à numéros</b><span class="muet">Case par case, un dessin apparaît.</span></button>
+        <button class="carte-coloriage" data-a="colMode" data-m="dessin"><span class="e">✍️</span><b>Mon dessin en coloriage</b><span class="muet">Dessine au feutre noir, Flocon en fait un coloriage.</span></button>
       </div></div>`;
   }
+  if (mode === 'dessin') return vueDessinColoriage();
   const graine = v.graine || (v.graine = Math.floor(Math.random() * 1e9));
   if (mode === 'mandala') {
     const sym = v.sym || 8, an = v.anneaux || 4; const m = mandala(graine, sym, an);
@@ -190,7 +219,7 @@ function grillePixelSvg(prep, sprite, magique, impression) {
   return `<svg viewBox="-2 -2 ${W * T + 4} ${H * T + 4}" class="pixels ${magique ? 'magique' : ''}" id="col-svg"><g class="cases">${cases}</g><path class="${magique ? 'traits-zones' : 'traits-fins'}" d="${traits}"/><rect x="0" y="0" width="${W * T}" height="${H * T}" class="cadre"/><g class="nums">${textes}</g></svg>`;
 }
 function couleurPinceau() {
-  const v = S.vue; if (v.mode === 'mandala') return PALETTE_LIBRE[COL.pinceau] || PALETTE_LIBRE[0];
+  const v = S.vue; if (v.mode === 'mandala' || v.mode === 'dessin') return PALETTE_LIBRE[COL.pinceau] || PALETTE_LIBRE[0];
   const cles = Object.keys(SPRITES); const sp = SPRITES[v.sprite || cles[v.graine % cles.length]]; const ch = Object.keys(sp.couleurs)[COL.pinceau] || '.'; return sp.couleurs[ch];
 }
 // Peindre : clic (et glisser pour le pixel art). Pas de re-rendu à chaque case : on colore directement.
@@ -260,6 +289,168 @@ Object.assign(A, {
 });
 const fermerVueAvantColoriages = A.fermerVue;
 A.fermerVue = async (d) => {
+  if (S.vue && S.vue.ref === 'coloriages') coldCouperCam();
   if (S.vue && S.vue.ref === 'coloriages' && S.vue.mode && S.vue.mode !== 'accueil') { COL.peint = {}; S.vue = { ref: 'coloriages' }; render(); return; }
   fermerVueAvantColoriages(d);
 };
+
+// ======================================================================
+// MON DESSIN EN COLORIAGE : une photo d'un dessin au feutre noir devient
+// un coloriage aux traits nets (seuil adaptatif + Otsu, nettoyage, épaississement).
+// On peut l'imprimer, le colorier ici au pot de peinture, le garder.
+// ======================================================================
+const COLD = { cam: null, picker: null, source: null, sensib: 3, toile: null, traits: null, histo: [] };
+function vueDessinColoriage() {
+  const camera = COLD.cam ? `<div class="panneau cold-cam"><div class="ecran-photo"><video id="cold-video" autoplay muted playsinline></video><div class="compte" id="cold-compte"></div></div>
+      <div class="rang"><button class="btn grand" style="background:#F28C28" data-a="coldClic">Clic !</button><button class="btn doux" data-a="coldCamFermer">Annuler</button></div></div>` : '';
+  if (!COLD.source) {
+    return `<div class="section coloriages">${entete('Mon dessin en coloriage')}
+      ${camera || `<div class="panneau cold-accueil"><div class="cold-etapes"><div><i>1</i><p>Dessine sur une feuille blanche, <b>au feutre noir</b>, avec des formes bien fermées.</p></div><div><i>2</i><p>Photographie-le, ou choisis une image de ta galerie.</p></div><div><i>3</i><p>Flocon garde les traits : imprime-le ou colorie-le ici !</p></div></div>
+        <div class="rang"><button class="btn grand" style="background:#F28C28" data-a="coldCam">📷 Photographier mon dessin</button><button class="btn doux grand" data-a="coldImages">${COLD.picker ? 'Fermer' : '🖼 Choisir une image'}</button></div>
+        ${COLD.picker ? `<div class="choix-photos">${COLD.picker.map((f) => `<button data-a="coldChoisir" data-c="${esc(f.chemin)}"><img src="${esc(f.url)}" alt="" loading="lazy"></button>`).join('') || '<p class="muet">Pas encore d’image.</p>'}</div>` : ''}</div>`}</div>`;
+  }
+  return `<div class="section coloriages">${entete('Mon dessin en coloriage', '<button class="btn petit" style="background:#F28C28" data-a="coldImprimer">🖨 Imprimer pour colorier aux feutres</button>')}
+    <div class="atelier-coloriage"><div class="feuille-coloriage cold-feuille" id="cold-place"></div>
+    <div class="panneau outils-coloriage">
+      <div class="reglage"><b>Les traits</b><span class="rang">${[[1, 'Moins'], [3, 'Normal'], [5, 'Plus']].map(([x, nom]) => `<button class="puce ${COLD.sensib === x ? 'on' : ''}" data-a="coldSensib" data-s="${x}">${nom}</button>`).join('')}</span>
+        <span class="muet">« Plus » attrape les traits pâles, « Moins » enlève les taches.</span></div>
+      <div class="reglage"><b>Colorier ici</b>${paletteColoriage(PALETTE_LIBRE)}<span class="muet">Touche une zone : elle se remplit.</span></div>
+      <div class="rang"><button class="btn doux" data-a="coldAnnuler">↶ Annuler</button><button class="btn doux" data-a="coldEffacer">Tout effacer</button></div>
+      <div class="rang"><button class="btn doux" data-a="colGarder">💾 Garder</button><button class="btn doux" data-a="coldAutre">✍️ Un autre dessin</button></div></div></div></div>`;
+}
+// --- Traitement de l'image ---
+function coldOtsu(g) {
+  const h = new Array(256).fill(0); for (let i = 0; i < g.length; i++) h[g[i]]++;
+  const n = g.length; let somme = 0; for (let i = 0; i < 256; i++) somme += i * h[i];
+  let sB = 0, wB = 0, meilleur = 0, t = 128;
+  for (let i = 0; i < 256; i++) { wB += h[i]; if (!wB) continue; const wF = n - wB; if (!wF) break; sB += i * h[i]; const mB = sB / wB, mF = (somme - sB) / wF; const v = wB * wF * (mB - mF) * (mB - mF); if (v > meilleur) { meilleur = v; t = i; } }
+  return t;
+}
+// Composantes (4-voisins) d'une valeur donnée ; enlève celles plus petites que « mini ».
+function coldNettoyer(m, W, H, val, mini) {
+  const vu = new Uint8Array(W * H); const pile = new Int32Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    if (vu[i] || m[i] !== val) continue; let n = 0, haut = 0; pile[haut++] = i; vu[i] = 1; const liste = [];
+    while (haut) { const k = pile[--haut]; liste.push(k); n++; const x = k % W, y = (k / W) | 0;
+      if (x > 0 && !vu[k - 1] && m[k - 1] === val) { vu[k - 1] = 1; pile[haut++] = k - 1; }
+      if (x < W - 1 && !vu[k + 1] && m[k + 1] === val) { vu[k + 1] = 1; pile[haut++] = k + 1; }
+      if (y > 0 && !vu[k - W] && m[k - W] === val) { vu[k - W] = 1; pile[haut++] = k - W; }
+      if (y < H - 1 && !vu[k + W] && m[k + W] === val) { vu[k + W] = 1; pile[haut++] = k + W; } }
+    if (n < mini) for (const k of liste) m[k] = 1 - val;
+  }
+}
+function coldTraits(src, sensib) {
+  const W = src.width, H = src.height; const d = src.getContext('2d').getImageData(0, 0, W, H).data;
+  const g = new Uint8Array(W * H); for (let i = 0; i < W * H; i++) g[i] = (d[i * 4] * 299 + d[i * 4 + 1] * 587 + d[i * 4 + 2] * 114) / 1000;
+  // moyenne locale par image intégrale
+  const I = new Float64Array((W + 1) * (H + 1));
+  for (let y = 0; y < H; y++) { let ligne = 0; for (let x = 0; x < W; x++) { ligne += g[y * W + x]; I[(y + 1) * (W + 1) + x + 1] = I[y * (W + 1) + x + 1] + ligne; } }
+  const r = Math.max(8, Math.round(Math.max(W, H) / 40)); const C = [0, 22, 0, 14, 0, 8][sensib] || 14; const otsu = coldOtsu(g); const plafond = Math.min(250, otsu + 10 + sensib * 8);
+  const m = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) { const y0 = Math.max(0, y - r), y1 = Math.min(H, y + r + 1);
+    for (let x = 0; x < W; x++) { const x0 = Math.max(0, x - r), x1 = Math.min(W, x + r + 1);
+      const s = I[y1 * (W + 1) + x1] - I[y0 * (W + 1) + x1] - I[y1 * (W + 1) + x0] + I[y0 * (W + 1) + x0]; const moy = s / ((x1 - x0) * (y1 - y0));
+      const v = g[y * W + x]; if (v < moy - C && v < plafond) m[y * W + x] = 1; } }
+  const aire = W * H; coldNettoyer(m, W, H, 1, Math.max(12, Math.round(aire / ([0, 6000, 0, 12000, 0, 24000][sensib] || 12000))));
+  // épaissir d'un pixel (traits bien fermés, faciles à colorier)
+  const e = new Uint8Array(m); const ep = Math.max(1, Math.round(Math.max(W, H) / 700));
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (m[y * W + x]) for (let dy = -ep; dy <= ep; dy++) for (let dx = -ep; dx <= ep; dx++) { const u = x + dx, v = y + dy; if (u >= 0 && v >= 0 && u < W && v < H) e[v * W + u] = 1; }
+  coldNettoyer(e, W, H, 0, 20); // petits trous blancs dans les traits
+  return e;
+}
+function coldConstruire() {
+  const src = COLD.source; const W = src.width, H = src.height; COLD.traits = coldTraits(src, COLD.sensib);
+  const t = document.createElement('canvas'); t.width = W; t.height = H; t.id = 'cold-toile'; t.className = 'cold-toile';
+  const ctx = t.getContext('2d'); const im = ctx.createImageData(W, H); const p = new Uint32Array(im.data.buffer);
+  for (let i = 0; i < W * H; i++) p[i] = COLD.traits[i] ? 0xFF1E1E1E : 0xFFFFFFFF;
+  ctx.putImageData(im, 0, 0); COLD.toile = t; COLD.histo = [];
+  t.addEventListener('pointerdown', coldRemplir);
+}
+function coldRemplir(e) {
+  const t = COLD.toile; const r = t.getBoundingClientRect(); const x0 = Math.floor((e.clientX - r.left) * t.width / r.width), y0 = Math.floor((e.clientY - r.top) * t.height / r.height);
+  const W = t.width, H = t.height; if (x0 < 0 || y0 < 0 || x0 >= W || y0 >= H || COLD.traits[y0 * W + x0]) return;
+  const ctx = t.getContext('2d'); const im = ctx.getImageData(0, 0, W, H); const p = new Uint32Array(im.data.buffer);
+  const hex = couleurPinceau(); const nv = (0xFF << 24 | parseInt(hex.slice(5, 7), 16) << 16 | parseInt(hex.slice(3, 5), 16) << 8 | parseInt(hex.slice(1, 3), 16)) >>> 0;
+  const ancien = p[y0 * W + x0]; if (ancien === nv) return;
+  COLD.histo.push(im.data.slice()); if (COLD.histo.length > 15) COLD.histo.shift();
+  const pile = [[x0, y0]]; const ok = (k) => !COLD.traits[k] && p[k] === ancien;
+  while (pile.length) { // remplissage par lignes
+    const [x, y] = pile.pop(); let a = x; while (a > 0 && ok(y * W + a - 1)) a--; let b = x; while (b < W - 1 && ok(y * W + b + 1)) b++;
+    let hautOk = false, basOk = false;
+    for (let u = a; u <= b; u++) { p[y * W + u] = nv;
+      if (y > 0) { const k = (y - 1) * W + u; if (ok(k)) { if (!hautOk) { pile.push([u, y - 1]); hautOk = true; } } else hautOk = false; }
+      if (y < H - 1) { const k = (y + 1) * W + u; if (ok(k)) { if (!basOk) { pile.push([u, y + 1]); basOk = true; } } else basOk = false; } }
+  }
+  ctx.putImageData(im, 0, 0);
+}
+async function coldCharger(bitmap) {
+  const k = Math.min(1, 1000 / Math.max(bitmap.width, bitmap.height)); const c = document.createElement('canvas');
+  c.width = Math.round(bitmap.width * k); c.height = Math.round(bitmap.height * k); const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(bitmap, 0, 0, c.width, c.height);
+  COLD.source = c; COLD.picker = null; coldConstruire(); render();
+}
+async function coldCam() {
+  if (!COLD.cam || COLD.cam.flux || COLD.cam.demarre) return; COLD.cam.demarre = true;
+  try { COLD.cam.flux = await navigator.mediaDevices.getUserMedia({ audio: false, video: { width: { ideal: 1920 }, height: { ideal: 1440 } } }); } catch (e) { toast('Je ne trouve pas de caméra.'); COLD.cam = null; render(); return; }
+  const v = document.getElementById('cold-video'); if (v) { v.srcObject = COLD.cam.flux; v.play().catch(() => {}); }
+}
+function coldCouperCam() { if (COLD.cam && COLD.cam.flux) COLD.cam.flux.getTracks().forEach((t) => t.stop()); COLD.cam = null; }
+// Pas de crochet après rendu pour ce module : on surveille le DOM (toile et caméra).
+new MutationObserver(() => {
+  const place = document.getElementById('cold-place'); if (place && COLD.toile && COLD.toile.parentNode !== place) place.appendChild(COLD.toile);
+  const v = document.getElementById('cold-video');
+  if (v && COLD.cam) { if (COLD.cam.flux && v.srcObject !== COLD.cam.flux) { v.srcObject = COLD.cam.flux; v.play().catch(() => {}); } else if (!COLD.cam.flux) coldCam(); }
+  else if (!v && COLD.cam && COLD.cam.flux) coldCouperCam();
+}).observe(document.documentElement, { childList: true, subtree: true });
+function coldTraitsSeuls() { // les traits seuls, sur fond blanc, pour l'impression
+  const W = COLD.toile.width, H = COLD.toile.height; const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
+  const im = x.createImageData(W, H); const p = new Uint32Array(im.data.buffer); for (let i = 0; i < W * H; i++) p[i] = COLD.traits[i] ? 0xFF000000 : 0xFFFFFFFF; x.putImageData(im, 0, 0); return c;
+}
+const colModeAvantDessin = A.colMode;
+Object.assign(A, {
+  colMode: (d) => { if (d.m === 'dessin') { COLD.source = null; COLD.toile = null; COLD.picker = null; } colModeAvantDessin(d); },
+  coldCam: () => { COLD.cam = {}; COLD.picker = null; render(); },
+  coldCamFermer: () => { coldCouperCam(); render(); },
+  coldClic: async () => {
+    const v = document.getElementById('cold-video'); if (!v || v.readyState < 2) return;
+    for (let i = 3; i > 0; i--) { const el = document.getElementById('cold-compte'); if (el) { el.textContent = i; el.classList.remove('bat'); void el.offsetWidth; el.classList.add('bat'); } await new Promise((ok) => setTimeout(ok, 800)); }
+    const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; c.getContext('2d').drawImage(v, 0, 0);
+    coldCouperCam(); await coldCharger(c);
+  },
+  coldImages: async () => {
+    if (COLD.picker) { COLD.picker = null; render(); return; }
+    const [cr, ph] = await Promise.all([F.creations(), F.photos()]);
+    COLD.picker = (cr || []).filter((f) => f.type === 'image').concat(ph || []); render();
+  },
+  coldChoisir: async (d) => {
+    const r = await F.lireOctets(d.c); if (!r || r.erreur) { toast('Je n’arrive pas à ouvrir cette image.'); return; }
+    try { await coldCharger(await createImageBitmap(new Blob([r instanceof Uint8Array ? r : new Uint8Array(r)]))); } catch (e) { toast('Je n’arrive pas à ouvrir cette image.'); }
+  },
+  coldSensib: (d) => { COLD.sensib = Number(d.s); coldConstruire(); render(); },
+  coldEffacer: () => { coldConstruire(); render(); },
+  coldAnnuler: () => { const h = COLD.histo.pop(); if (!h) return; const ctx = COLD.toile.getContext('2d'); ctx.putImageData(new ImageData(h, COLD.toile.width, COLD.toile.height), 0, 0); },
+  coldAutre: () => { COLD.source = null; COLD.toile = null; render(); },
+  coldImprimer: async () => {
+    if (!COLD.toile) return; const url = coldTraitsSeuls().toDataURL('image/png'); const paysage = COLD.toile.width > COLD.toile.height;
+    const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><style>@page{size:A4 ${paysage ? 'landscape' : 'portrait'};margin:10mm}body{margin:0;font-family:sans-serif;text-align:center}
+      img{max-width:100%;max-height:${paysage ? 165 : 252}mm}.nom{margin-top:4mm;font-size:11pt;color:#666}</style></head><body><img src="${url}"><div class="nom">Mon dessin, colorié par : ______________________</div></body></html>`;
+    const r = await F.fairePdf('Mon dessin en coloriage', html, { imprimer: true });
+    toast(r && r.ok ? 'Ton coloriage part à l’imprimante. À tes feutres !' : 'Je n’ai pas pu l’imprimer.', 6000);
+  }
+});
+// « Garder » : dans ce mode, on garde la toile (avec les couleurs posées).
+const colGarderAvantDessin = A.colGarder;
+A.colGarder = async (d) => {
+  if (!(S.vue && S.vue.mode === 'dessin' && COLD.toile)) return colGarderAvantDessin(d);
+  const blob = await new Promise((ok) => COLD.toile.toBlob(ok, 'image/png'));
+  const r = await F.creationPhoto('Mon coloriage ' + new Date().toLocaleDateString('fr-FR').replace(/\//g, '-'), new Uint8Array(await blob.arrayBuffer()), 'png');
+  toast(r && r.ok ? 'Ton coloriage est dans ta galerie !' : 'Je n’ai pas pu le garder.');
+};
+(() => { const st = document.createElement('style'); st.textContent = `
+.cold-accueil{display:flex;flex-direction:column;gap:16px}
+.cold-etapes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.cold-etapes>div{background:#FFF4E6;border-radius:16px;padding:14px;display:flex;gap:10px;align-items:flex-start;line-height:1.4}
+.cold-etapes p{margin:0}
+.cold-etapes i{font-style:normal;flex:0 0 30px;height:30px;border-radius:50%;background:#F28C28;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center}
+.cold-cam{display:flex;flex-direction:column;gap:12px;align-items:center}
+.cold-feuille{display:flex;align-items:center;justify-content:center}
+.cold-toile{max-width:100%;max-height:calc(100vh - 230px);background:#fff;cursor:crosshair;touch-action:none;border-radius:6px}`; document.head.appendChild(st); })();
