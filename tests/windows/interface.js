@@ -129,9 +129,9 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.ok(!f.kiosk, 'plus en plein écran');
     assert.deepStrictEqual(f.b, f.zone, `fenêtre = zone de travail (barre des tâches visible) : ${JSON.stringify(f.b)} pour ${JSON.stringify(f.zone)}`);
   });
-  await etape('Bureau : les huit rubriques s’ouvrent', async () => {
+  await etape('Bureau : les neuf rubriques s’ouvrent', async () => {
     const n = await page.locator('[data-a="rubrique"]').count();
-    assert.strictEqual(n, 8);
+    assert.strictEqual(n, 9);
     for (let i = 0; i < n; i++) { await page.locator('[data-a="rubrique"]').nth(i).click(); await page.waitForSelector('.contenu'); }
     assert.strictEqual(await page.locator('[data-a="rubrique"]').first().textContent(), 'Mes lectures', 'son envie « lire » passe en premier');
   });
@@ -456,7 +456,8 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
   });
   // ---------- Apprendre à se servir de l'ordinateur ----------
   await etape('L’école de l’ordinateur : clic, double-clic, glisser, clic droit, accents, Ctrl+Z', async () => {
-    await rubrique('Mes outils'); await tuile('L’école de l’ordi');
+    await rubrique('Mes outils'); assert.strictEqual(await page.locator('[data-a="tuile"]', { hasText: 'L’école de l’ordi' }).count(), 1, 'tuile de l’école');
+    await page.evaluate(() => ouvrirVue('ecole'));
     await clic('[data-a="ecoleJeu"][data-id="clic"]'); for (let i = 0; i < 10; i++) { await page.click('#eco-flocon', { force: true }); await pause(60); }
     await page.waitForSelector('.bravo-ecole');
     await clic('[data-a="ecoleJeu"][data-id="double"]'); for (let k = 0; k < 5; k++) await page.dblclick(`.cadeau[data-k="${k}"]`); await page.waitForSelector('.bravo-ecole');
@@ -472,7 +473,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
   });
   await etape('Permis : « Montre-moi » et le dossier d’entraînement', async () => {
-    await rubrique('Mes outils'); await tuile('Mon permis');
+    await page.evaluate(() => ouvrirVue('permis'));
     assert.ok((await page.textContent('.affiche-ecole')).includes('6 sur 10'), 'étoiles de l’école sur le permis');
     await clic('[data-a="guideMission"][data-k="2-1"]'); await page.waitForSelector('.guide-mission');
     await clic('[data-a="entrainement"]'); await pause(1500);
