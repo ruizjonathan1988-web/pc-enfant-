@@ -18,6 +18,12 @@ const GABARITS = {
   g6: { nom: '6 cases (classique)', zones: ['a b', 'c d', 'e f'] }
 };
 const TYPES_BULLES = { parole: 'Parole', pensee: 'Pensée', cri: 'Cri !', recit: 'Récit' };
+const BD_POINTES = [['hg', '↖'], ['hd', '↗'], ['g', '←'], ['d', '→'], ['bg', '↙'], ['bd', '↘']];
+const BD_TAILLES = [['p', 'Petit'], ['m', 'Moyen'], ['g', 'Grand']];
+const BD_EFFETS = [['BOUM !', '#E53935'], ['PAF !', '#FF9800'], ['ZZZ…', '#5C6BC0'], ['SPLASH !', '#1E88E5'], ['VROUM !', '#43A047'], ['AÏE !', '#D81B60'], ['WOUAH !', '#8E24AA'], ['CRAC !', '#6D4C41'], ['SNIF…', '#039BE5'], ['HI HI !', '#F4511E']];
+// Valeurs par défaut : les albums déjà enregistrés n'ont ni cadrage, ni pointe, ni taille.
+const bdCadrage = (c) => Object.assign({ z: 1, x: 50, y: 50 }, (c && c.cadrage) || {});
+function bdStyleImage(c) { const k = bdCadrage(c); return `object-position:${k.x}% ${k.y}%;transform:scale(${k.z});transform-origin:${k.x}% ${k.y}%`; }
 const METHODE_BD = [
   'Raconte ton histoire en 3 phrases : le début, le problème, la fin.',
   'Découpe-la en cases : une action par case.',
@@ -25,7 +31,7 @@ const METHODE_BD = [
   'Ajoute les bulles : des phrases courtes, c’est plus drôle.',
   'Imprime ton album et fais-le lire !'
 ];
-const BD = { cam: null, picker: null, glisse: null, aSupprimer: null };
+const BD = { cam: null, picker: null, glisse: null, cadre: null, effets: false, aSupprimer: null };
 const nbCases = (g) => new Set(GABARITS[g].zones.join(' ').split(' ')).size;
 const lettres = (g) => [...new Set(GABARITS[g].zones.join(' ').split(' '))];
 const versUrlFichier = (p) => 'file:///' + String(p).replace(/\\/g, '/').replace(/^\//, '').split('/').map(encodeURIComponent).join('/').replace(/^([A-Za-z])%3A/, '$1:');
@@ -43,19 +49,31 @@ function plancheHtml(p, opts) {
   const areas = g.zones.map((z) => `'${z}'`).join(' ');
   const rangs = g.zones.length, cols = g.zones[0].split(' ').length;
   return `<div class="planche" style="grid-template-areas:${areas};grid-template-rows:repeat(${rangs},minmax(0,1fr));grid-template-columns:repeat(${cols},minmax(0,1fr))">${ls.map((l, i) => { const c = p.cases[i] || { bulles: [] };
-    return `<div class="vignette-bd ${o.edition && S.vue.casesel === i ? 'on' : ''}" style="grid-area:${l}" ${o.edition ? `data-a="bdCase" data-i="${i}"` : ''}>${c.img ? `<img src="${esc(versUrlFichier(c.img))}" alt="">` : ''}
-      ${(c.bulles || []).map((b, k) => `<div class="bulle t-${b.type} ${o.vide ? 'a-remplir' : ''} ${o.edition && S.vue.casesel === i && S.vue.bullesel === k ? 'on' : ''}" style="left:${b.x}%;top:${b.y}%" ${o.edition ? `data-bulle="${i}-${k}" data-a="bdSelBulle"` : ''}>${esc(b.texte || '') || (o.vide ? '&nbsp;' : o.edition ? '<span class="muet">…</span>' : '')}</div>`).join('')}</div>`; }).join('')}</div>`;
+    return `<div class="vignette-bd ${o.edition && S.vue.casesel === i ? 'on' : ''}" style="grid-area:${l}" ${o.edition ? `data-a="bdCase" data-i="${i}"` : ''}>${c.img ? `<img src="${esc(versUrlFichier(c.img))}" alt="" style="${bdStyleImage(c)}" ${o.edition && S.vue.casesel === i ? `data-cadrer="${i}" draggable="false"` : ''}>` : ''}
+      ${(c.bulles || []).map((b, k) => `<div class="bulle t-${b.type} q-${b.queue || 'bg'} s-${b.taille || 'm'} ${o.vide ? 'a-remplir' : ''} ${o.edition && S.vue.casesel === i && S.vue.bullesel === k ? 'on' : ''}" style="left:${b.x}%;top:${b.y}%${b.type === 'effet' ? `;color:${b.couleur || '#E53935'};transform:rotate(${Number(b.angle) || -6}deg)` : ''}" ${o.edition ? `data-bulle="${i}-${k}" data-a="bdSelBulle"` : ''}>${esc(b.texte || '') || (o.vide ? '&nbsp;' : o.edition ? '<span class="muet">…</span>' : '')}</div>`).join('')}</div>`; }).join('')}</div>`;
 }
-const CSS_PLANCHE = `.planche{display:grid;gap:3.5%;padding:4%;background:#fff;aspect-ratio:210/297;box-sizing:border-box;grid-auto-rows:1fr;grid-auto-columns:1fr}
+const CSS_PLANCHE = `.planche{display:grid;gap:3.5%;padding:4%;background:#fff;aspect-ratio:210/297;box-sizing:border-box;grid-auto-rows:1fr;grid-auto-columns:1fr;container-type:inline-size}
 .planche .vignette-bd{position:relative;border:3px solid #1b1b1b;border-radius:2px;overflow:hidden;background:#fff;min-height:0}
 .planche .vignette-bd img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .planche.photo{padding:0;display:block}.planche.photo img{width:100%;height:100%;object-fit:contain}
-.bulle{position:absolute;max-width:62%;min-width:16%;min-height:1.6em;padding:.45em .75em;background:#fff;border:2px solid #1b1b1b;font:700 13px/1.25 'Comic Sans MS','Comic Neue','Outfit',sans-serif;color:#111;box-sizing:border-box;text-align:center}
+.bulle{position:absolute;max-width:62%;min-width:16%;min-height:1.6em;padding:.45em .75em;background:#fff;border:2px solid #1b1b1b;font:700 2.5cqw/1.25 'Comic Sans MS','Comic Neue','Outfit',sans-serif;color:#111;box-sizing:border-box;text-align:center}
 .bulle.t-parole{border-radius:50%/40%}
 .bulle.t-parole::after{content:'';position:absolute;left:22%;bottom:-12px;border:7px solid transparent;border-top:12px solid #1b1b1b;border-bottom:0}
+.bulle.t-parole.q-bd::after{left:auto;right:22%}
+.bulle.t-parole.q-hg::after,.bulle.t-parole.q-hd::after{bottom:auto;top:-12px;border-top:0;border-bottom:12px solid #1b1b1b}
+.bulle.t-parole.q-hd::after{left:auto;right:22%}
+.bulle.t-parole.q-g::after{bottom:auto;top:calc(50% - 7px);left:-12px;border:7px solid transparent;border-right:12px solid #1b1b1b;border-left:0}
+.bulle.t-parole.q-d::after{bottom:auto;top:calc(50% - 7px);left:auto;right:-12px;border:7px solid transparent;border-left:12px solid #1b1b1b;border-right:0}
 .bulle.t-pensee{border-radius:40px;border-style:dotted;border-width:3px}
 .bulle.t-pensee::after{content:'';position:absolute;left:18%;bottom:-14px;width:9px;height:9px;border:2px solid #1b1b1b;border-radius:50%;background:#fff}
-.bulle.t-cri{border-radius:4px;border-width:3px;font-size:15px;text-transform:uppercase;transform:rotate(-4deg);background:#FFF36B}
+.bulle.t-pensee.q-bd::after{left:auto;right:18%}
+.bulle.t-pensee.q-hg::after,.bulle.t-pensee.q-hd::after{bottom:auto;top:-14px}.bulle.t-pensee.q-hd::after{left:auto;right:18%}
+.bulle.t-pensee.q-g::after{bottom:auto;top:calc(50% - 6px);left:-14px}.bulle.t-pensee.q-d::after{bottom:auto;top:calc(50% - 6px);left:auto;right:-14px}
+.bulle.s-p{font-size:2cqw}.bulle.s-g{font-size:3.3cqw}
+.bulle.t-effet{background:none;border:0;min-width:0;max-width:none;padding:0;font:900 5.8cqw/1 Impact,'Arial Black','Outfit',sans-serif;letter-spacing:1px;white-space:nowrap;-webkit-text-stroke:1.5px #1b1b1b;text-shadow:3px 3px 0 #1b1b1b}
+.bulle.t-effet.s-p{font-size:3.8cqw}.bulle.t-effet.s-g{font-size:8.5cqw}
+.bulle.t-cri{border-radius:4px;border-width:3px;font-size:2.9cqw;text-transform:uppercase;transform:rotate(-4deg);background:#FFF36B}
+.bulle.t-cri.s-p{font-size:2.3cqw}.bulle.t-cri.s-g{font-size:3.8cqw}
 .bulle.a-remplir{min-width:46%;min-height:22%}
 .bulle.t-recit{border-radius:0;background:#FFF4C2;text-align:left;font-style:italic;font-weight:600}`;
 
@@ -101,8 +119,13 @@ function vuePlancheBD(a, p) {
       <div class="panneau outils-bd">${c ? `<h3>Case ${cs + 1}</h3>
         <div class="rang"><button class="btn doux" data-a="bdCamCase">📷 Photo</button><button class="btn doux" data-a="bdImages">🖼 Mes images</button>${c.img ? '<button class="btn doux petit" data-a="bdSansImage">Enlever l’image</button>' : ''}</div>
         ${BD.picker ? `<div class="choix-photos">${images.map((f) => `<button data-a="bdChoisirImage" data-c="${esc(f.chemin)}"><img src="${esc(f.url)}" alt="" loading="lazy"></button>`).join('') || '<p class="muet">Pas encore d’image.</p>'}</div>` : ''}
-        <h3>Bulles</h3><div class="rang">${Object.entries(TYPES_BULLES).map(([k, n]) => `<button class="puce" data-a="bdBulle" data-t="${k}">+ ${n}</button>`).join('')}</div>
-        ${b ? `<input class="champ" data-in="bdTexteBulle" maxlength="90" value="${esc(b.texte)}" placeholder="Ce que dit ton personnage"><div class="rang"><span class="muet">Glisse la bulle avec la souris.</span><button class="btn doux petit" data-a="bdEnleverBulle">Enlever la bulle</button></div>` : c.bulles.length ? '<p class="muet" style="margin:0">Touche une bulle pour écrire dedans.</p>' : ''}`
+        ${c.img ? `<div class="rang"><b>Cadrage</b><button class="btn doux petit" data-a="bdZoom" data-d="-1" aria-label="Dézoomer">−</button><span class="muet" id="bd-zoom">${Math.round(bdCadrage(c).z * 100)} %</span><button class="btn doux petit" data-a="bdZoom" data-d="1" aria-label="Zoomer">+</button><button class="btn doux petit" data-a="bdRecentrer">Recentrer</button></div><p class="muet" style="margin:0">Zoome, puis glisse l’image dans la case pour choisir ce qu’on voit.</p>` : ''}
+        <h3>Bulles</h3><div class="rang wrap">${Object.entries(TYPES_BULLES).map(([k, n]) => `<button class="puce" data-a="bdBulle" data-t="${k}">+ ${n}</button>`).join('')}<button class="puce ${BD.effets ? 'on' : ''}" data-a="bdEffets">+ Bruitage</button></div>
+        ${BD.effets ? `<div class="rang wrap">${BD_EFFETS.map(([t, col], k) => `<button class="puce bd-effet-choix" style="color:${col}" data-a="bdEffet" data-k="${k}">${esc(t)}</button>`).join('')}</div>` : ''}
+        ${b ? `<input class="champ" data-in="bdTexteBulle" maxlength="90" value="${esc(b.texte)}" placeholder="${b.type === 'effet' ? 'Le bruit' : 'Ce que dit ton personnage'}">
+          <div class="rang wrap"><span class="muet">Taille</span>${BD_TAILLES.map(([k, n]) => `<button class="puce ${(b.taille || 'm') === k ? 'on' : ''}" data-a="bdTaille" data-t="${k}">${n}</button>`).join('')}</div>
+          ${b.type === 'parole' || b.type === 'pensee' ? `<div class="rang wrap"><span class="muet">Pointe</span>${BD_POINTES.map(([k, f]) => `<button class="puce ${(b.queue || 'bg') === k ? 'on' : ''}" data-a="bdPointe" data-q="${k}" aria-label="Pointe ${k}">${f}</button>`).join('')}</div>` : ''}
+          <div class="rang"><span class="muet">Glisse la bulle avec la souris.</span><button class="btn doux petit" data-a="bdEnleverBulle">Enlever la bulle</button></div>` : c.bulles.length ? '<p class="muet" style="margin:0">Touche une bulle pour écrire dedans.</p>' : ''}`
       : '<h3>Touche une case</h3><p class="muet" style="margin:0">Pour y mettre une photo, un de tes dessins ou une image de ton film, puis des bulles.</p><p class="muet">Astuce : dessine tes personnages sur papier et photographie-les !</p>'}</div></div>
     ${BD.cam && BD.cam.cas !== undefined ? vueCamBD('Montre ton dessin, ta figurine ou ta scène à la caméra.') : ''}</div>`;
 }
@@ -131,17 +154,31 @@ async function photoBD() {
 
 // ---------- Glisser les bulles ----------
 document.addEventListener('pointerdown', (e) => {
+  const im = e.target.closest && !e.target.closest('[data-bulle]') && e.target.closest('[data-cadrer]');
+  if (im) { // recadrer l'image de la case sélectionnée
+    const i = Number(im.dataset.cadrer); const k = bdCadrage(planche().cases[i]); const r = im.parentElement.getBoundingClientRect();
+    BD.cadre = { im, i, x0: e.clientX, y0: e.clientY, kx: k.x, ky: k.y, z: k.z, w: r.width, h: r.height, bouge: false };
+    e.preventDefault(); e.stopPropagation(); return;
+  }
   const el = e.target.closest && e.target.closest('[data-bulle]'); if (!el) return;
   const [i, k] = el.dataset.bulle.split('-').map(Number); S.vue.casesel = i; S.vue.bullesel = k;
   const box = el.parentElement.getBoundingClientRect(); BD.glisse = { el, box, i, k, dx: e.clientX - el.getBoundingClientRect().left, dy: e.clientY - el.getBoundingClientRect().top, bouge: false };
   e.preventDefault(); e.stopPropagation();
 }, true);
 document.addEventListener('pointermove', (e) => {
+  const q = BD.cadre;
+  if (q) { // on tire l'image : glisser vers la droite montre davantage sa gauche
+    const dx = e.clientX - q.x0, dy = e.clientY - q.y0; if (Math.abs(dx) + Math.abs(dy) > 3) q.bouge = true;
+    q.x = Math.max(0, Math.min(100, q.kx - (dx / q.w) * 100 / q.z)); q.y = Math.max(0, Math.min(100, q.ky - (dy / q.h) * 100 / q.z));
+    q.im.style.objectPosition = `${q.x}% ${q.y}%`; q.im.style.transformOrigin = `${q.x}% ${q.y}%`; return;
+  }
   const g = BD.glisse; if (!g) return; g.bouge = true;
   const x = Math.max(0, Math.min(85, ((e.clientX - g.dx - g.box.left) / g.box.width) * 100)); const y = Math.max(0, Math.min(88, ((e.clientY - g.dy - g.box.top) / g.box.height) * 100));
   g.el.style.left = x + '%'; g.el.style.top = y + '%'; g.x = x; g.y = y;
 });
 document.addEventListener('pointerup', () => {
+  const q = BD.cadre;
+  if (q) { BD.cadre = null; if (q.bouge && q.x !== undefined) { const c = planche().cases[q.i]; c.cadrage = Object.assign(bdCadrage(c), { x: Math.round(q.x), y: Math.round(q.y) }); sauverAlbum(); } return; }
   const g = BD.glisse; if (!g) return; BD.glisse = null;
   const b = planche().cases[g.i].bulles[g.k]; if (g.bouge && g.x !== undefined) { b.x = Math.round(g.x); b.y = Math.round(g.y); sauverAlbum(); }
   render(); const t = document.querySelector('[data-in="bdTexteBulle"]'); if (t && !g.bouge) t.focus();
@@ -194,7 +231,7 @@ Object.assign(A, {
     const chemin = await photoBD(); const cam = BD.cam; couperCamBD(); if (!chemin) { render(); return; }
     const a = album();
     if (cam.planche) { a.planches.push({ type: 'photo', chemin }); toast('Ta planche est dans l’album !'); }
-    else if (cam.cas !== undefined) planche().cases[cam.cas].img = chemin;
+    else if (cam.cas !== undefined) { planche().cases[cam.cas].img = chemin; delete planche().cases[cam.cas].cadrage; }
     sauverAlbum(); render();
   },
   bdCase: (d) => { S.vue.casesel = Number(d.i); S.vue.bullesel = undefined; BD.picker = null; render(); },
@@ -202,9 +239,16 @@ Object.assign(A, {
     const [cr, ph, de] = await Promise.all([F.creations(), F.photos(), F.animDecors()]);
     BD.picker = (cr || []).filter((f) => f.type === 'image').concat(ph || [], (de || []).filter((f) => f.origine === 'flocon')); render();
   },
-  bdChoisirImage: (d) => { planche().cases[S.vue.casesel].img = d.c; BD.picker = null; sauverAlbum(); render(); },
+  bdChoisirImage: (d) => { planche().cases[S.vue.casesel].img = d.c; delete planche().cases[S.vue.casesel].cadrage; BD.picker = null; sauverAlbum(); render(); },
   bdSansImage: () => { planche().cases[S.vue.casesel].img = null; sauverAlbum(); render(); },
   bdBulle: (d) => { const c = planche().cases[S.vue.casesel]; c.bulles.push({ type: d.t, texte: '', x: d.t === 'recit' ? 3 : 10 + (c.bulles.length * 12) % 50, y: d.t === 'recit' ? 3 : 8 + (c.bulles.length * 14) % 50 }); S.vue.bullesel = c.bulles.length - 1; sauverAlbum(); render(); const t = document.querySelector('[data-in="bdTexteBulle"]'); if (t) t.focus(); },
+  bdZoom: (d) => { const c = planche().cases[S.vue.casesel]; const k = bdCadrage(c); k.z = Math.max(1, Math.min(3, Math.round((k.z + Number(d.d) * 0.25) * 100) / 100)); c.cadrage = k; sauverAlbum(); render(); },
+  bdRecentrer: () => { planche().cases[S.vue.casesel].cadrage = { z: 1, x: 50, y: 50 }; sauverAlbum(); render(); },
+  bdEffets: () => { BD.effets = !BD.effets; render(); },
+  bdEffet: (d) => { const [t, col] = BD_EFFETS[Number(d.k)]; const c = planche().cases[S.vue.casesel]; const n = c.bulles.length;
+    c.bulles.push({ type: 'effet', texte: t, couleur: col, angle: [-8, 6, -4, 9][n % 4], taille: 'm', x: 10 + (n * 17) % 50, y: 25 + (n * 13) % 45 }); S.vue.bullesel = n; BD.effets = false; sauverAlbum(); render(); },
+  bdTaille: (d) => { planche().cases[S.vue.casesel].bulles[S.vue.bullesel].taille = d.t; sauverAlbum(); render(); },
+  bdPointe: (d) => { planche().cases[S.vue.casesel].bulles[S.vue.bullesel].queue = d.q; sauverAlbum(); render(); },
   bdEnleverBulle: () => { planche().cases[S.vue.casesel].bulles.splice(S.vue.bullesel, 1); S.vue.bullesel = undefined; sauverAlbum(); render(); },
   bdImprimerAlbum: async () => {
     const a = album(); await sauverAlbumMaintenant();
@@ -226,4 +270,4 @@ A.fermerVue = async (d) => {
   fermerVueAvantBD(d);
 };
 // Les règles des planches servent aussi à l'écran.
-(() => { const st = document.createElement('style'); st.textContent = CSS_PLANCHE; document.head.appendChild(st); })();
+(() => { const st = document.createElement('style'); st.textContent = CSS_PLANCHE + '\n.zone-planche [data-cadrer]{cursor:move;touch-action:none;user-select:none}.bd-effet-choix{font-weight:900}.outils-bd .rang.wrap{flex-wrap:wrap}'; document.head.appendChild(st); })();
