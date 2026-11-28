@@ -375,14 +375,48 @@ function ouvrirDessin() {
   arreterAuto(); arreterLecture(); fermerDessin();
   document.body.insertAdjacentHTML('beforeend', `<div class="film-dessin" id="film-dessin"><div class="panneau cadre-dessin">
     <div class="rang entre"><h3>✏️ Dessine ton image</h3><span class="rang"><button class="puce ${DES.fond === 'papier' ? 'on' : ''}" data-d="fond" data-v="papier">Feuille blanche</button><button class="puce ${DES.fond === 'photo' ? 'on' : ''}" data-d="fond" data-v="photo">Sur la dernière image</button></span></div>
-    <div class="feuille-dessin"><canvas id="fd-fond" width="${FW}" height="${FH}"></canvas><canvas id="fd-trait" width="${FW}" height="${FH}"></canvas></div>
+    <div class="feuille-dessin"><canvas id="fd-fond" width="${FW}" height="${FH}"></canvas><canvas id="fd-trait" width="${FW}" height="${FH}"></canvas><canvas id="fd-apercu" width="${FW}" height="${FH}" hidden></canvas></div>
     <div class="rang entre outils-dessin"><span class="rang">${COULEURS_DESSIN.map((c) => `<button class="pastille gros ${DES.couleur === c && !DES.gomme ? 'on' : ''}" style="background:${c}" data-d="couleur" data-v="${c}" aria-label="Couleur"></button>`).join('')}
-      <button class="puce ${DES.gomme ? 'on' : ''}" data-d="gomme">Gomme</button>${[3, 6, 14].map((t) => `<button class="puce ${DES.taille === t ? 'on' : ''}" data-d="taille" data-v="${t}"><span class="point" style="width:${t + 4}px;height:${t + 4}px"></span></button>`).join('')}</span>
-      <span class="rang"><button class="puce" data-d="annuler">↶</button><button class="puce" data-d="copier">Reprendre l’image d’avant</button><button class="puce" data-d="vider">Tout effacer</button></span></div>
+      <button class="puce ${DES.pot ? 'on' : ''}" data-d="pot" title="Remplir une zone">🪣 Pot</button><button class="puce ${DES.gomme ? 'on' : ''}" data-d="gomme">Gomme</button>${[3, 6, 14].map((t) => `<button class="puce ${DES.taille === t ? 'on' : ''}" data-d="taille" data-v="${t}"><span class="point" style="width:${t + 4}px;height:${t + 4}px"></span></button>`).join('')}</span>
+      <span class="rang"><button class="puce" data-d="annuler">↶</button><button class="puce" data-d="copier">Reprendre l’image d’avant</button><button class="puce" data-d="vider">Tout effacer</button><button class="puce" data-d="apercu">▶ Aperçu</button></span></div>
     <div class="rang entre"><span class="muet">L’image d’avant apparaît en fantôme : décale ton dessin un tout petit peu.</span><span class="rang"><button class="btn doux" data-d="fermer">Fermer</button><button class="btn" style="background:#E0457B" data-d="ajouter">Ajouter à la frise ✓</button></span></div></div></div>`);
   preparerFondDessin(); brancherDessin();
 }
-function fermerDessin() { const z = document.getElementById('film-dessin'); if (z) z.remove(); }
+function fermerDessin() { filmArreterApercu(); const z = document.getElementById('film-dessin'); if (z) z.remove(); }
+// Pot de peinture : remplit la zone du dessin où l'on clique (traits du calque de dessin = frontières).
+function filmRemplir(x, sx, sy, couleur) {
+  if (sx < 0 || sy < 0 || sx >= FW || sy >= FH) return;
+  const im = x.getImageData(0, 0, FW, FH); const d = im.data; const i0 = (sy * FW + sx) * 4;
+  const cible = [d[i0], d[i0 + 1], d[i0 + 2], d[i0 + 3]];
+  const c = parseInt(couleur.slice(1), 16); const nv = [(c >> 16) & 255, (c >> 8) & 255, c & 255, 255];
+  if (cible.every((v, k) => Math.abs(v - nv[k]) < 4)) return;
+  const proche = (i) => Math.abs(d[i + 3] - cible[3]) < 60 && (cible[3] < 20 || (Math.abs(d[i] - cible[0]) < 48 && Math.abs(d[i + 1] - cible[1]) < 48 && Math.abs(d[i + 2] - cible[2]) < 48));
+  const vu = new Uint8Array(FW * FH); const pile = new Int32Array(FW * FH); let n = 0; pile[n++] = sy * FW + sx; vu[sy * FW + sx] = 1; let total = 0;
+  while (n && total < FW * FH) {
+    const p = pile[--n]; const i = p * 4; d[i] = nv[0]; d[i + 1] = nv[1]; d[i + 2] = nv[2]; d[i + 3] = 255; total++;
+    const px = p % FW, py = (p - px) / FW;
+    if (px > 0 && !vu[p - 1] && proche((p - 1) * 4)) { vu[p - 1] = 1; pile[n++] = p - 1; }
+    if (px < FW - 1 && !vu[p + 1] && proche((p + 1) * 4)) { vu[p + 1] = 1; pile[n++] = p + 1; }
+    if (py > 0 && !vu[p - FW] && proche((p - FW) * 4)) { vu[p - FW] = 1; pile[n++] = p - FW; }
+    if (py < FH - 1 && !vu[p + FW] && proche((p + FW) * 4)) { vu[p + FW] = 1; pile[n++] = p + FW; }
+  }
+  x.putImageData(im, 0, 0);
+}
+// Aperçu : les 6 dernières images de la frise + le dessin en cours, en boucle, à la vitesse du film.
+const FILM_APERCU = { iv: null };
+function filmArreterApercu() { clearInterval(FILM_APERCU.iv); FILM_APERCU.iv = null; const a = document.getElementById('fd-apercu'); if (a) a.hidden = true; const b = document.querySelector('#film-dessin [data-d="apercu"]'); if (b) { b.textContent = '▶ Aperçu'; b.classList.remove('on'); } }
+function filmApercuDessin(bouton) {
+  if (FILM_APERCU.iv) { filmArreterApercu(); return; }
+  const a = document.getElementById('fd-apercu'); const t = document.getElementById('fd-trait'); if (!a || !t) return;
+  const p = FILM.p; const fin = FILM.sel >= 0 ? FILM.sel + 1 : p.images.length;
+  const images = p.images.slice(Math.max(0, fin - 6), fin).map((n) => FILM.imgs[n] && FILM.imgs[n].bmp).filter(Boolean);
+  const actuelle = document.createElement('canvas'); actuelle.width = FW; actuelle.height = FH; const cx = actuelle.getContext('2d');
+  cx.fillStyle = '#fff'; cx.fillRect(0, 0, FW, FH); const b = derniereImage(); if (DES.fond === 'photo' && b) couvrir(cx, b, b.width, b.height, FW, FH); cx.drawImage(t, 0, 0);
+  const suite = images.concat([actuelle]); const ax = a.getContext('2d'); let k = 0;
+  a.hidden = false; bouton.textContent = '■ Stop'; bouton.classList.add('on');
+  const montrer = () => { const im = suite[k % suite.length]; ax.fillStyle = '#fff'; ax.fillRect(0, 0, FW, FH); couvrir(ax, im, im.width, im.height, FW, FH); k++; };
+  montrer(); FILM_APERCU.iv = setInterval(montrer, 1000 / (p.fps || 8));
+}
 function derniereImage() { const p = FILM.p; const nom = p.images[FILM.sel >= 0 ? FILM.sel : p.images.length - 1]; return nom && FILM.imgs[nom] ? FILM.imgs[nom].bmp : null; }
 function preparerFondDessin() {
   const c = document.getElementById('fd-fond'); if (!c) return; const x = c.getContext('2d'); const b = derniereImage();
@@ -392,7 +426,9 @@ function preparerFondDessin() {
 function brancherDessin() {
   const t = document.getElementById('fd-trait'); const x = t.getContext('2d'); let dernier = null;
   const pos = (e) => { const r = t.getBoundingClientRect(); return [(e.clientX - r.left) * FW / r.width, (e.clientY - r.top) * FH / r.height]; };
-  t.addEventListener('pointerdown', (e) => { DES.pile.push(x.getImageData(0, 0, FW, FH)); if (DES.pile.length > 25) DES.pile.shift(); dernier = pos(e); t.setPointerCapture(e.pointerId); trait(x, dernier, dernier); });
+  t.addEventListener('pointerdown', (e) => { DES.pile.push(x.getImageData(0, 0, FW, FH)); if (DES.pile.length > 25) DES.pile.shift();
+    if (DES.pot) { const [px, py] = pos(e); filmRemplir(x, Math.floor(px), Math.floor(py), DES.couleur); return; }
+    dernier = pos(e); t.setPointerCapture(e.pointerId); trait(x, dernier, dernier); });
   t.addEventListener('pointermove', (e) => { if (!dernier) return; const p = pos(e); trait(x, dernier, p); dernier = p; });
   t.addEventListener('pointerup', () => { dernier = null; });
   document.getElementById('film-dessin').addEventListener('click', (e) => { const b = e.target.closest('[data-d]'); if (b) actionDessin(b.dataset.d, b.dataset.v, b); });
@@ -406,7 +442,9 @@ async function actionDessin(d, v, el) {
   const t = document.getElementById('fd-trait'); const x = t && t.getContext('2d');
   const marquer = (sel) => { document.querySelectorAll(`#film-dessin ${sel}`).forEach((b) => b.classList.remove('on')); el.classList.add('on'); };
   if (d === 'couleur') { DES.couleur = v; DES.gomme = false; marquer('[data-d="couleur"],[data-d="gomme"]'); }
-  else if (d === 'gomme') { DES.gomme = !DES.gomme; el.classList.toggle('on', DES.gomme); }
+  else if (d === 'gomme') { DES.gomme = !DES.gomme; DES.pot = false; marquer('[data-d="gomme"],[data-d="pot"]'); el.classList.toggle('on', DES.gomme); }
+  else if (d === 'pot') { DES.pot = !DES.pot; DES.gomme = false; marquer('[data-d="gomme"],[data-d="pot"]'); el.classList.toggle('on', DES.pot); }
+  else if (d === 'apercu') filmApercuDessin(el);
   else if (d === 'taille') { DES.taille = Number(v); marquer('[data-d="taille"]'); }
   else if (d === 'fond') { DES.fond = v; marquer('[data-d="fond"]'); preparerFondDessin(); }
   else if (d === 'annuler') { const im = DES.pile.pop(); if (im) x.putImageData(im, 0, 0); }
@@ -437,7 +475,9 @@ async function fabriquer() {
     const flux = c.captureStream(30);
     const ac = new AudioContext(); const dest = ac.createMediaStreamDestination();
     dest.stream.getAudioTracks().forEach((t) => flux.addTrack(t));
-    const mime = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find((m) => MediaRecorder.isTypeSupported(m));
+    // MP4 d'abord : lisible sur les téléphones et les télés ; sinon WebM.
+    const mime = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1,opus', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find((m) => MediaRecorder.isTypeSupported(m));
+    const extFilm = /^video\/mp4/.test(mime || '') ? 'mp4' : 'webm';
     const rec = new MediaRecorder(flux, { mimeType: mime, videoBitsPerSecond: 6000000 }); const morceaux = [];
     rec.ondataavailable = (e) => { if (e.data.size) morceaux.push(e.data); };
     dessinerA(x, FW, FH, 0, segs);
@@ -454,8 +494,8 @@ async function fabriquer() {
     });
     await new Promise((ok) => { rec.onstop = ok; rec.stop(); });
     ac.close().catch(() => {});
-    const octets = new Uint8Array(await new Blob(morceaux, { type: 'video/webm' }).arrayBuffer());
-    const r = await F.animExporter(p.titre, octets);
+    const octets = new Uint8Array(await new Blob(morceaux, { type: extFilm === 'mp4' ? 'video/mp4' : 'video/webm' }).arrayBuffer());
+    const r = await F.animExporter(p.titre, octets, extFilm);
     if (!r || !r.ok) throw new Error((r && r.erreur) || 'enregistrement');
     FILM.fini = { nom: r.nom };
     S.profil.films = (S.profil.films || 0) + 1; F.profil(S.profil);
@@ -606,6 +646,40 @@ function majEcran() {
   const as = document.getElementById('anim-astuce'); if (as) as.textContent = ASTUCES[FILM.astuce % ASTUCES.length];
 }
 
+// ---------- Frise : glisser une image pour la changer de place ----------
+const FILM_GLISSE = { el: null, ignorer: false };
+document.addEventListener('pointerdown', (e) => {
+  const v = e.target.closest && e.target.closest('#anim-frise .vignette'); if (!v || e.button !== 0) return;
+  e.preventDefault(); FILM_GLISSE.el = v; FILM_GLISSE.depart = Number(v.dataset.i); FILM_GLISSE.x0 = e.clientX; FILM_GLISSE.y0 = e.clientY; FILM_GLISSE.actif = false;
+});
+document.addEventListener('pointermove', (e) => {
+  const g = FILM_GLISSE; if (!g.el) return;
+  if (!g.actif) { if (Math.hypot(e.clientX - g.x0, e.clientY - g.y0) < 8) return; g.actif = true; g.el.classList.add('glisse');
+    g.fantome = g.el.cloneNode(true); g.fantome.className = 'vignette film-fantome-glisse'; document.body.appendChild(g.fantome);
+    g.marque = document.createElement('div'); g.marque.className = 'film-marque-insertion'; document.getElementById('anim-frise').appendChild(g.marque); }
+  g.fantome.style.left = e.clientX - 52 + 'px'; g.fantome.style.top = e.clientY - 39 + 'px';
+  const fr = document.getElementById('anim-frise'); const l = [...fr.querySelectorAll('.vignette')];
+  let pos = l.length; for (let k = 0; k < l.length; k++) { const r = l[k].getBoundingClientRect(); if (e.clientX < r.left + r.width / 2) { pos = k; break; } }
+  g.cible = pos; const ref = l[pos] || l[l.length - 1]; const rr = ref.getBoundingClientRect(); const rf = fr.getBoundingClientRect();
+  g.marque.style.left = (pos < l.length ? rr.left : rr.right + 4) - rf.left + fr.scrollLeft - 5 + 'px';
+  const bord = 60; if (e.clientX < rf.left + bord) fr.scrollLeft -= 12; else if (e.clientX > rf.right - bord) fr.scrollLeft += 12;
+});
+document.addEventListener('dragstart', (e) => { if (e.target.closest && e.target.closest('#anim-frise')) e.preventDefault(); });
+document.addEventListener('pointerup', () => {
+  const g = FILM_GLISSE; if (!g.el) return; const actif = g.actif; g.el.classList.remove('glisse'); g.el = null;
+  if (g.fantome) g.fantome.remove(); if (g.marque) g.marque.remove(); g.fantome = g.marque = null;
+  if (!actif) return; g.ignorer = true; setTimeout(() => { g.ignorer = false; }, 50);
+  const p = FILM.p; const i = g.depart; let j = g.cible; if (j === undefined || j === i || j === i + 1) return;
+  const [nom] = p.images.splice(i, 1); if (j > i) j--; p.images.splice(j, 0, nom); FILM.sel = j; filmSauver(); majBas(true); majEcran();
+});
+(() => { const st = document.createElement('style'); st.textContent = `
+  #anim-frise{position:relative}
+  #anim-frise .vignette{touch-action:pan-y}#anim-frise .vignette img{-webkit-user-drag:none;user-select:none;pointer-events:none}#anim-frise .vignette.glisse{opacity:.35}
+  .film-fantome-glisse{position:fixed;width:104px;aspect-ratio:4/3;border-radius:8px;overflow:hidden;pointer-events:none;z-index:999;box-shadow:0 10px 24px rgba(0,0,0,.35);transform:rotate(-4deg)}
+  .film-fantome-glisse img{width:100%;height:100%;object-fit:cover}.film-fantome-glisse span{display:none}
+  .film-marque-insertion{position:absolute;top:4px;bottom:10px;width:5px;border-radius:3px;background:#E0457B;pointer-events:none}
+  #fd-apercu{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}`; document.head.appendChild(st); })();
+
 // ---------- Ouvrir, créer ----------
 async function ouvrirFilm(id) {
   arreterTout();
@@ -644,7 +718,7 @@ Object.assign(A, {
   filmChoisirPhoto: (d) => choisirPhoto(d.c),
   filmToutPrendre: (d) => { FILM.photos[Number(d.k)].photos.forEach((f) => { if (!FILM.choix.includes(f.chemin)) FILM.choix.push(f.chemin); }); majBas(); },
   filmAjouterPhotos: () => ajouterPhotos(),
-  filmChoisir: (d) => { const i = Number(d.i); arreterLecture(); FILM.sel = FILM.sel === i ? -1 : i; majBas(); majEcran(); },
+  filmChoisir: (d) => { if (FILM_GLISSE.ignorer) { FILM_GLISSE.ignorer = false; return; } const i = Number(d.i); arreterLecture(); FILM.sel = FILM.sel === i ? -1 : i; majBas(); majEcran(); },
   filmBouger: (d) => { const p = FILM.p, i = FILM.sel, j = i + Number(d.d); if (i < 0 || j < 0 || j >= p.images.length) return; [p.images[i], p.images[j]] = [p.images[j], p.images[i]]; FILM.sel = j; filmSauver(); majBas(true); majEcran(); },
   filmDupliquer: () => { const p = FILM.p, i = FILM.sel; if (i < 0) return; p.images.splice(i + 1, 0, p.images[i]); FILM.sel = i + 1; filmSauver(); majBas(true); majEcran(); },
   filmEffacer: () => { const p = FILM.p, i = FILM.sel; if (i < 0) return; const nom = p.images.splice(i, 1)[0]; if (!p.images.includes(nom)) F.animEffacer(FILM.id, nom); FILM.sel = Math.min(i, p.images.length - 1); if (!p.images.length) FILM.sel = -1; filmSauver(); majBas(true); majEcran(); },
