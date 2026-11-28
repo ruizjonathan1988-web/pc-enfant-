@@ -454,6 +454,48 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.ok(creationsAvec(/^Coloriage .*\.png$/).length, 'coloriage dans la galerie');
     await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
   });
+  await etape('Histoire à choix : image de page, objet à trouver, choix sous condition', async () => {
+    await rubrique('J’écris'); await tuile('Histoire à choix');
+    await page.fill('[data-in="hNouveau"]', 'La clé du phare'); await clic('[data-a="hCreer"]');
+    await page.fill('[data-in="hTexte"]', 'Le phare est fermé. Il y a une barque sur la plage.');
+    await clic('[data-a="hImages"]'); await clic('[data-a="hChoisirImage"] >> nth=0'); await page.waitForSelector('.h-image');
+    await clic('[data-a="hAjouterChoix"]'); await page.fill('[data-in="hChoixTexte"][data-i="0"]', 'La barque');
+    await clic('[data-a="hAjouterChoix"]'); await page.fill('[data-in="hChoixTexte"][data-i="1"]', 'Le phare');
+    await clic('[data-a="hCreerSuite"][data-i="0"]'); await clic('[data-a="hCreerSuite"][data-i="1"]');
+    await clic('.noeud:has-text("La barque")'); await page.fill('[data-in="hTexte"]', 'Dans la barque, une clé !');
+    await clic('[data-a="hObjet"]'); await clic('[data-a="hObjetEmoji"][data-e="🔑"]'); await page.fill('[data-in="hObjetNom"]', 'la clé');
+    await clic('[data-a="hCam"]'); await page.waitForFunction(() => { const v = document.getElementById('h-video'); return v && v.readyState >= 2; }, null, { timeout: 15000 });
+    await clic('[data-a="hClic"]'); await page.waitForSelector('.h-image', { timeout: 15000 });
+    await clic('[data-a="hAjouterChoix"]'); await page.fill('[data-in="hChoixTexte"][data-i="0"]', 'Aller au phare');
+    await page.selectOption('[data-in="hChoixVers"][data-i="0"]', { label: 'Le phare' });
+    await clic('.noeud:has-text("Le phare")'); await page.fill('[data-in="hTexte"]', 'Tout en haut, la lumière brille.'); await clic('[data-a="hFin"][data-f="bonne"]');
+    await clic('.noeud >> nth=0'); await page.selectOption('[data-in="hChoixRequis"][data-i="1"]', 'la clé'); await page.waitForSelector('.bien');
+    await clic('[data-a="hJouer"]'); await page.waitForSelector('.choix-jeu button.bloque');
+    await clic('.choix-jeu button >> nth=0'); await page.waitForSelector('.trouve-jeu'); await page.waitForSelector('.sac-jeu:has-text("la clé")');
+    await clic('.choix-jeu button >> nth=0'); await page.waitForSelector('.fin-jeu');
+    await clic('[data-a="hEcrire"]'); await clic('[data-a="hImprimer"]'); await pause(4000);
+    assert.ok(creationsAvec(/^La clé du phare\.pdf$/).length, 'livret PDF avec objets');
+    assert.ok(creationsAvec(/^Histoire La clé du phare.*\.jpg$/).length, 'photo du dessin de la page');
+    const h = fs.readdirSync(docs('Mes histoires')).filter((f) => f.endsWith('.json')).map((f) => lire(path.join(docs('Mes histoires'), f))).find((x) => x.titre === 'La clé du phare');
+    assert.ok(h.pages[0].image && h.pages[1].image, 'images des pages');
+    assert.strictEqual(h.pages[1].objet.nom, 'la clé'); assert.strictEqual(h.pages[0].choix[1].requis, 'la clé');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Coloriages : nouveaux dessins en pixels, mon dessin au feutre devient un coloriage', async () => {
+    await rubrique('Je crée'); await tuile('Coloriages');
+    await clic('[data-a="colMode"][data-m="pixel"]');
+    for (const k of ['chouette', 'baleine', 'cactus', 'papillon', 'robot', 'voiture', 'pingouin', 'fraise', 'chateau']) { await clic(`[data-a="colSprite"][data-s="${k}"]`); await page.waitForSelector('#col-svg rect.px'); }
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="colMode"][data-m="dessin"]');
+    await clic('[data-a="coldCam"]'); await page.waitForFunction(() => { const v = document.getElementById('cold-video'); return v && v.readyState >= 2; }, null, { timeout: 15000 });
+    await clic('[data-a="coldClic"]'); await page.waitForSelector('#cold-toile', { timeout: 15000 });
+    assert.ok(await page.evaluate(() => COLD.cam === null), 'caméra coupée');
+    const b = await page.locator('#cold-toile').boundingBox(); await clic('[data-a="colPinceau"][data-i="2"]'); await page.mouse.click(b.x + 10, b.y + 10);
+    await clic('[data-a="coldSensib"][data-s="5"]'); await clic('[data-a="coldImprimer"]'); await pause(3000);
+    assert.ok(creationsAvec(/^Mon dessin en coloriage\.pdf$/).length, 'mon dessin en PDF');
+    await clic('[data-a="colGarder"]'); await pause(1000);
+    assert.ok(creationsAvec(/^Mon coloriage .*\.png$/).length, 'mon coloriage dans la galerie');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
   await etape('Atelier 3D : des cubes, le plan de montage et le fichier pour l’imprimante 3D', async () => {
     await page.evaluate(() => ouvrirVue('cubes'));
     await page.fill('[data-in="cNouveau"]', 'Ma tour'); await clic('[data-a="cCreer"]');
