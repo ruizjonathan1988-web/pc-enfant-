@@ -419,6 +419,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await rubrique('J’écris'); await tuile('Ma BD');
     await clic('[data-a="bdVidesDirect"]'); await clic('[data-a="bdImprimerVides"]'); await pause(3000);
     assert.ok(creationsAvec(/^Planches de BD vides\.pdf$/).length, 'planches vides');
+    await clic('#atelier-vides [data-a="bdVides"]');
     await page.fill('[data-in="bdNouveau"]', 'Les aventures de Givre'); await clic('[data-a="bdCreer"]');
     await clic('[data-a="bdPhotoPlanche"]'); await page.waitForFunction(() => { const v = document.getElementById('bd-video'); return v && v.readyState >= 2; }, null, { timeout: 15000 });
     await clic('[data-a="bdClic"]'); await page.waitForSelector('.carte-album:has-text("dessinée sur papier")', { timeout: 15000 });
