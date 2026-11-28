@@ -48,7 +48,7 @@ const SITES = {
   songmaker: { nom: 'Mélodies', url: 'https://musiclab.chromeexperiments.com/Song-Maker/', domaines: ['musiclab.chromeexperiments.com'] },
   teachable: { nom: 'Teachable Machine', url: 'https://teachablemachine.withgoogle.com/train/image', domaines: ['teachablemachine.withgoogle.com'], camera: true },
   blockly: { nom: 'Blockly Games', url: 'https://blockly.games/?lang=fr', domaines: ['blockly.games'] },
-  incredibox: { nom: 'Mes beats', url: 'https://www.incredibox.com/demo/', domaines: ['incredibox.com'], appli: { steam: '1545450', store: 'Incredibox' } }
+  incredibox: { nom: 'Mes beats', url: 'https://www.incredibox.com/demo/', domaines: ['incredibox.com'], appli: { steam: '1545450', store: 'Incredibox', local: { racine: 'C:\\Games', dossier: /^Incredibox/i, lanceurs: [/^Launcher\.(cmd|bat)$/i, /^Incredibox.*\.exe$/i] } } }
 };
 
 // Icônes : tracés SVG 24×24 (trait).

@@ -490,6 +490,22 @@ poser('lancer', async (t) => {
 // achetée par le parent), on l'ouvre ; sinon la tuile ouvre le site.
 poser('appliSite', async (ref) => {
   const a = (CAT.SITES[ref] || {}).appli; if (!a || process.platform !== 'win32') return { ok: false };
+  // Une copie posée par le parent sur le disque (ex. C:\Games\Incredibox…\Launcher.cmd) : cherchée sur deux niveaux.
+  if (a.local) {
+    const trouver = (d, prof) => {
+      let l = []; try { l = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { return null; }
+      for (const re of a.local.lanceurs) { const f = l.find((x) => x.isFile() && re.test(x.name)); if (f) return path.join(d, f.name); }
+      if (prof > 0) for (const x of l.filter((y) => y.isDirectory())) { const r = trouver(path.join(d, x.name), prof - 1); if (r) return r; }
+      return null;
+    };
+    let dossiersAppli = []; try { dossiersAppli = fs.readdirSync(a.local.racine, { withFileTypes: true }).filter((x) => x.isDirectory() && a.local.dossier.test(x.name)).map((x) => path.join(a.local.racine, x.name)).sort().reverse(); } catch (e) { /* rien */ }
+    for (const d of dossiersAppli) {
+      const c = trouver(d, 1); if (!c) continue;
+      noterLancement(`${ref} : ${c}`);
+      const p = /\.(cmd|bat)$/i.test(c) ? spawn('cmd.exe', ['/c', c], { detached: true, stdio: 'ignore', cwd: path.dirname(c), windowsHide: true }) : spawn(c, [], { detached: true, stdio: 'ignore', cwd: path.dirname(c) });
+      p.unref(); return { ok: true };
+    }
+  }
   if (a.steam && jeuxSteam().some((j) => j.id === a.steam)) { await shell.openExternal('steam://rungameid/' + a.steam); return { ok: true }; }
   if (a.store && /^[\w.-]+$/.test(a.store)) {
     const cmd = `$p = Get-AppxPackage -Name '*${a.store}*' | Select-Object -First 1; if ($p) { $id = (Get-AppxPackageManifest $p).Package.Applications.Application | Select-Object -First 1 -ExpandProperty Id; Start-Process ('shell:AppsFolder\\' + $p.PackageFamilyName + '!' + $id); 'ok' }`;
