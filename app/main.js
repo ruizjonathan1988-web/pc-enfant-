@@ -196,7 +196,8 @@ app.on('web-contents-created', (_e, wc) => {
 const APPLIS_STORE_PERMISES = /^(Minecraft\.Windows|CalculatorApp|WindowsCamera|SoundRec|VoiceRecorder|Incredibox.*|Flocon)$/i;
 let veilleur = null;
 function veillerApplisStore() {
-  if (process.platform !== 'win32' || veilleur || C.DEV) return;
+  // Pas sous le robot de test : PowerShell hériterait de la sortie du robot, qui attendrait sans fin qu'elle se ferme.
+  if (process.platform !== 'win32' || veilleur || C.DEV || process.env.FLOCON_CAMERA_FACTICE === '1') return;
   // La boucle s'arrête d'elle-même quand Flocon n'est plus là (fermé, ou arrêté brutalement).
   const cmd = "while (Get-Process -Id " + process.pid + " -ErrorAction SilentlyContinue) { Get-Process | Where-Object { $_.MainWindowHandle -ne 0 -and $_.Path -like '*\\WindowsApps\\*' } | ForEach-Object { '' + $_.Id + '|' + $_.ProcessName + '|' + $_.MainWindowTitle }; '--'; Start-Sleep -Seconds 3 }";
   veilleur = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
