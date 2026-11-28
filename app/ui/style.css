@@ -319,3 +319,66 @@ button.on .case{border-color:#2FA36B;background:#fff}
 .etapes-pause .num{width:30px;height:30px;border-radius:50%;background:#F28C28;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;flex:0 0 auto}
 .pouce{margin:0;background:#FFF8E6;border-radius:14px;padding:10px 14px;font-weight:700;max-width:640px}
 .pouce.vide{display:none}
+
+/* ---------- Histoire à choix ---------- */
+.affiche-histoire{flex-direction:row;align-items:center;gap:18px;background:linear-gradient(135deg,#fff,#EFEAFF)}
+.affiche-histoire .grande-e,.histoires .grande-e{font-size:64px;line-height:1}
+.ligne-histoire{display:flex;gap:8px;align-items:center}
+.studio-histoire{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:16px;align-items:start}
+.plan-histoire{width:100%;height:auto;display:block;background:repeating-linear-gradient(0deg,rgba(124,92,250,.05) 0 1px,transparent 1px 24px),repeating-linear-gradient(90deg,rgba(124,92,250,.05) 0 1px,transparent 1px 24px);border-radius:14px}
+.plan-histoire .traits line{stroke:#9C8CE0;stroke-width:2}
+.plan-histoire marker path{fill:#9C8CE0}
+.plan-histoire .noeud{cursor:pointer}
+.plan-histoire .noeud rect{fill:#fff;stroke:#7C5CFA;stroke-width:2}
+.plan-histoire .noeud text{text-anchor:middle;font:700 12px 'Jakarta',sans-serif;fill:#1E2A4A;pointer-events:none}
+.plan-histoire .noeud.debut rect{fill:#E6F6EE;stroke:#2FA36B}
+.plan-histoire .noeud.fin rect{fill:#FFF4D6;stroke:#E0A400}
+.plan-histoire .noeud.coince rect{stroke:#E0457B;stroke-dasharray:5 3}
+.plan-histoire .noeud.perdue rect{fill:#f1f1f4;stroke:#9AA3B8;stroke-dasharray:3 3}
+.plan-histoire .noeud.on rect{stroke-width:4;filter:drop-shadow(0 3px 6px rgba(124,92,250,.45))}
+.legende-plan{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--douce)}
+.legende-plan i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:4px;vertical-align:-1px;border:2px solid}
+.l-debut{background:#E6F6EE;border-color:#2FA36B!important}.l-fin{background:#FFF4D6;border-color:#E0A400!important}.l-coince{border-color:#E0457B!important;border-style:dashed!important}.l-perdue{background:#f1f1f4;border-color:#9AA3B8!important}
+.problemes{display:flex;flex-direction:column;gap:4px;background:#FFF1F5;border-radius:12px;padding:10px 12px}
+.lien-probleme{background:none;text-align:left;color:#B3305E;font-size:14px;text-decoration:underline}
+.bien{color:#2FA36B;font-weight:700;margin:0}
+.page-histoire{min-height:200px;font:17px/1.6 Georgia,'Times New Roman',serif}
+.fins-choix{flex-wrap:wrap}
+.liste-choix{display:flex;flex-direction:column;gap:8px}
+.choix-edit{display:grid;grid-template-columns:auto 1fr 190px auto auto;gap:6px;align-items:center}
+.choix-edit .num,.choix-jeu .num{width:28px;height:28px;border-radius:50%;background:#7C5CFA;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;flex:0 0 auto}
+.livre-jeu{max-width:760px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:16px}
+.page-jeu{background:#FFFDF6;border-radius:6px 18px 18px 6px;padding:28px 34px;box-shadow:0 10px 30px rgba(60,40,10,.15),inset 8px 0 0 #E8DFC8;font:19px/1.7 Georgia,'Times New Roman',serif;color:#2B2418}
+.page-jeu p{margin:0 0 12px}
+.choix-jeu{display:flex;flex-direction:column;gap:10px}
+.choix-jeu button{display:flex;gap:12px;align-items:center;text-align:left;background:#fff;border-radius:16px;padding:14px 16px;font:700 17px 'Outfit',sans-serif;box-shadow:0 6px 16px rgba(124,92,250,.15);transition:transform .12s}
+.choix-jeu button:hover{transform:translateX(6px)}
+.fin-jeu{text-align:center;background:#fff;border-radius:18px;padding:20px;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;gap:8px}
+@media (max-width:1000px){.studio-histoire{grid-template-columns:1fr}.choix-edit{grid-template-columns:auto 1fr;}}
+
+/* ---------- Ma BD ---------- */
+.affiche-bd{flex-direction:row;align-items:center;gap:18px;background:linear-gradient(135deg,#fff,#FFE9F1)}
+.bd .grande-e{font-size:64px;line-height:1}
+.grille-albums{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px}
+.carte-album{position:relative;display:flex;flex-direction:column;gap:4px}
+.carte-album>button:first-child{background:#fff;border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:4px;text-align:left;box-shadow:0 8px 22px rgba(20,24,60,.10)}
+.mini{pointer-events:none;border-radius:6px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.mini .planche{gap:3%;padding:4%}.mini .vignette-bd{border-width:1.5px}.mini .bulle{font-size:5px;padding:1px 2px;border-width:1px}
+.planche.vide{aspect-ratio:210/297;background:#f3f3f6}
+.ordre{display:flex;gap:4px;justify-content:center}
+.ajout-planche{background:rgba(224,69,123,.06);border:2px dashed #E0457B;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.gabarits{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.gabarits button{background:#fff;border-radius:10px;padding:6px;display:flex;flex-direction:column;gap:4px;font-size:12px;align-items:center}
+.gabarits button.on{outline:3px solid #E0457B}
+.gabarits.petits{grid-template-columns:repeat(4,1fr);gap:6px}.gabarits.petits button{padding:3px}
+.methode-ligne{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding-left:18px}
+.atelier-bd{display:grid;grid-template-columns:auto minmax(280px,1fr);gap:16px;align-items:start}
+.zone-planche{height:calc(100vh - 290px);min-height:420px;aspect-ratio:210/297;box-shadow:0 12px 30px rgba(20,24,60,.25);border-radius:4px;overflow:hidden}
+.zone-planche .planche{height:100%;width:100%}
+.zone-planche.seule{margin:0 auto}
+.zone-planche .vignette-bd{cursor:pointer}.zone-planche .vignette-bd.on{outline:4px solid #E0457B;outline-offset:2px}
+.zone-planche .bulle{cursor:grab;touch-action:none}.zone-planche .bulle.on{box-shadow:0 0 0 3px #E0457B}
+.outils-bd{gap:10px}
+.voile-bd{position:fixed;inset:0;z-index:800;background:rgba(20,24,60,.55);display:flex;align-items:center;justify-content:center}
+.cam-bd{width:min(760px,92vw)}
+@media (max-width:1000px){.atelier-bd{grid-template-columns:1fr}.methode-ligne{grid-template-columns:1fr}}

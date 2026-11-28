@@ -39,6 +39,9 @@ function dossiers() {
     livresAudio: path.join(app.getPath('music'), 'Mes livres audio'),
     films: path.join(app.getPath('videos'), 'Mes films'),
     animations: path.join(docs, 'Mes animations'),
+    histoires: path.join(docs, 'Mes histoires'),
+    bd: path.join(docs, 'Mes BD'),
+    cubes: path.join(docs, 'Mes créations 3D'),
     decors: path.join(app.getPath('pictures'), 'Mes décors')
   };
 }
@@ -488,16 +491,43 @@ poser('animExporter', (titre, donnees) => {
   fs.writeFileSync(cible, Buffer.from(donnees)); return { ok: true, nom: path.basename(cible), url: versUrl(cible) };
 });
 // Mes mains : la photo d'une création faite loin de l'écran rejoint « Mes créations ».
-poser('creationPhoto', (titre, donnees) => {
+poser('creationPhoto', (titre, donnees, ext) => {
+  const e = ext === 'png' ? 'png' : 'jpg';
   const dossier = dossiers().creations; fs.mkdirSync(dossier, { recursive: true });
   const base = (String(titre || 'Ma création').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim().slice(0, 60)) || 'Ma création';
-  let cible = path.join(dossier, base + '.jpg');
-  for (let i = 2; fs.existsSync(cible); i++) cible = path.join(dossier, `${base} (${i}).jpg`);
-  fs.writeFileSync(cible, Buffer.from(donnees)); return { ok: true, nom: path.basename(cible) };
+  let cible = path.join(dossier, base + '.' + e);
+  for (let i = 2; fs.existsSync(cible); i++) cible = path.join(dossier, `${base} (${i}).${e}`);
+  fs.writeFileSync(cible, Buffer.from(donnees)); return { ok: true, nom: path.basename(cible), chemin: cible };
+});
+// Fichier pour l'imprimante 3D : seulement du STL, seulement dans « Mes créations 3D ».
+poser('ecrireStl', (titre, donnees) => {
+  const dossier = dossiers().cubes; fs.mkdirSync(dossier, { recursive: true });
+  const base = (String(titre || 'Ma création').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim().slice(0, 60)) || 'Ma création';
+  const cible = path.join(dossier, base + '.stl'); fs.writeFileSync(cible, Buffer.from(donnees));
+  return { ok: true, nom: path.basename(cible), chemin: cible };
+});
+// Un livret (histoire à choix, BD, coloriage à imprimer) : la page HTML préparée par Flocon devient un PDF
+// dans « Mes créations », puis part à l'imprimante si on le demande. Fenêtre cachée, sans JavaScript ni réseau.
+poser('fairePdf', async (titre, html, options) => {
+  const o = options || {};
+  const tmp = path.join(os.tmpdir(), 'flocon-pdf-' + process.pid + '-' + Date.now() + '.html');
+  fs.writeFileSync(tmp, String(html || ''), 'utf8');
+  const w = new BrowserWindow({ show: false, webPreferences: { javascript: false, sandbox: true, partition: 'flocon-pdf' } });
+  try {
+    w.webContents.session.webRequest.onBeforeRequest((d, cb) => cb({ cancel: !/^(file|data):/.test(d.url) }));
+    await w.loadFile(tmp);
+    const pdf = await w.webContents.printToPDF({ pageSize: o.format === 'A5' ? 'A5' : 'A4', landscape: !!o.paysage, printBackground: true, margins: { marginType: 'none' } });
+    const dossier = dossiers().creations; fs.mkdirSync(dossier, { recursive: true });
+    const base = (String(titre || 'Mon livret').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim().slice(0, 60)) || 'Mon livret';
+    const cible = path.join(dossier, base + '.pdf'); fs.writeFileSync(cible, pdf);
+    if (o.imprimer && process.platform === 'win32') spawn('powershell.exe', ['-NoProfile', '-Command', 'Start-Process -FilePath $args[0] -Verb Print', cible], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+    return { ok: true, nom: path.basename(cible), chemin: cible };
+  } finally { w.destroy(); try { fs.unlinkSync(tmp); } catch (e) { /* rien */ } }
 });
 poser('jeuxSteam', () => jeuxSteam());
 poser('lireDoc', (dossier, fichier) => { const { p } = sur(dossier, fichier); return lireJson(p, null); });
 poser('ecrireDoc', (dossier, fichier, contenu) => { const { p } = sur(dossier, fichier); ecrireJson(p, contenu); return true; });
+poser('effacerDoc', (dossier, fichier) => { if (!['histoires', 'bd', 'cubes'].includes(dossier) || !/\.json$/.test(String(fichier))) return false; const { p } = sur(dossier, fichier); try { fs.unlinkSync(p); } catch (e) { /* déjà parti */ } return true; });
 poser('listerDocs', (dossier) => { const { d } = sur(dossier, ''); try { return fs.readdirSync(d).filter((f) => f.endsWith('.json')).map((f) => ({ fichier: f, ...(lireJson(path.join(d, f), {}) || {}) })); } catch (e) { return []; } });
 poser('ouvrirDossier', (dossier) => { const { d } = sur(dossier, ''); fs.mkdirSync(d, { recursive: true }); return shell.openPath(d); });
 poser('photos', () => listerRecursif(dossiers().photos, EXT_IMG, 300));

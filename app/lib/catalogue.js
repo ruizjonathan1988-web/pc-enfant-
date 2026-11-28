@@ -53,6 +53,9 @@ const SITES = {
 // Icônes : tracés SVG 24×24 (trait).
 const I = {
   code: 'M8 7l-5 5 5 5M16 7l5 5-5 5M13 5l-2 14',
+  carte: 'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15',
+  bulle: 'M4 5h16v11H9l-5 4z',
+  palette: 'M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-1-1.5-1-2.5 1-1.5 2-1.5h2a4 4 0 0 0 4-4c0-4.4-4-8-9-8zM7.5 11.5h.01M10 7.5h.01M15 7.5h.01',
   ciseaux: 'M9 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM8.1 8.1L20 20M8.1 15.9L20 4',
   film: 'M4 5h16v14H4zM8 5v14M16 5v14M4 9h4M4 15h4M16 9h4M16 15h4',
   pinceau: 'M14 4l6 6-9 9H5v-6zM12 6l6 6',
@@ -98,6 +101,8 @@ const RUBRIQUES = [
     { type: 'site', ref: 'incredibox', nom: 'Mes beats', sous: 'Incredibox', icone: I.beat, couleur: '#7C5CFA' },
     { type: 'site', ref: 'songmaker', nom: 'Mélodies', sous: 'Song Maker', icone: I.note, couleur: '#2B7BD6' },
     { type: 'interne', ref: 'mains', nom: 'Mes mains', sous: 'Des défis loin de l\u2019écran', icone: I.ciseaux, couleur: '#F28C28' },
+    { type: 'interne', ref: 'histoires', nom: 'Histoire à choix', sous: 'Le lecteur décide de la suite', icone: I.carte, couleur: '#7C5CFA' },
+    { type: 'interne', ref: 'bd', nom: 'Ma BD', sous: 'Au crayon, puis en album', icone: I.bulle, couleur: '#E0457B' },
     { type: 'interne', ref: 'cahier', nom: 'Mon cahier', sous: 'Histoires et lettres', icone: I.texte, couleur: '#1F5FA8' },
     { type: 'logiciel', ref: 'writer', nom: 'Mise en page', sous: 'LibreOffice Writer', icone: I.texte, couleur: '#174A85', niveau: 2 },
     { type: 'logiciel', ref: 'magneto', nom: 'Ma voix', sous: 'Le Magnétophone', icone: I.micro, couleur: '#5B3FD6' },

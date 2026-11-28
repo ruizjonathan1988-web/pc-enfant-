@@ -331,7 +331,7 @@ function entete(titre, extra) { return `<div class="entete"><button class="retou
 
 function vueInterne() {
   const v = S.vue;
-  const fn = { permis: vuePermis, semaine: vueSemaine, agenda: vueAgenda, idee: vueIdee, galerie: vueGalerie, projet: vueProjet, exposes: vueExposes, cahier: vueCahier, fiches: vueFiches, ecrans: vueEcrans, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, animation: () => vueAnimation(), mains: () => vueMains(), minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
+  const fn = { permis: vuePermis, semaine: vueSemaine, agenda: vueAgenda, idee: vueIdee, galerie: vueGalerie, projet: vueProjet, exposes: vueExposes, cahier: vueCahier, fiches: vueFiches, ecrans: vueEcrans, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, animation: () => vueAnimation(), mains: () => vueMains(), histoires: () => vueHistoires(), bd: () => vueBD(), minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
   return fn ? fn() : entete('Bientôt');
 }
 
@@ -696,6 +696,7 @@ function apresRendu() {
   if (m) m.onended = () => {};
   if (typeof filmApresRendu === 'function') filmApresRendu();
   if (typeof mainsApresRendu === 'function') mainsApresRendu();
+  if (typeof bdApresRendu === 'function') bdApresRendu();
 }
 function sauverToile(id) {
   const c = document.getElementById(id); if (!c) return;
@@ -723,6 +724,8 @@ async function ouvrirVue(ref) {
   if (ref === 'exposes') S.docs.exposes = await F.listerDocs('exposes');
   if (ref === 'cahier') S.docs.textes = await F.listerDocs('textes');
   if (ref === 'animation') S.docs.animations = await F.animListe();
+  if (ref === 'histoires') S.docs.histoires = await F.listerDocs('histoires');
+  if (ref === 'bd') S.docs.bd = await F.listerDocs('bd');
   if (ref === 'pourquoi') await chargerDoc('pourquoi', 'grand-pourquoi.json', { questions: [] });
   if (ref === 'carnetLecture') await chargerDoc('lectures', 'lectures.json', { livres: [] });
   if (ref === 'journal') await chargerDoc('journal', 'journal.json', { pages: [] });
