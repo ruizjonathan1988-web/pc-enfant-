@@ -19,7 +19,9 @@ const PLACARD = {
   spaghettis: 'Spaghettis crus', chamallows: 'Chamallows', farine: 'Farine et sel fin', sacs: 'Sacs plastique ou sachets congélation',
   alu: 'Papier aluminium', ballons: 'Ballons de baudruche', chenilles: 'Fils chenille (cure-pipes)', postit: 'Post-it',
   billes: 'Billes ou balle de ping-pong', figurines: 'Figurines (Lego, Playmobil…)', regle: 'Règle ou mètre ruban',
-  nature: 'Feuilles, cailloux, brindilles (dehors)', oeufs: 'Œufs', cuilleres: 'Cuillères en plastique', gobelets: 'Gobelets en carton ou plastique'
+  nature: 'Feuilles, cailloux, brindilles (dehors)', oeufs: 'Œufs', cuilleres: 'Cuillères en plastique', gobelets: 'Gobelets en carton ou plastique',
+  feutrine: 'Feutrine ou chutes de tissu', aiguilles: 'Aiguille à laine à bout rond et fil à broder', film: 'Film alimentaire',
+  graines: 'Graines pour oiseaux', lampe: 'Lampe de poche', epices: 'Épices colorées (curcuma, paprika, cacao)'
 };
 
 const CATEGORIES = {
@@ -117,17 +119,17 @@ const DEFIS = [
   {
     id: 'voiture-ballon', cat: 'construire', e: '🏎️', titre: 'La voiture à réaction', duree: 50, niveau: 3,
     defi: 'Fabrique une voiture qui avance toute seule grâce à l’air d’un ballon.',
-    contraintes: ['Elle doit rouler au moins 1 mètre en ligne droite.', 'Pas de moteur, pas de pile : seulement l’air du ballon.'],
+    contraintes: ['Elle doit rouler au moins 50 cm (1 mètre pour les championnes).', 'Pas de moteur, pas de pile : seulement l’air du ballon.'],
     materiel: [{ id: 'bouteilles', txt: 'Une petite bouteille ou une boîte en carton pour le corps' }, { id: 'bouchons', txt: '4 bouchons pour les roues' }, { id: 'pailles', txt: '3 pailles' }, { id: 'batonnets', txt: '2 piques à brochette pour les essieux' }, { id: 'ballons', txt: 'Un ballon de baudruche' }, { id: 'scotch', txt: 'Du scotch' }, { id: 'elastiques', txt: 'Un élastique' }],
     adulte: 'Un adulte perce le centre des bouchons (avec la pointe des ciseaux ou un clou) et coupe les pointes des piques à brochette.',
-    aide: ['Les roues doivent tourner librement : l’essieu peut passer dans une paille.', 'Où fixer le ballon pour que la voiture aille tout droit ?', 'Une voiture légère ou lourde : laquelle va le plus loin ?'],
+    aide: ['Avant tout : pose ta voiture et pousse-la du doigt. Si elle ne roule pas toute seule, le ballon n’y arrivera pas non plus.', 'Les roues doivent tourner librement : l’essieu peut passer dans une paille.', 'Où fixer le ballon pour que la voiture aille tout droit ?', 'Une voiture légère ou lourde : laquelle va le plus loin ?'],
     test: 'Gonfle, pose, lâche : mesure la distance parcourue.', mesure: { nom: 'Distance', unite: 'cm' },
     plusFort: ['Une course contre quelqu’un de la famille.', 'Une voiture qui porte une figurine sans la faire tomber.', 'Essaie avec un élastique à la place du ballon.']
   },
   {
     id: 'reaction-chaine', cat: 'construire', e: '⚙️', titre: 'La réaction en chaîne', duree: 60, niveau: 3,
     defi: 'Invente une machine en chaîne : une seule pichenette au départ, et au moins 5 étapes s’enchaînent toutes seules jusqu’à faire tomber un objet dans un gobelet.',
-    contraintes: ['Une seule action de ta main au départ.', 'Au moins 5 étapes différentes (pas 5 dominos !).', 'Rien de fragile, rien de lourd qui tombe.'],
+    contraintes: ['Une seule action de ta main au départ.', 'Au moins 4 étapes différentes (pas 4 dominos !).', 'Rien de fragile, rien de lourd qui tombe.'],
     materiel: [{ id: 'billes', txt: 'Une bille ou une balle de ping-pong' }, { id: 'rouleaux', txt: 'Rouleaux en carton pour faire des toboggans' }, { id: 'carton', txt: 'Boîtes, couvercles, carton' }, { id: 'figurines', txt: 'Petites voitures, dominos, Lego' }, { id: 'scotch', txt: 'Du scotch' }, { txt: 'Des livres pour faire des pentes' }, { id: 'gobelets', txt: 'Un gobelet pour l’arrivée' }],
     aide: ['Qu’est-ce qui peut rouler, glisser, tomber, basculer, pousser ?', 'Construis et teste étape par étape, pas tout d’un coup.', 'Quelle étape rate le plus ? Concentre-toi sur elle.'],
     test: 'Tout doit marcher d’un seul coup, du début à la fin.', mesure: { nom: 'Nombre d’étapes', unite: '' },
@@ -146,7 +148,7 @@ const DEFIS = [
     id: 'labyrinthe', cat: 'construire', e: '🌀', titre: 'Le labyrinthe à bille', duree: 45, niveau: 2,
     defi: 'Fabrique un labyrinthe dans une boîte : on penche la boîte pour guider la bille du départ à l’arrivée.',
     contraintes: ['Au moins 3 culs-de-sac pour piéger les joueurs.', 'Au moins un « trou piège » où la bille peut tomber.'],
-    materiel: [{ id: 'carton', txt: 'Un couvercle de boîte à chaussures (ou une boîte plate)' }, { id: 'pailles', txt: 'Des pailles coupées pour les murs' }, { id: 'colle', txt: 'De la colle blanche ou du scotch' }, { id: 'ciseaux', txt: 'Des ciseaux' }, { id: 'billes', txt: 'Une bille' }, { id: 'feutres', txt: 'Des feutres pour départ et arrivée' }],
+    materiel: [{ id: 'carton', txt: 'Un couvercle de boîte à chaussures (ou une boîte plate)' }, { id: 'pailles', txt: 'Des pailles coupées pour les murs' }, { id: 'scotch', txt: 'Du scotch (la colle blanche tient mieux, mais il faut attendre une heure qu’elle sèche)' }, { id: 'ciseaux', txt: 'Des ciseaux' }, { id: 'billes', txt: 'Une bille' }, { id: 'feutres', txt: 'Des feutres pour départ et arrivée' }],
     adulte: 'Pour le trou piège dans le carton : un adulte le découpe.',
     aide: ['Dessine d’abord ton chemin au crayon dans la boîte.', 'Fais tester par quelqu’un : trop facile ? trop dur ?'],
     test: 'Chronomètre quelqu’un de la famille. Le labyrinthe est réussi si on y arrive, mais pas trop vite !', mesure: { nom: 'Meilleur temps', unite: 's' },
@@ -357,6 +359,112 @@ const DEFIS = [
     aide: ['Observe : qui a le problème ? quand ? où ?', 'Ton invention doit être solide : qu’est-ce qui pourrait casser ?'],
     test: 'Dans une semaine, demande : est-ce que ça sert vraiment ?',
     plusFort: ['Une affiche publicitaire pour ton invention.', 'Une version améliorée avec ce que tu as appris.']
+  },
+// ---------------- Ajouts : textile, objets utiles, dehors ----------------
+  {
+    id: 'tissage', cat: 'papier', e: '🧶', titre: 'Le tissage sur carton', duree: 45, niveau: 2,
+    defi: 'Fabrique ton propre métier à tisser en carton, puis tisse un petit tapis avec un motif que tu inventes.',
+    contraintes: ['Au moins 3 couleurs.', 'Un motif qui se répète (rayures, damier, vagues…) que tu as choisi avant de commencer.', 'Le tapis doit tenir une fois enlevé du carton.'],
+    materiel: [{ id: 'carton', txt: 'Un carton rigide d’environ 15 × 20 cm' }, { id: 'ficelle', txt: 'De la laine de 3 couleurs (ou de la ficelle)' }, { id: 'aiguilles', txt: 'Une aiguille à laine à bout rond (ou un trombone déplié)' }, { id: 'ciseaux', txt: 'Des ciseaux' }, { id: 'regle', txt: 'Une règle et un crayon' }],
+    aide: ['Le métier : fais des petites encoches tous les centimètres en haut et en bas du carton, puis enroule la laine d’une encoche à l’autre. Ce sont les fils de chaîne.', 'Ensuite, passe ta laine dessus, dessous, dessus, dessous… et au rang suivant, fais l’inverse.', 'Ne serre pas trop les bords, sinon ton tapis devient un sablier !'],
+    test: 'Retire-le du carton : tient-il sans se défaire ?',
+    plusFort: ['Un tapis pour la maison de tes figurines (ou pour ton film !).', 'Glisse des plumes, des rubans ou des perles entre les rangs.', 'Un tissage rond sur une assiette en carton.']
+  },
+  {
+    id: 'couture-monstre', cat: 'modeler', e: '🧵', titre: 'Le petit monstre cousu', duree: 60, niveau: 3,
+    defi: 'Dessine un monstre de poche qui n’existe pas, puis couds-le en feutrine et rembourre-le.',
+    contraintes: ['Une forme simple d’abord (pas plus grande que ta main), les détails ensuite.', 'Au moins un détail cousu ou collé : des yeux, des dents, une oreille.', 'Il doit avoir un nom et un caractère.'],
+    materiel: [{ id: 'feutrine', txt: '2 carrés de feutrine' }, { id: 'aiguilles', txt: 'Une aiguille à laine à bout rond et du fil à broder' }, { id: 'ciseaux', txt: 'Des ciseaux' }, { id: 'feutres', txt: 'Un feutre pour tracer le patron' }, { txt: 'Du coton ou des chutes de tissu pour rembourrer' }, { txt: 'Des boutons pour les yeux (facultatif)' }],
+    adulte: 'Un adulte enfile l’aiguille la première fois : il double le fil et fait un nœud au bout pour qu’il ne s’échappe pas. L’aiguille se range toujours piquée dans la feutrine.',
+    aide: ['Le patron : dessine ton monstre sur du papier, découpe-le, pose-le sur les deux feutrines et trace autour.', 'Le point avant : l’aiguille passe dessus, dessous, dessus, dessous, à petits pas réguliers.', 'Laisse une ouverture pour rembourrer avant de fermer !'],
+    test: 'Serre-le un peu : est-ce que des coutures s’ouvrent ?',
+    plusFort: ['Une famille de monstres.', 'Un monstre-trousse avec une poche.', 'Un autre point de couture : le point de surjet sur le bord.']
+  },
+  {
+    id: 'arcade-carton', cat: 'construire', e: '🕹️', titre: 'Mon jeu d’arcade en carton', duree: 60, niveau: 2,
+    defi: 'Transforme des cartons en jeu d’adresse : on lance une balle, et selon où elle arrive, on gagne des points.',
+    contraintes: ['Au moins 3 zones qui rapportent des points différents.', 'Une zone difficile qui rapporte beaucoup.', 'Fabrique aussi des tickets de récompense pour tes joueurs.'],
+    materiel: [{ id: 'carton', txt: 'Plusieurs cartons et boîtes' }, { id: 'rouleaux', txt: 'Des rouleaux pour les tunnels' }, { id: 'billes', txt: 'Une balle de ping-pong ou une boule de papier alu' }, { id: 'scotch', txt: 'Du scotch' }, { id: 'feutres', txt: 'Des feutres' }, { id: 'ciseaux', txt: 'Des ciseaux' }],
+    adulte: 'Un adulte découpe les trous dans le carton épais.',
+    aide: ['À quels jeux de fête foraine as-tu déjà joué ? Lequel pourrait marcher en carton ?', 'Ton jeu est-il trop facile ou trop dur ? Fais tester trois personnes.'],
+    test: 'Fais jouer toute la famille : qui marque le plus de points en 5 lancers ?', mesure: { nom: 'Meilleur score', unite: 'points' },
+    plusFort: ['Une salle d’arcade avec plusieurs jeux.', 'Un jeu où la balle déclenche quelque chose (une cloche, un drapeau qui se lève).']
+  },
+  {
+    id: 'four-solaire', cat: 'construire', e: '☀️', titre: 'Le four solaire', duree: 45, niveau: 2,
+    defi: 'Construis un four qui fait fondre un carré de chocolat ou un chamallow seulement avec la chaleur du soleil.',
+    contraintes: ['Un jour de grand soleil (plutôt au printemps ou en été).', 'Pas d’électricité, pas de flamme : seulement le soleil.', 'Le chocolat doit fondre en moins d’une heure.'],
+    materiel: [{ id: 'carton', txt: 'Une boîte à pizza ou une boîte à chaussures' }, { id: 'alu', txt: 'Du papier aluminium' }, { id: 'film', txt: 'Du film alimentaire' }, { id: 'papier', txt: 'Une feuille noire (ou du papier peint en noir)' }, { id: 'scotch', txt: 'Du scotch' }, { id: 'chamallows', txt: 'Un chamallow ou un carré de chocolat' }, { txt: 'Un bâton ou une règle pour tenir le couvercle ouvert' }],
+    adulte: 'Un adulte découpe le rabat dans le couvercle de la boîte.',
+    aide: ['Qu’est-ce qui renvoie la lumière ? Qu’est-ce qui garde la chaleur ?', 'Dans quelle direction tourner ton four pendant l’expérience ?', 'Pourquoi le fond noir, à ton avis ? Essaie avec un fond blanc pour comparer.'],
+    test: 'Chronomètre le temps que met le chocolat à fondre.', mesure: { nom: 'Temps pour fondre', unite: 'min' },
+    plusFort: ['Compare deux fours : avec et sans papier alu.', 'Un thermomètre de cuisine dans le four : quelle température ?']
+  },
+  {
+    id: 'rangement-bureau', cat: 'inventer', e: '🗄️', titre: 'Le rangement de mon bureau', duree: 45, niveau: 2,
+    defi: 'Invente un rangement pour ton bureau, à ta mesure : au moins 3 compartiments de tailles différentes… et une cachette secrète.',
+    contraintes: ['Mesure d’abord ce que tu veux ranger (crayons, gomme, ciseaux…).', 'La cachette ne doit pas se voir du premier coup.', 'Il doit tenir debout sans se renverser quand on prend un crayon.'],
+    materiel: [{ id: 'rouleaux', txt: 'Des rouleaux en carton' }, { id: 'carton', txt: 'Des petites boîtes et du carton' }, { id: 'colle', txt: 'De la colle' }, { id: 'scotch', txt: 'Du scotch' }, { id: 'ciseaux', txt: 'Des ciseaux' }, { id: 'regle', txt: 'Une règle' }, { id: 'peinture', txt: 'Peinture ou papier pour décorer' }],
+    aide: ['Qu’est-ce qui traîne sur ton bureau ? C’est ça qu’il faut ranger.', 'Une cachette : un double fond, un faux rouleau, un tiroir derrière ?'],
+    test: 'Range tout dedans et utilise-le une semaine : qu’est-ce qui marche, qu’est-ce que tu changerais ?',
+    plusFort: ['Un rangement pour quelqu’un d’autre de la famille, à ses mesures.', 'Un tiroir qui coulisse vraiment.']
+  },
+  {
+    id: 'perles-papier', cat: 'papier', e: '📿', titre: 'Les perles en papier', duree: 40, niveau: 1,
+    defi: 'Fabrique tes propres perles en roulant du papier de magazine, puis invente un bijou ou un porte-clés avec un motif qui se répète.',
+    contraintes: ['Au moins 15 perles.', 'Un motif qui se répète (par exemple : grosse, petite, petite, grosse…).'],
+    materiel: [{ id: 'journal', txt: 'Des pages de magazine colorées' }, { id: 'ciseaux', txt: 'Des ciseaux' }, { id: 'colle', txt: 'Un bâton de colle' }, { id: 'curedents', txt: 'Un cure-dents ou une paille pour rouler' }, { id: 'ficelle', txt: 'Du fil ou un élastique fin pour enfiler' }, { id: 'regle', txt: 'Une règle et un crayon' }],
+    aide: ['Le secret : découpe de longs triangles fins, roule-les en partant du côté large autour du cure-dent, et colle la pointe à la fin.', 'Un triangle plus long donne une perle plus grosse ; un rectangle donne une perle en tube.'],
+    test: 'Porte-le une journée : les perles tiennent-elles ?',
+    plusFort: ['Des perles de toutes les couleurs d’un arc-en-ciel.', 'Un rideau de perles pour une boîte-décor.', 'Un cadeau pour quelqu’un.']
+  },
+  {
+    id: 'mangeoire', cat: 'inventer', e: '🐦', titre: 'La mangeoire à oiseaux', duree: 40, niveau: 2,
+    defi: 'Fabrique une mangeoire avec un emballage de récupération, accroche-la, et observe qui vient manger.',
+    contraintes: ['Les graines doivent rester au sec quand il pleut.', 'Un perchoir pour que les oiseaux se posent.', 'Accrochée assez haut pour que les chats ne l’atteignent pas.'],
+    materiel: [{ id: 'bouteilles', txt: 'Une bouteille ou une brique de lait vide et rincée' }, { id: 'batonnets', txt: 'Des bâtonnets ou une cuillère en bois pour le perchoir' }, { id: 'ficelle', txt: 'De la ficelle solide' }, { id: 'graines', txt: 'Des graines pour oiseaux (pas de pain, ça leur fait du mal)' }, { id: 'scotch', txt: 'Du scotch' }],
+    adulte: 'Un adulte découpe les ouvertures et aide à l’accrocher en hauteur.',
+    aide: ['Où mettre les ouvertures pour que les graines ne tombent pas toutes d’un coup ?', 'Comment empêcher la pluie d’entrer ?'],
+    test: 'Pendant une semaine, note les oiseaux que tu vois (couleur, taille).', mesure: { nom: 'Oiseaux observés', unite: '' },
+    plusFort: ['Dessine les oiseaux que tu as vus et cherche leur nom sur Vikidia.', 'Une deuxième mangeoire différente : laquelle les oiseaux préfèrent-ils ?']
+  },
+  {
+    id: 'peinture-maison', cat: 'art', e: '🧪', titre: 'Ma peinture de cuisine', duree: 35, niveau: 1,
+    defi: 'Fabrique tes propres peintures avec des ingrédients de cuisine, puis peins un tableau seulement avec elles.',
+    contraintes: ['Au moins 3 couleurs que tu as fabriquées toi-même.', 'Note ta recette pour chaque couleur.'],
+    materiel: [{ id: 'farine', txt: 'De la farine et de l’eau' }, { id: 'epices', txt: 'Des épices colorées : curcuma (jaune), paprika (rouge), cacao (marron)' }, { txt: 'Des petits pots ou un moule à glaçons' }, { txt: 'Des pinceaux ou des cotons-tiges' }, { id: 'papier', txt: 'Du papier épais ou du carton' }],
+    adulte: 'Demande à un adulte quelles épices tu peux prendre. On ne goûte pas !',
+    aide: ['La base : une cuillère de farine et un peu d’eau, mélange jusqu’à avoir une crème.', 'Plus ou moins d’épice : qu’est-ce qui change ?', 'Et si tu mélanges deux couleurs ?'],
+    test: 'Donne un nom à chacune de tes couleurs, comme un vrai fabricant de peinture.',
+    plusFort: ['Une couleur verte : quel ingrédient pourrait la donner ? (pense aux feuilles d’épinard écrasées).', 'Un nuancier de toutes tes couleurs.']
+  },
+  {
+    id: 'mobile', cat: 'art', e: '🎐', titre: 'Le mobile en équilibre', duree: 45, niveau: 2,
+    defi: 'Fabrique un mobile à suspendre, avec au moins 5 formes, qui reste bien droit quand il est accroché.',
+    contraintes: ['Au moins deux étages de barres.', 'Toutes les barres doivent être horizontales.', 'Un thème que tu choisis (la mer, l’espace, tes animaux préférés…).'],
+    materiel: [{ id: 'batonnets', txt: '3 bâtonnets, pailles rigides ou brochettes (pointes coupées)' }, { id: 'ficelle', txt: 'Du fil ou de la ficelle' }, { id: 'carton', txt: 'Du carton fin pour les formes' }, { id: 'ciseaux', txt: 'Des ciseaux' }, { id: 'feutres', txt: 'Des feutres ou de la peinture' }, { id: 'scotch', txt: 'Du scotch' }],
+    aide: ['Accroche d’abord le bas, puis remonte étage par étage.', 'Si ta barre penche, déplace le fil qui la tient : vers où ?', 'Une forme lourde près du fil peut équilibrer une forme légère loin du fil.'],
+    test: 'Accroche-le et souffle doucement dessus : il tourne et revient droit ?',
+    plusFort: ['Trois étages.', 'Un mobile qui fait du bruit (clochettes, capsules).']
+  },
+  {
+    id: 'theatre-ombres', cat: 'film', e: '🔦', titre: 'Le théâtre d’ombres', duree: 45, niveau: 1, film: true,
+    defi: 'Fabrique des silhouettes en carton et joue une petite histoire en ombres sur un mur, avec une lampe.',
+    contraintes: ['Au moins 2 personnages et un élément de décor.', 'Une histoire avec un début, un problème et une fin.', 'Un personnage qui bouge (bras articulé, bouche qui s’ouvre…).'],
+    materiel: [{ id: 'carton', txt: 'Du carton fin (boîte de céréales)' }, { id: 'ciseaux', txt: 'Des ciseaux' }, { id: 'batonnets', txt: 'Des bâtonnets ou des pailles pour tenir les silhouettes' }, { id: 'scotch', txt: 'Du scotch' }, { id: 'lampe', txt: 'Une lampe de poche' }, { txt: 'Un mur clair ou un drap tendu, dans une pièce sombre' }],
+    aide: ['Plus la silhouette est près de la lampe, plus l’ombre est grande : utilise-le pour faire peur ou rire !', 'Seul le contour compte : exagère les formes (gros nez, grandes oreilles).'],
+    test: 'Joue ton spectacle devant la famille.',
+    plusFort: ['Filme-le avec le studio de films.', 'Des couleurs : du papier de bonbon transparent dans les trous.']
+  },
+  {
+    id: 'cerf-volant', cat: 'construire', e: '🪁', titre: 'Le cerf-volant', duree: 60, niveau: 3,
+    defi: 'Fabrique un cerf-volant avec un sac plastique et fais-le voler au moins 10 secondes.',
+    contraintes: ['Un jour avec un peu de vent, dans un grand espace dégagé (parc, plage), loin des fils électriques et des arbres.', 'Pas de kit : tu inventes sa forme.'],
+    materiel: [{ id: 'sacs', txt: 'Un grand sac plastique' }, { id: 'batonnets', txt: '2 baguettes légères (brochettes sans pointe, tiges de bambou)' }, { id: 'ficelle', txt: 'Une pelote de ficelle (au moins 10 mètres)' }, { id: 'scotch', txt: 'Du scotch solide' }, { id: 'ciseaux', txt: 'Des ciseaux' }],
+    adulte: 'Un adulte vient avec toi pour le faire voler, dans un endroit sans fils électriques.',
+    aide: ['Une queue en ruban ou en bandes de sac aide le cerf-volant à rester droit.', 'Où attacher la ficelle ? Essaie plusieurs endroits.'],
+    test: 'Combien de secondes vole-t-il ?', mesure: { nom: 'Temps de vol', unite: 's' },
+    plusFort: ['Décore-le pour qu’on le reconnaisse de loin.', 'Un deuxième cerf-volant d’une autre forme : lequel vole le mieux ?']
   }
 ];
 
