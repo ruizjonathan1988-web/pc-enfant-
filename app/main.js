@@ -230,10 +230,21 @@ async function lancerLogiciel(ref) {
   const l = CAT.LOGICIELS[ref] || (config().logiciels || {})[ref];
   if (!l) return { ok: false, raison: 'inconnu' };
   if (l.uri) { noterLancement(`${l.nom} : ${l.uri}`); await shell.openExternal(l.uri); return { ok: true }; }
+  // Certains logiciels se cherchent d'abord dans le menu Démarrer (Minecraft Bedrock avant le lanceur).
+  for (const m of (l.menusAvant || [])) {
+    const r = await lancerParMenu(l, m); if (r) return r;
+  }
   for (const c of (l.chemins || []).map(developper)) {
     if (fs.existsSync(c)) { noterLancement(`${l.nom} : ${c}`); surveiller(spawn(c, [], { detached: true, stdio: 'ignore', cwd: path.dirname(c) }), l.nom, c); return { ok: true }; }
   }
   for (const m of (l.menus || (l.menu ? [l.menu] : []))) {
+    const r = await lancerParMenu(l, m); if (r) return r;
+  }
+  noterLancement(`${l.nom} : introuvable (chemins : ${(l.chemins || []).map(developper).join(' ; ') || 'aucun'})`);
+  return { ok: false, raison: 'absent', nom: l.nom };
+}
+async function lancerParMenu(l, m) {
+  {
     const id = await idDemarrer(m, l.menuExact);
     // Un logiciel de bureau ({dossier connu}\chemin\x.exe) : lancé directement, comme ceux trouvés par leur chemin.
     // (Passer par l'Explorateur le soumettrait à la liste blanche des niveaux 1 et 2.)
@@ -242,8 +253,7 @@ async function lancerLogiciel(ref) {
     // explorer.exe rend la main tout de suite, souvent avec le code 1 : pas de surveillance possible ici.
     if (id) { noterLancement(`${l.nom} : menu Démarrer ${id}`); spawn('explorer.exe', ['shell:AppsFolder\\' + id], { detached: true, stdio: 'ignore' }).unref(); return { ok: true }; }
   }
-  noterLancement(`${l.nom} : introuvable (chemins : ${(l.chemins || []).map(developper).join(' ; ') || 'aucun'})`);
-  return { ok: false, raison: 'absent', nom: l.nom };
+  return null;
 }
 
 // ---------- Jeux Steam installés (pour le panneau parent) ----------

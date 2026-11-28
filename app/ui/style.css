@@ -174,3 +174,17 @@ audio,video{width:100%;border-radius:14px}
 .astuce.ok b{color:#1E7A4C}.astuce.non b{color:#B03A2E}
 .etoiles-quiz{font-size:34px;color:#E0A100;letter-spacing:4px}
 .etoiles-ligne{color:#E0A100;letter-spacing:2px}
+
+/* Ludique : pluie de flocons, sans-faute, défi du jour, médailles */
+.panneau{position:relative}
+.pluie{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:inherit}
+.pluie span{position:absolute;top:-30px;color:#7FB8F0;animation-name:tombe;animation-timing-function:ease-in;animation-fill-mode:forwards}
+@keyframes tombe{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(320px) rotate(220deg);opacity:0}}
+.fete{background:linear-gradient(180deg,#F3F8FF,#FFF)}
+.tampon{display:inline-block;transform:rotate(-6deg);border:3px solid #2FA36B;color:#2FA36B;font-weight:900;padding:4px 14px;border-radius:10px;font-size:22px;letter-spacing:1px;animation:pose .5s ease-out}
+@keyframes pose{0%{transform:rotate(-6deg) scale(2.2);opacity:0}100%{transform:rotate(-6deg) scale(1);opacity:1}}
+.defi{border:2px dashed #7FB8F0;background:#F5FAFF}
+.medaille{font-weight:800;padding:6px 12px;border-radius:999px;background:#FFF3D6;color:#8A5A00}
+.progression{height:10px;border-radius:999px;background:#EEF2F8;overflow:hidden}
+.progression span{display:block;height:100%;background:linear-gradient(90deg,#7FB8F0,#1F5FA8);border-radius:inherit;transition:width .6s}
+@media (prefers-reduced-motion: reduce){.pluie{display:none}.tampon{animation:none}}

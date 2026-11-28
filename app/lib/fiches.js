@@ -109,7 +109,7 @@ const FICHES = [
       { q: 'Quelle écriture est juste ?', choix: ['les petit chats', 'les petits chat', 'les petits chats'], bonne: 2, pourquoi: 'Tout le groupe est au pluriel.' }
     ] },
   { id: 'f-sujet-verbe', matiere: 'francais', niveau: 'CE2', titre: 'L’accord du verbe avec le sujet',
-    retenir: ['Le verbe s’accorde avec son sujet.', 'Pour trouver le sujet, on pose la question « Qui est-ce qui… ? » ou on l’encadre par « C’est … qui ».', 'Avec « ils » ou « elles », le verbe en -er se termine par -ent (qui ne s’entend pas).'],
+    retenir: ['Le verbe s’accorde avec son sujet.', 'Pour trouver le sujet, on pose la question « Qui est-ce qui… ? » ou on l’encadre par « C’est … qui ».', 'Au présent, avec « ils » ou « elles », le verbe en -er se termine par -ent (qui ne s’entend pas).'],
     exemple: 'Les enfants jouent. → Ce sont les enfants qui jouent.',
     questions: [
       { q: 'Les enfants …', choix: ['joue', 'jouent', 'joues'], bonne: 1, pourquoi: 'Sujet pluriel (ils) : jouent.' },

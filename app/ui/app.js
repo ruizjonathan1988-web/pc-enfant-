@@ -347,24 +347,60 @@ function vueQuiz(x, nomListe) {
   }
   if (v.q >= x.questions.length) {
     const bons = v.reponses.filter((r, i) => r === x.questions[i].bonne).length;
-    return `<div class="section quiz">${entete(x.titre)}<div class="panneau" style="align-items:center;text-align:center"><span class="etoiles-quiz">${etoiles(bons, x.questions.length)}</span><h3>${bons} sur ${x.questions.length}</h3>
+    const parfait = bons === x.questions.length;
+    return `<div class="section quiz">${entete(x.titre)}<div class="panneau ${parfait ? 'fete' : ''}" style="align-items:center;text-align:center">${parfait ? pluieDeFlocons(28) + '<span class="tampon">Sans faute !</span>' : ''}<span class="etoiles-quiz">${etoiles(bons, x.questions.length)}</span><h3>${bons} sur ${x.questions.length}</h3>
       <p class="muet">${bons === x.questions.length ? 'Tout juste ! Tu peux passer à une autre fiche.' : 'Relis « À retenir », puis réessaie : c’est comme ça qu’on apprend.'}</p>
       <div class="rang"><button class="btn doux" data-a="quizRelire">Relire la leçon</button><button class="btn" data-a="quizCommencer">Recommencer</button><button class="btn doux" data-a="fermerVue">${nomListe}</button></div></div></div>`;
   }
   const q = x.questions[v.q]; const rep = v.reponses[v.q];
-  const bouton = (c, i) => { const etat = rep === undefined ? '' : i === q.bonne ? 'juste' : i === rep ? 'faux' : 'eteint'; return `<button class="choix ${etat}" data-a="quizRepondre" data-i="${i}" ${rep === undefined ? '' : 'disabled'}>${esc(c)}</button>`; };
+  const ordre = (v.ordres && v.ordres[v.q]) || q.choix.map((_, i) => i);
+  const bouton = (i) => { const c = q.choix[i]; const etat = rep === undefined ? '' : i === q.bonne ? 'juste' : i === rep ? 'faux' : 'eteint'; return `<button class="choix ${etat}" data-a="quizRepondre" data-i="${i}" ${rep === undefined ? '' : 'disabled'}>${esc(c)}</button>`; };
   return `<div class="section quiz">${entete(x.titre, `<span class="etiquette">Question ${v.q + 1} sur ${x.questions.length}</span>`)}
-    <div class="panneau"><h3>${esc(q.q)}</h3><div class="choix-quiz">${q.choix.map(bouton).join('')}</div>
+    <div class="panneau"><h3>${esc(q.q)}</h3><div class="choix-quiz">${ordre.map(bouton).join('')}</div>${v.pluie ? pluieDeFlocons(v.pluie) : ''}
     ${rep === undefined ? '' : `<div class="astuce ${rep === q.bonne ? 'ok' : 'non'}"><b>${rep === q.bonne ? 'Bravo !' : 'Pas tout à fait.'}</b><span>${esc(q.pourquoi)}</span></div><div class="rang fin"><button class="btn" data-a="quizSuivant">${v.q + 1 < x.questions.length ? 'Question suivante' : 'Voir mon résultat'}</button></div>`}</div></div>`;
 }
+// Une pluie de flocons, en CSS : n flocons qui tombent une fois, à des places et vitesses différentes.
+function pluieDeFlocons(n) {
+  let h = '<div class="pluie" aria-hidden="true">';
+  for (let i = 0; i < n; i++) h += `<span style="left:${Math.round(Math.random() * 96)}%;animation-delay:${(Math.random() * 0.6).toFixed(2)}s;animation-duration:${(1.4 + Math.random() * 1.2).toFixed(2)}s;font-size:${14 + Math.round(Math.random() * 16)}px">❄</span>`;
+  return h + '</div>';
+}
+const MOTS_BRAVO = ['Bravo !', 'Exactement !', 'Bien vu !', 'Tu l’as !', 'Super !', 'Juste !'];
+const MOTS_COURAGE = ['Presque ! Lis bien la correction.', 'Pas grave : c’est en se trompant qu’on retient.', 'On réessaiera tout à l’heure, tu vas l’avoir.'];
+const auHasard = (l) => l[Math.floor(Math.random() * l.length)];
+function melanger(n) { const l = Array.from({ length: n }, (_, i) => i); for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; } return l; }
+
 function scoreDe(cle) { return ((S.profil.quiz || {})[cle] || {}).meilleur; }
 function vueFiches() {
   const v = S.vue; const F_ = D.catalogue.FICHES;
   if (v.id) return vueQuiz(lecon(F_, v.id), 'Mes fiches');
   const m = v.matiere || 'maths';
   const onglets = D.catalogue.MATIERES.map((x) => `<button class="${x.id === m ? 'on' : ''}" data-a="fichesMatiere" data-m="${x.id}">${esc(x.nom)}</button>`).join('');
+  const reussie = (f) => scoreDe(f.id) === f.questions.length;
+  const medailles = D.catalogue.MATIERES.filter((x) => F_.filter((f) => f.matiere === x.id).every(reussie)).map((x) => `<span class="medaille">🏅 Médaille de ${esc(x.nom)}</span>`).join('');
+  const faites = F_.filter((f) => f.matiere === m && reussie(f)).length; const total = F_.filter((f) => f.matiere === m).length;
   const liste = F_.filter((f) => f.matiere === m).map((f) => { const s = scoreDe(f.id); return `<button class="ligne" data-a="ouvrirFiche" data-id="${f.id}"><span class="grow"><b>${esc(f.titre)}</b><br><span class="muet">${esc(f.niveau)}</span></span><span class="etoiles-ligne">${s === undefined ? '' : '★'.repeat(s) + '☆'.repeat(f.questions.length - s)}</span></button>`; }).join('');
-  return `<div class="section">${entete('Mes fiches', '<span class="etiquette">sans Internet</span>')}<div class="etapes-expose onglets-fiches">${onglets}</div><div class="liste">${liste}</div></div>`;
+  return `<div class="section">${entete('Mes fiches', '<span class="etiquette">sans Internet</span>')}${vueDefi()}${medailles ? `<div class="rang">${medailles}</div>` : ''}
+    <div class="etapes-expose onglets-fiches">${onglets}</div>
+    <div class="progression"><span style="width:${Math.round(100 * faites / total)}%"></span></div><span class="muet">${faites} fiche${faites > 1 ? 's' : ''} sur ${total} en sans-faute : toutes pour la médaille.</span>
+    <div class="liste">${liste}</div></div>`;
+}
+
+// Défi du jour : une question tirée des fiches, la même toute la journée. Réussie, elle rapporte un flocon
+// pour la collection. Une seule par jour : on revient le lendemain, pas de course.
+function questionDuJour() {
+  const toutes = D.catalogue.FICHES.flatMap((f) => f.questions.map((q) => ({ f, q })));
+  const jour = new Date().toISOString().slice(0, 10);
+  let h = 0; for (const c of jour + (S.profil.prenom || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return { jour, ...toutes[h % toutes.length] };
+}
+function vueDefi() {
+  const { jour, f, q } = questionDuJour(); const d = S.profil.defi || {}; const fait = d.jour === jour;
+  const flocons = S.profil.flocons || 0;
+  const collection = `<span class="muet">Ma collection : ${flocons} flocon${flocons > 1 ? 's' : ''} ${'❄'.repeat(Math.min(flocons, 20))}${flocons > 20 ? '…' : ''}</span>`;
+  if (fait) return `<div class="panneau defi">${S.vue && S.vue.pluieDefi ? pluieDeFlocons(16) : ''}<h3>Défi du jour</h3><span>${d.juste ? 'Réussi ! Un flocon de plus dans ta collection.' : 'Raté de peu. ' + esc(q.pourquoi)} Reviens demain pour un nouveau défi.</span>${collection}</div>`;
+  return `<div class="panneau defi"><h3>Défi du jour <span class="muet">· ${esc(f.titre)}</span></h3><b>${esc(q.q)}</b>
+    <div class="choix-quiz">${q.choix.map((c, i) => `<button class="choix" data-a="defiRepondre" data-i="${i}">${esc(c)}</button>`).join('')}</div>${collection}</div>`;
 }
 function vueEcrans() {
   const v = S.vue; const L = D.catalogue.ECRANS;
@@ -897,17 +933,39 @@ const A = {
   },
   fichesMatiere: (d) => { S.vue = { ref: 'fiches', matiere: d.m }; render(); },
   ouvrirFiche: (d) => { S.vue = { ref: S.vue.ref, matiere: S.vue.matiere, id: d.id }; render(); },
-  quizCommencer: () => { S.vue.q = 0; S.vue.reponses = []; render(); },
+  defiRepondre: (d) => {
+    const { jour, q } = questionDuJour(); if ((S.profil.defi || {}).jour === jour) return;
+    const juste = Number(d.i) === q.bonne;
+    S.profil.defi = { jour, juste };
+    if (juste) S.profil.flocons = (S.profil.flocons || 0) + 1;
+    sauverProfil();
+    dire(juste ? 'Défi réussi ! Un flocon de plus.' : 'Pas cette fois. On se retrouve demain pour un autre défi.');
+    if (S.vue) S.vue.pluieDefi = juste;
+    render();
+  },
+  quizCommencer: () => {
+    const liste = S.vue.ref === 'fiches' ? D.catalogue.FICHES : D.catalogue.ECRANS; const x = lecon(liste, S.vue.id);
+    S.vue.q = 0; S.vue.reponses = []; S.vue.pluie = 0; S.vue.ordres = x.questions.map((q) => melanger(q.choix.length)); render();
+  },
   quizRelire: () => { delete S.vue.q; render(); },
-  quizRepondre: (d) => { if (S.vue.reponses[S.vue.q] !== undefined) return; S.vue.reponses[S.vue.q] = Number(d.i); render(); },
+  quizRepondre: (d) => {
+    if (S.vue.reponses[S.vue.q] !== undefined) return;
+    const liste = S.vue.ref === 'fiches' ? D.catalogue.FICHES : D.catalogue.ECRANS; const q = lecon(liste, S.vue.id).questions[S.vue.q];
+    S.vue.reponses[S.vue.q] = Number(d.i);
+    const juste = Number(d.i) === q.bonne;
+    S.vue.pluie = juste ? 10 : 0;
+    dire(juste ? auHasard(MOTS_BRAVO) : auHasard(MOTS_COURAGE));
+    render();
+  },
   quizSuivant: () => {
-    S.vue.q++;
+    S.vue.q++; S.vue.pluie = 0;
     const liste = S.vue.ref === 'fiches' ? D.catalogue.FICHES : D.catalogue.ECRANS; const x = lecon(liste, S.vue.id);
     if (S.vue.q >= x.questions.length) {
       const bons = S.vue.reponses.filter((r, i) => r === x.questions[i].bonne).length;
       S.profil.quiz = S.profil.quiz || {}; const p = S.profil.quiz[x.id] || {};
       S.profil.quiz[x.id] = { meilleur: Math.max(p.meilleur || 0, bons), le: new Date().toISOString() };
       const L = D.catalogue.ECRANS;
+      if (bons === x.questions.length) dire(`Sans faute ! ${(S.profil.compagnon && S.profil.compagnon.nom) || 'Ton compagnon'} est fier de toi.`);
       if (S.vue.ref === 'ecrans' && L.every((y) => scoreDe(y.id) === y.questions.length) && !S.profil.badgeEcrans) { S.profil.badgeEcrans = new Date().toISOString(); toast('Nouveau badge : « Écrans malins » ★★★', 6000); }
       sauverProfil();
     }

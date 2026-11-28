@@ -23,7 +23,8 @@ const LOGICIELS = {
   camera: { nom: 'Caméra', uri: 'microsoft.windows.camera:' },
   explorateur: { nom: 'Explorateur de fichiers', chemins: ['%SystemRoot%\\explorer.exe'] },
   edge: { nom: 'Internet', chemins: [PF86 + '\\Microsoft\\Edge\\Application\\msedge.exe', PF + '\\Microsoft\\Edge\\Application\\msedge.exe'], menu: 'Microsoft Edge' },
-  minecraft: { nom: 'Minecraft', chemins: [PF86 + '\\Minecraft Launcher\\MinecraftLauncher.exe', PF + '\\Minecraft Launcher\\MinecraftLauncher.exe'], menus: ['Minecraft Launcher', 'Minecraft pour Windows', 'Minecraft for Windows', 'Minecraft Bedrock', 'Minecraft'] }, // Bedrock seul (sans lanceur) : trouvé par le menu Démarrer
+  // Bedrock d'abord (ouvert directement, sans passer par le lanceur qui propose Java), le lanceur à défaut.
+  minecraft: { nom: 'Minecraft', menusAvant: ['Minecraft pour Windows', 'Minecraft for Windows', 'Minecraft Bedrock'], chemins: [PF86 + '\\Minecraft Launcher\\MinecraftLauncher.exe', PF + '\\Minecraft Launcher\\MinecraftLauncher.exe'], menus: ['Minecraft Launcher', 'Minecraft'] },
   // RapidTyping, installé à la main (rapidtyping.com). Klavaro n'est plus installé : sa version Windows plante au démarrage
   // (0xC0000374, relevé par le testeur des logiciels) ; il reste en secours s'il est déjà là.
   klavaro: { nom: 'Le clavier', manuel: 'RapidTyping, à installer à la main (rapidtyping.com)', chemins: [PF + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\Klavaro\\bin\\klavaro.exe', PF + '\\Klavaro\\bin\\klavaro.exe'], menus: ['RapidTyping', 'Klavaro'] }
@@ -160,7 +161,7 @@ const PREMIERS_PAS = {
   gcompris: ['Chaque activité est une petite île : clique dessus, puis sur la flèche pour commencer.', 'Les étoiles en haut, c\u2019est le niveau : monte quand c\u2019est trop facile.', 'La maison en bas te ramène au menu.'],
   magneto: ['Le gros bouton rond enregistre, le carré arrête.', 'Approche-toi du micro, mais pas trop : parle comme à quelqu\u2019un assis en face de toi.', 'Ton enregistrement est rangé tout seul dans Documents, Enregistrements audio.'],
   mypaint: ['Choisis un pinceau dans la colonne de droite, et ta couleur sur la roue.', 'Ctrl+Z annule ton dernier trait : tu peux tout essayer.', 'Pour garder ton dessin : Fichier, Exporter, choisis le format PNG et range-le dans Documents, Mes créations.'],
-  minecraft: ['La toute première fois, un adulte connecte ton compte Minecraft avec toi.', 'Choisis « Minecraft pour Windows » (l\u2019édition Bedrock), puis Jouer, puis Créer un monde.', 'Le jeu peut mettre une à deux minutes à démarrer : patiente, ne clique pas plusieurs fois.'],
+  minecraft: ['La toute première fois, un adulte connecte ton compte Minecraft avec toi.', 'Si le lanceur s\u2019ouvre, choisis « Minecraft pour Windows » (l\u2019édition Bedrock), puis Jouer, puis Créer un monde.', 'Le jeu peut mettre une à deux minutes à démarrer : patiente, ne clique pas plusieurs fois.'],
   krita: ['Choisis un pinceau à gauche et une couleur à droite.', 'Ctrl+Z annule ton dernier trait : tu peux tout essayer.', 'Fichier, puis Exporter en PNG, dans Documents, Mes créations.'],
   writer: ['Écris d\u2019abord, la mise en forme viendra après.', 'Pour un titre, sélectionne-le et choisis « Titre 1 ».', 'Fichier, puis Enregistrer sous : choisis bien ton dossier, et donne un nom qui veut dire quelque chose.'],
   impress: ['Une diapo = une idée et une image.', 'Insertion, puis Image, pour ajouter un dessin ou une photo.', 'F5 lance le diaporama, Échap l\u2019arrête.'],

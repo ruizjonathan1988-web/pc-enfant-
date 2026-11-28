@@ -307,6 +307,16 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.strictEqual(lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json')).quiz['f-a'].meilleur, f.questions.length - 1, 'score gardé');
     await clic('[data-a="fermerVue"]'); await page.waitForSelector('[data-a="ouvrirFiche"][data-id="f-a"] .etoiles-ligne'); await clic('[data-a="fermerVue"]');
   });
+  await etape('Défi du jour : un flocon pour la collection, une seule fois par jour', async () => {
+    await rubrique('J’apprends'); await tuile('Mes fiches');
+    const bonne = await page.evaluate(() => questionDuJour().q.bonne);
+    await clic(`[data-a="defiRepondre"][data-i="${bonne}"]`);
+    await page.waitForSelector('text=Reviens demain');
+    assert.strictEqual(await page.locator('[data-a="defiRepondre"]').count(), 0, 'plus de défi aujourd’hui');
+    await pause(800);
+    assert.strictEqual(lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json')).flocons, 1, 'un flocon');
+    await clic('[data-a="fermerVue"]');
+  });
   await etape('Écrans malins : six leçons réussies, le badge', async () => {
     const { ECRANS } = require('../../app/lib/fiches');
     await rubrique('Mes outils'); await tuile('Écrans malins');
