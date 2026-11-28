@@ -612,6 +612,22 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.ok(creationsAvec(/^Planches de BD vides( \(\d+\))?\.pdf$/).length, 'planches vides en PDF');
     await clic('[data-a="fermerVue"]');
   });
+  await etape('Taper au clavier : une leçon tapée avec une faute, étoiles, leçon suivante ouverte, touche morte', async () => {
+    await rubrique('J’apprends'); await tuile('Taper au clavier');
+    await clic('[data-a="clavLecon"][data-i="0"]'); await page.waitForSelector('#clav-saisie');
+    const texte = await page.evaluate(() => CLAV.texte);
+    await page.keyboard.type('x');
+    assert.strictEqual(await page.evaluate(() => CLAV.pos), 0, 'une faute ne fait pas avancer');
+    for (const c of texte) await page.keyboard.type(c);
+    await page.waitForSelector('.clav-resultat');
+    const p = await page.evaluate(() => S.profil.clavier.lecons['repos-g']);
+    assert.ok(p && p.etoiles >= 1, 'étoiles enregistrées : ' + JSON.stringify(p));
+    assert.ok(await page.locator('.clav-resultat [data-a="clavLecon"][data-i="1"]').count(), 'leçon suivante ouverte');
+    await page.evaluate(() => clavCommencer(CLAV_LECONS.find((l) => l.id === 'mortes')));
+    await page.waitForSelector('#clav-saisie'); await page.keyboard.insertText('ê');
+    assert.strictEqual(await page.evaluate(() => [CLAV.pos, CLAV.erreurs].join()), '1,0', 'ê accepté');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
   await etape('L’école de l’ordinateur : clic, double-clic, glisser, clic droit, accents, Ctrl+Z', async () => {
     await rubrique('Mes outils'); assert.strictEqual(await page.locator('[data-a="tuile"]', { hasText: 'L’école de l’ordi' }).count(), 1, 'tuile de l’école');
     await page.evaluate(() => ouvrirVue('ecole'));

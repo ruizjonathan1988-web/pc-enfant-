@@ -139,7 +139,7 @@ const RUBRIQUES = [
     { type: 'logiciel', ref: 'gcompris', nom: 'Jeux pour apprendre', sous: 'GCompris : maths, lecture, sciences', icone: I.chapeau, couleur: '#2FA36B' },
     { type: 'site', ref: 'blockly', nom: 'Blockly Games', sous: 'Après Scratch : coder pas à pas', icone: I.code, couleur: '#F28C28' },
     { type: 'projet', ref: 'ia', nom: 'J\u2019apprends à l\u2019ordinateur', sous: 'Comprendre l\u2019IA, à deux', icone: I.cube, couleur: '#7C5CFA' },
-    { type: 'logiciel', ref: 'klavaro', nom: 'Taper au clavier', sous: 'Avec les dix doigts', icone: I.texte, couleur: '#13A39F' },
+    { type: 'interne', ref: 'clavier', nom: 'Taper au clavier', sous: 'Les dix doigts, pas à pas', icone: I.texte, couleur: '#13A39F' },
     { type: 'site', ref: 'lama', nom: 'Classe du Lama', sous: 'Jeux de français et maths', icone: I.lama, couleur: '#E0457B' },
     { type: 'site', ref: 'khan', nom: 'Khan Academy', sous: 'Leçons et exercices', icone: I.chapeau, couleur: '#2FA36B' },
     { type: 'site', ref: 'fondamentaux', nom: 'Les Fondamentaux', sous: 'Petits films pour comprendre', icone: I.film, couleur: '#E8892A' },

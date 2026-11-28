@@ -288,7 +288,7 @@ function noterBadge(t) {
   if (apres > avant) toast(`Nouveau badge : « ${PALIERS[apres - 1].nom} » en ${t.nom} ${'★'.repeat(apres)}`, 6000);
 }
 // « Nouveau » : les tuiles arrivées avec une mise à jour, tant qu'elle ne les a pas ouvertes.
-const NOUVEAUTES = ['interne:animation', 'interne:mains', 'interne:histoires', 'interne:bd', 'interne:coloriages', 'interne:cubes', 'site:arcade', 'interne:ecole', 'interne:fiches', 'interne:ecrans'];
+const NOUVEAUTES = ['interne:clavier', 'interne:animation', 'interne:mains', 'interne:histoires', 'interne:bd', 'interne:coloriages', 'interne:cubes', 'site:arcade', 'interne:ecole', 'interne:fiches', 'interne:ecrans'];
 function tuilesConnues() {
   if (!S.profil.tuilesConnues) {
     const toutes = D.catalogue.RUBRIQUES.flatMap((r) => r.tuiles).map(cleBadge);
@@ -341,7 +341,7 @@ function entete(titre, extra) { return `<div class="entete"><button class="retou
 
 function vueInterne() {
   const v = S.vue;
-  const fn = { permis: vuePermis, semaine: vueSemaine, agenda: vueAgenda, idee: vueIdee, galerie: vueGalerie, projet: vueProjet, exposes: vueExposes, cahier: vueCahier, fiches: vueFiches, ecrans: vueEcrans, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, animation: () => vueAnimation(), mains: () => vueMains(), histoires: () => vueHistoires(), bd: () => vueBD(), coloriages: () => vueColoriages(), ecole: () => vueEcole(), cubes: () => (window.vueCubes ? window.vueCubes() : ''), minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
+  const fn = { permis: vuePermis, semaine: vueSemaine, agenda: vueAgenda, idee: vueIdee, galerie: vueGalerie, projet: vueProjet, exposes: vueExposes, cahier: vueCahier, fiches: vueFiches, ecrans: vueEcrans, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, animation: () => vueAnimation(), mains: () => vueMains(), histoires: () => vueHistoires(), bd: () => vueBD(), coloriages: () => vueColoriages(), ecole: () => vueEcole(), clavier: () => vueClavier(), cubes: () => (window.vueCubes ? window.vueCubes() : ''), minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
   return fn ? fn() : entete('Bientôt');
 }
 
@@ -744,6 +744,7 @@ function apresRendu() {
   if (typeof bdApresRendu === 'function') bdApresRendu();
   if (typeof ecoleApresRendu === 'function') ecoleApresRendu();
   if (window.cubesApresRendu) window.cubesApresRendu();
+  if (typeof clavApresRendu === 'function') clavApresRendu();
   if (typeof visitesApresRendu === 'function') visitesApresRendu();
 }
 function sauverToile(id) {
