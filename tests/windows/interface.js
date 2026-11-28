@@ -387,6 +387,73 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.strictEqual(p.defisMains['tour-spaghettis'][0].ameliore, 'Une base en triangle');
     await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
   });
+  // ---------- Écrire, dessiner, construire : et sortir de l'écran ----------
+  const docs = (d) => path.join(os.homedir(), 'Documents', d);
+  const creationsAvec = (re) => fs.readdirSync(docs('Mes créations')).filter((f) => re.test(f));
+  await etape('Histoire à choix : pages reliées, partie jouée, livret imprimé', async () => {
+    await rubrique('Je crée'); await tuile('Histoire à choix');
+    await page.fill('[data-in="hNouveau"]', 'Le grenier secret'); await clic('[data-a="hCreer"]');
+    await page.fill('[data-in="hTexte"]', 'Dans le grenier, une petite porte.');
+    await clic('[data-a="hAjouterChoix"]'); await page.fill('[data-in="hChoixTexte"][data-i="0"]', 'Ouvrir la porte');
+    await clic('[data-a="hAjouterChoix"]'); await page.fill('[data-in="hChoixTexte"][data-i="1"]', 'Appeler maman');
+    await clic('[data-a="hCreerSuite"][data-i="0"]'); await clic('[data-a="hCreerSuite"][data-i="1"]');
+    await clic('.noeud:has-text("Ouvrir la porte")'); await page.fill('[data-in="hTexte"]', 'Un escalier descend dans le noir.'); await clic('[data-a="hFin"][data-f="bonne"]');
+    await clic('.noeud:has-text("Appeler maman")'); await page.fill('[data-in="hTexte"]', 'La porte a disparu.'); await clic('[data-a="hFin"][data-f="drole"]');
+    await page.waitForSelector('.bien');
+    await clic('[data-a="hJouer"]'); await clic('.choix-jeu button >> nth=0'); await page.waitForSelector('.fin-jeu');
+    await clic('[data-a="hEcrire"]'); await clic('[data-a="hImprimer"]'); await pause(4000);
+    assert.ok(creationsAvec(/^Le grenier secret\.pdf$/).length, 'livret PDF dans Mes créations');
+    const h = lire(path.join(docs('Mes histoires'), fs.readdirSync(docs('Mes histoires')).find((f) => f.endsWith('.json'))));
+    assert.strictEqual(h.pages.length, 3); assert.strictEqual(h.pages.filter((x) => x.fin).length, 2);
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Ma BD : planches vides imprimées, planche dessinée photographiée, bulles, album', async () => {
+    await rubrique('Je crée'); await tuile('Ma BD');
+    await clic('[data-a="bdVidesDirect"]'); await clic('[data-a="bdImprimerVides"]'); await pause(3000);
+    assert.ok(creationsAvec(/^Planches de BD vides\.pdf$/).length, 'planches vides');
+    await page.fill('[data-in="bdNouveau"]', 'Les aventures de Givre'); await clic('[data-a="bdCreer"]');
+    await clic('[data-a="bdPhotoPlanche"]'); await page.waitForFunction(() => { const v = document.getElementById('bd-video'); return v && v.readyState >= 2; }, null, { timeout: 15000 });
+    await clic('[data-a="bdClic"]'); await page.waitForSelector('.carte-album:has-text("dessinée sur papier")', { timeout: 15000 });
+    await clic('[data-a="bdAjouter"][data-g="g4"]'); await clic('[data-a="bdBulle"][data-t="parole"]'); await page.fill('[data-in="bdTexteBulle"]', 'On part !');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="bdImprimerAlbum"]'); await pause(4000);
+    assert.ok(creationsAvec(/^Les aventures de Givre\.pdf$/).length, 'album PDF');
+    const a = lire(path.join(docs('Mes BD'), fs.readdirSync(docs('Mes BD')).find((f) => f.endsWith('.json'))));
+    assert.strictEqual(a.planches.length, 2); assert.strictEqual(a.planches[1].cases[0].bulles[0].texte, 'On part !');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Coloriages : mandala imprimé, coloriage magique vérifié', async () => {
+    await rubrique('Je crée'); await tuile('Coloriages');
+    await clic('[data-a="colMode"][data-m="mandala"]'); await clic('#col-svg path >> nth=0'); await clic('[data-a="colImprimer"]'); await pause(3000);
+    assert.ok(creationsAvec(/^Mandala\.pdf$/).length, 'mandala PDF');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="colMode"][data-m="magique"]'); await clic('[data-a="colMagie"][data-t="tables69"]');
+    await page.evaluate(() => { const v = S.vue; const k = Object.keys(SPRITES); const sp = SPRITES[v.sprite || k[v.graine % k.length]]; const p = preparerMagie(sp, 'tables69', v.graine); p.r.liste.forEach((z, i) => { COL.peint['z' + i] = sp.couleurs[z.ch]; }); });
+    await clic('[data-a="colVerifier"]'); await page.waitForSelector('.bravo-col');
+    await clic('[data-a="colGarder"]'); await pause(1000);
+    assert.ok(creationsAvec(/^Coloriage .*\.png$/).length, 'coloriage dans la galerie');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Atelier 3D : des cubes, le plan de montage et le fichier pour l’imprimante 3D', async () => {
+    await page.evaluate(() => ouvrirVue('cubes'));
+    await page.fill('[data-in="cNouveau"]', 'Ma tour'); await clic('[data-a="cCreer"]');
+    await page.waitForFunction(() => window.C3 && window.C3.rendu, null, { timeout: 15000 });
+    const z = await page.locator('#cubes-zone').boundingBox();
+    for (let i = 0; i < 3; i++) { await page.mouse.click(z.x + z.width / 2, z.y + z.height / 2 + 40); await pause(250); }
+    const n = await page.evaluate(() => window.C3.cubes.size); assert.ok(n >= 1, 'des cubes posés (' + n + ')');
+    await clic('[data-a="cPlan"]'); await pause(4000); await clic('[data-a="cStl"]'); await pause(1500);
+    assert.ok(creationsAvec(/^Plan de montage Ma tour\.pdf$/).length, 'plan de montage');
+    const stl = path.join(docs('Mes créations 3D'), 'Ma tour.stl'); assert.ok(fs.existsSync(stl), 'fichier STL');
+    const b = fs.readFileSync(stl); assert.strictEqual(b.length, 84 + 50 * b.readUInt32LE(80), 'STL binaire valide');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Studio : dessiner un dessin animé image par image', async () => {
+    await rubrique('Je crée'); await tuile('Mon film');
+    await page.fill('[data-in="filmTitre"]', 'Le bonhomme'); await clic('[data-a="filmNouveau"]');
+    await clic('[data-a="filmDessiner"]');
+    for (let i = 0; i < 2; i++) { const b = await page.locator('#fd-trait').boundingBox(); await page.mouse.move(b.x + 100 + i * 30, b.y + 120); await page.mouse.down(); await page.mouse.move(b.x + 200 + i * 30, b.y + 220, { steps: 6 }); await page.mouse.up(); await clic('#film-dessin [data-d="ajouter"]'); await pause(600); }
+    await clic('#film-dessin [data-d="fermer"]');
+    assert.strictEqual(await page.evaluate(() => FILM.p.images.length), 2, 'deux images dessinées dans la frise');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
   await etape('Badges : un site utilisé donne « Je découvre »', async () => {
     const p = lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json'));
     assert.ok(p.badges && p.badges['site:vikidia'] && p.badges['site:vikidia'].jours.length === 1, 'jour noté pour Vikidia');

@@ -247,7 +247,7 @@ async function demarrerCamera() {
   majEcran();
 }
 function couperCamera() { if (FILM.flux) FILM.flux.getTracks().forEach((t) => t.stop()); FILM.flux = null; }
-function arreterTout() { arreterAuto(); arreterLecture(); couperCamera(); FILM.compte = false; FILM.pipette = false; }
+function arreterTout() { arreterAuto(); arreterLecture(); couperCamera(); FILM.compte = false; FILM.pipette = false; if (typeof fermerDessin === 'function') fermerDessin(); }
 let boucleActive = false;
 function boucleDirect() {
   if (boucleActive) return; boucleActive = true;
@@ -368,6 +368,63 @@ async function enregistrerVoix() {
   toast('Ta voix est enregistrée. Appuie sur Lecture pour écouter !');
 }
 
+// ---------- Dessin animé : dessiner image par image, avec l'image d'avant en fantôme ----------
+const COULEURS_DESSIN = ['#1E2A4A', '#E53935', '#FF9800', '#FFEB3B', '#43A047', '#1E88E5', '#8E24AA', '#F06292', '#8D6E63', '#FFFFFF'];
+const DES = { taille: 6, couleur: '#1E2A4A', gomme: false, fond: 'papier', pile: [] };
+function ouvrirDessin() {
+  arreterAuto(); arreterLecture(); fermerDessin();
+  document.body.insertAdjacentHTML('beforeend', `<div class="film-dessin" id="film-dessin"><div class="panneau cadre-dessin">
+    <div class="rang entre"><h3>✏️ Dessine ton image</h3><span class="rang"><button class="puce ${DES.fond === 'papier' ? 'on' : ''}" data-d="fond" data-v="papier">Feuille blanche</button><button class="puce ${DES.fond === 'photo' ? 'on' : ''}" data-d="fond" data-v="photo">Sur la dernière image</button></span></div>
+    <div class="feuille-dessin"><canvas id="fd-fond" width="${FW}" height="${FH}"></canvas><canvas id="fd-trait" width="${FW}" height="${FH}"></canvas></div>
+    <div class="rang entre outils-dessin"><span class="rang">${COULEURS_DESSIN.map((c) => `<button class="pastille gros ${DES.couleur === c && !DES.gomme ? 'on' : ''}" style="background:${c}" data-d="couleur" data-v="${c}" aria-label="Couleur"></button>`).join('')}
+      <button class="puce ${DES.gomme ? 'on' : ''}" data-d="gomme">Gomme</button>${[3, 6, 14].map((t) => `<button class="puce ${DES.taille === t ? 'on' : ''}" data-d="taille" data-v="${t}"><span class="point" style="width:${t + 4}px;height:${t + 4}px"></span></button>`).join('')}</span>
+      <span class="rang"><button class="puce" data-d="annuler">↶</button><button class="puce" data-d="copier">Reprendre l’image d’avant</button><button class="puce" data-d="vider">Tout effacer</button></span></div>
+    <div class="rang entre"><span class="muet">L’image d’avant apparaît en fantôme : décale ton dessin un tout petit peu.</span><span class="rang"><button class="btn doux" data-d="fermer">Fermer</button><button class="btn" style="background:#E0457B" data-d="ajouter">Ajouter à la frise ✓</button></span></div></div></div>`);
+  preparerFondDessin(); brancherDessin();
+}
+function fermerDessin() { const z = document.getElementById('film-dessin'); if (z) z.remove(); }
+function derniereImage() { const p = FILM.p; const nom = p.images[FILM.sel >= 0 ? FILM.sel : p.images.length - 1]; return nom && FILM.imgs[nom] ? FILM.imgs[nom].bmp : null; }
+function preparerFondDessin() {
+  const c = document.getElementById('fd-fond'); if (!c) return; const x = c.getContext('2d'); const b = derniereImage();
+  x.globalAlpha = 1; x.fillStyle = '#fff'; x.fillRect(0, 0, FW, FH);
+  if (b) { x.globalAlpha = DES.fond === 'photo' ? 1 : 0.28; couvrir(x, b, b.width, b.height, FW, FH); x.globalAlpha = 1; }
+}
+function brancherDessin() {
+  const t = document.getElementById('fd-trait'); const x = t.getContext('2d'); let dernier = null;
+  const pos = (e) => { const r = t.getBoundingClientRect(); return [(e.clientX - r.left) * FW / r.width, (e.clientY - r.top) * FH / r.height]; };
+  t.addEventListener('pointerdown', (e) => { DES.pile.push(x.getImageData(0, 0, FW, FH)); if (DES.pile.length > 25) DES.pile.shift(); dernier = pos(e); t.setPointerCapture(e.pointerId); trait(x, dernier, dernier); });
+  t.addEventListener('pointermove', (e) => { if (!dernier) return; const p = pos(e); trait(x, dernier, p); dernier = p; });
+  t.addEventListener('pointerup', () => { dernier = null; });
+  document.getElementById('film-dessin').addEventListener('click', (e) => { const b = e.target.closest('[data-d]'); if (b) actionDessin(b.dataset.d, b.dataset.v, b); });
+}
+function trait(x, a, b) {
+  x.save(); x.lineCap = 'round'; x.lineJoin = 'round'; x.lineWidth = DES.taille * (DES.gomme ? 3 : 1);
+  x.globalCompositeOperation = DES.gomme ? 'destination-out' : 'source-over'; x.strokeStyle = DES.couleur;
+  x.beginPath(); x.moveTo(a[0], a[1]); x.lineTo(b[0] + 0.01, b[1]); x.stroke(); x.restore();
+}
+async function actionDessin(d, v, el) {
+  const t = document.getElementById('fd-trait'); const x = t && t.getContext('2d');
+  const marquer = (sel) => { document.querySelectorAll(`#film-dessin ${sel}`).forEach((b) => b.classList.remove('on')); el.classList.add('on'); };
+  if (d === 'couleur') { DES.couleur = v; DES.gomme = false; marquer('[data-d="couleur"],[data-d="gomme"]'); }
+  else if (d === 'gomme') { DES.gomme = !DES.gomme; el.classList.toggle('on', DES.gomme); }
+  else if (d === 'taille') { DES.taille = Number(v); marquer('[data-d="taille"]'); }
+  else if (d === 'fond') { DES.fond = v; marquer('[data-d="fond"]'); preparerFondDessin(); }
+  else if (d === 'annuler') { const im = DES.pile.pop(); if (im) x.putImageData(im, 0, 0); }
+  else if (d === 'vider') { DES.pile.push(x.getImageData(0, 0, FW, FH)); x.clearRect(0, 0, FW, FH); }
+  else if (d === 'copier') { if (DES.dernierTrait) { DES.pile.push(x.getImageData(0, 0, FW, FH)); x.putImageData(DES.dernierTrait, 0, 0); } else toast('Il n’y a pas encore de dessin d’avant.'); }
+  else if (d === 'fermer') fermerDessin();
+  else if (d === 'ajouter') {
+    const c = document.createElement('canvas'); c.width = FW; c.height = FH; const cx = c.getContext('2d');
+    cx.fillStyle = '#fff'; cx.fillRect(0, 0, FW, FH); const b = derniereImage(); if (DES.fond === 'photo' && b) couvrir(cx, b, b.width, b.height, FW, FH);
+    cx.drawImage(t, 0, 0);
+    DES.dernierTrait = x.getImageData(0, 0, FW, FH);
+    const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.92));
+    await ajouterImage(new Uint8Array(await blob.arrayBuffer()));
+    // image suivante : on repart d'une feuille vide, avec ce dessin en fantôme
+    x.clearRect(0, 0, FW, FH); DES.pile = []; preparerFondDessin(); toast('Image ajoutée ! Dessine la suivante en décalant un peu.');
+  }
+}
+
 // ---------- Faire le film ----------
 async function fabriquer() {
   const p = FILM.p; if (p.images.length < 2 || FILM.export) return;
@@ -466,6 +523,7 @@ function vueAnimation() {
         <div class="reglage"><b>Image fantôme</b><input type="range" min="0" max="80" step="5" value="${Math.round((p.oignon === undefined ? 0.35 : p.oignon) * 100)}" data-in="filmOignon"></div>
         <div class="rang"><button class="puce ${p.grille ? 'on' : ''}" data-a="filmGrille">Grille</button><button class="puce" data-a="filmCamera" id="anim-cam">Autre caméra</button></div>
         <button class="btn doux" data-a="filmPhotos">📷 Ajouter mes photos</button>
+        <button class="btn doux" data-a="filmDessiner">✏️ Dessiner une image</button>
       </div>
     </div>
     <div id="anim-bas">${basHtml()}</div>
@@ -580,6 +638,7 @@ Object.assign(A, {
   filmGrille: () => { FILM.p.grille = !FILM.p.grille; filmSauver(); document.querySelector('[data-a="filmGrille"]').classList.toggle('on', FILM.p.grille); majEcran(); },
   filmCamera: () => { FILM.camera++; couperCamera(); demarrerCamera(); },
   filmPhotos: () => ouvrirPhotos(),
+  filmDessiner: () => ouvrirDessin(),
   filmPhotosFermer: () => { FILM.photos = null; majBas(); },
   filmImporter: async () => { toast('Je regarde si ton appareil photo est branché…'); const r = await F.importerPhotos(); if (!r || !r.trouve) toast('Je ne trouve pas d’appareil photo. Vérifie qu’il est branché et allumé.', 6000); else { toast(r.copies ? r.copies + ' nouvelle' + (r.copies > 1 ? 's' : '') + ' photo' + (r.copies > 1 ? 's' : '') + ' !' : 'Toutes tes photos sont déjà là.'); await ouvrirPhotos(); } },
   filmChoisirPhoto: (d) => choisirPhoto(d.c),

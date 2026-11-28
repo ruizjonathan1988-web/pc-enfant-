@@ -44,6 +44,7 @@ const SITES = {
   fondamentaux: { nom: 'Les Fondamentaux', url: 'https://lesfondamentaux.reseau-canope.fr/accueil.html', domaines: ['reseau-canope.fr'] },
   calcul: { nom: 'Calcul mental', url: 'https://calculatice.ac-lille.fr/exercices/', domaines: ['calculatice.ac-lille.fr'] },
   dicoado: { nom: 'Dicoado', url: 'https://www.dicoado.org', domaines: ['dicoado.org'] },
+  arcade: { nom: 'MakeCode Arcade', url: 'https://arcade.makecode.com/', domaines: ['arcade.makecode.com', 'makecode.com'] },
   songmaker: { nom: 'Mélodies', url: 'https://musiclab.chromeexperiments.com/Song-Maker/', domaines: ['musiclab.chromeexperiments.com'] },
   teachable: { nom: 'Teachable Machine', url: 'https://teachablemachine.withgoogle.com/train/image', domaines: ['teachablemachine.withgoogle.com'], camera: true },
   blockly: { nom: 'Blockly Games', url: 'https://blockly.games/?lang=fr', domaines: ['blockly.games'] },
@@ -102,6 +103,7 @@ const RUBRIQUES = [
     { type: 'site', ref: 'songmaker', nom: 'Mélodies', sous: 'Song Maker', icone: I.note, couleur: '#2B7BD6' },
     { type: 'interne', ref: 'coloriages', nom: 'Coloriages', sous: 'Magiques, mandalas, pixels', icone: I.palette, couleur: '#F2B33D' },
     { type: 'interne', ref: 'cubes', nom: 'Atelier 3D', sous: 'Des cubes, puis en vrai', icone: I.cube, couleur: '#2FA36B', niveau: 2 },
+    { type: 'site', ref: 'arcade', nom: 'Mes jeux vidéo', sous: 'MakeCode Arcade, après Scratch', icone: I.code, couleur: '#3949AB', niveau: 3 },
     { type: 'interne', ref: 'mains', nom: 'Mes mains', sous: 'Des défis loin de l\u2019écran', icone: I.ciseaux, couleur: '#F28C28' },
     { type: 'interne', ref: 'histoires', nom: 'Histoire à choix', sous: 'Le lecteur décide de la suite', icone: I.carte, couleur: '#7C5CFA' },
     { type: 'interne', ref: 'bd', nom: 'Ma BD', sous: 'Au crayon, puis en album', icone: I.bulle, couleur: '#E0457B' },
@@ -164,6 +166,7 @@ const RUBRIQUES = [
 
 // Premiers pas : trois gestes, montrés la première fois qu'on ouvre un logiciel, puis plus jamais.
 const PREMIERS_PAS = {
+  arcade: ['Commence par un tutoriel (« Skillmap ») : il te guide pas à pas pour ton premier jeu.', 'Les blocs ressemblent à Scratch ; l\u2019onglet JavaScript montre le même programme écrit en vrai code.', 'Pour garder ton jeu : la disquette télécharge une image .png dans Mes créations. Pour le rouvrir, glisse cette image dans l\u2019éditeur.'],
   scratch: ['Clique sur un bloc pour voir ce qu\u2019il fait.', 'Glisse les blocs les uns sous les autres : c\u2019est ton programme.', 'Le drapeau vert lance tout. Pour garder ton travail : Fichier, puis « Enregistrer sur ton ordinateur », dans Mes créations.'],
   stopmotion: ['Pose la caméra bien stable : elle ne doit plus bouger.', 'Bouge ton personnage tout doucement, une photo à chaque fois.', 'Exporte ton film dans Documents, Mes créations : il ira dans ta galerie.'],
   tuxpaint: ['Les outils sont à gauche, les couleurs en bas : essaie les « Magie », ils font des choses surprenantes.', 'Défaire (la flèche) annule ton dernier geste : tu peux tout essayer.', 'Enregistrer garde ton dessin dans Tux Paint ; pour le mettre dans ta galerie, demande « Exporter » à un adulte la première fois.'],
