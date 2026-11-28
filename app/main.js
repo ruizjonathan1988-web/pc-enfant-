@@ -367,7 +367,7 @@ poser('init', () => {
   }
   return {
     dev: C.DEV, plateforme: process.platform,
-    catalogue: { PERMIS: CAT.PERMIS, PREMIERS_PAS: CAT.PREMIERS_PAS, IDEES: CAT.IDEES, PROJETS: CAT.PROJETS, RUBRIQUES: CAT.RUBRIQUES, SITES: CAT.SITES, EXPOSE_ETAPES: CAT.EXPOSE_ETAPES, INTENTIONS: CAT.INTENTIONS, ICONES: CAT.ICONES, ...require('./lib/fiches') },
+    catalogue: { PERMIS: CAT.PERMIS, PREMIERS_PAS: CAT.PREMIERS_PAS, IDEES: CAT.IDEES, PROJETS: CAT.PROJETS, RUBRIQUES: CAT.RUBRIQUES, SITES: CAT.SITES, EXPOSE_ETAPES: CAT.EXPOSE_ETAPES, INTENTIONS: CAT.INTENTIONS, ICONES: CAT.ICONES, ...require('./lib/fiches'), DEFIS: require('./lib/defis').DEFIS, PLACARD: require('./lib/defis').PLACARD, CATEGORIES_DEFIS: require('./lib/defis').CATEGORIES, METHODE: require('./lib/defis').METHODE },
     config: configPublique(), etat: lireJson(fichiers().etat, null), profil: lireJson(FICHIER_PROFIL, null), compagnons
   };
 });
@@ -486,6 +486,14 @@ poser('animExporter', (titre, donnees) => {
   let cible = path.join(dossier, base + '.webm');
   for (let i = 2; fs.existsSync(cible); i++) cible = path.join(dossier, `${base} (${i}).webm`);
   fs.writeFileSync(cible, Buffer.from(donnees)); return { ok: true, nom: path.basename(cible), url: versUrl(cible) };
+});
+// Mes mains : la photo d'une création faite loin de l'écran rejoint « Mes créations ».
+poser('creationPhoto', (titre, donnees) => {
+  const dossier = dossiers().creations; fs.mkdirSync(dossier, { recursive: true });
+  const base = (String(titre || 'Ma création').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim().slice(0, 60)) || 'Ma création';
+  let cible = path.join(dossier, base + '.jpg');
+  for (let i = 2; fs.existsSync(cible); i++) cible = path.join(dossier, `${base} (${i}).jpg`);
+  fs.writeFileSync(cible, Buffer.from(donnees)); return { ok: true, nom: path.basename(cible) };
 });
 poser('jeuxSteam', () => jeuxSteam());
 poser('lireDoc', (dossier, fichier) => { const { p } = sur(dossier, fichier); return lireJson(p, null); });

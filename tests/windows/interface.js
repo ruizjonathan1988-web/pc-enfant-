@@ -350,6 +350,39 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.ok(await page.evaluate(() => !FILM.flux), 'caméra éteinte en quittant le studio');
     await clic('[data-a="fermerVue"]');
   });
+  // ---------- Mes mains ----------
+  await etape('Mes mains : ce que j’ai à la maison filtre les défis', async () => {
+    await rubrique('Je crée'); await tuile('Mes mains');
+    assert.ok(await page.locator('.carte-defi').count() >= 30, 'au moins 30 défis');
+    await clic('[data-a="mainsPlacard"]');
+    for (const id of ['papier', 'scotch', 'regle', 'spaghettis', 'chamallows', 'ficelle', 'ciseaux']) await clic(`[data-a="mainsPlacardCocher"][data-id="${id}"]`);
+    await clic('[data-a="mainsPlacardFini"]');
+    const titres = await page.$$eval('.carte-defi b', (l) => l.map((x) => x.textContent));
+    assert.ok(titres.includes('La tour spaghettis-chamallow') && !titres.includes('Sauvez l’œuf !'), 'seulement les défis faisables : ' + titres.join(', '));
+  });
+  await etape('Mes mains : la pause bricolage arrête le temps d’écran', async () => {
+    await clic('[data-a="mainsOuvrir"][data-id="tour-spaghettis"]');
+    await clic('[data-a="mainsAide"]'); assert.strictEqual(await page.locator('.indices li').count(), 1, 'un indice à la fois');
+    await clic('[data-a="mainsPartir"]'); await page.waitForSelector('.pause-mains');
+    const d = demande(); assert.ok(d.pause && d.pause.sessionId === d.sessionId, 'pause transmise au gardien');
+    const avant = lire(path.join(BASE, 'enfants', 'test', 'etat.json')).session.minutes;
+    tic(); tic();
+    const e = lire(path.join(BASE, 'enfants', 'test', 'etat.json'));
+    assert.strictEqual(e.session.minutes, avant, 'le temps d’écran ne bouge pas pendant la pause');
+    assert.ok(e.session.pauseMinutes >= 2, 'minutes de pause comptées');
+  });
+  await etape('Mes mains : photo de la création, mesure et réussite', async () => {
+    await clic('[data-a="mainsFini"]');
+    assert.ok(!demande().pause, 'pause terminée');
+    await page.waitForFunction(() => { const v = document.getElementById('mains-video'); return v && v.readyState >= 2; }, null, { timeout: 15000 });
+    await clic('[data-a="mainsClic"]'); await page.waitForSelector('.ecran-photo img', { timeout: 10000 });
+    await page.fill('[data-in="mainsMesure"]', '54'); await clic('[data-a="mainsHumeur"][data-h="reussi"]');
+    await clic('[data-a="mainsEnregistrer"]'); await page.waitForSelector('.bravo-mains');
+    assert.ok(fs.existsSync(path.join(os.homedir(), 'Documents', 'Mes créations', 'Défi La tour spaghettis-chamallow.jpg')), 'photo dans la galerie');
+    const p = lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json'));
+    assert.strictEqual(p.defisMains['tour-spaghettis'][0].mesure, '54');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
   await etape('Badges : un site utilisé donne « Je découvre »', async () => {
     const p = lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json'));
     assert.ok(p.badges && p.badges['site:vikidia'] && p.badges['site:vikidia'].jours.length === 1, 'jour noté pour Vikidia');

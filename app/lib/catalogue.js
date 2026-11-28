@@ -53,6 +53,7 @@ const SITES = {
 // Icônes : tracés SVG 24×24 (trait).
 const I = {
   code: 'M8 7l-5 5 5 5M16 7l5 5-5 5M13 5l-2 14',
+  ciseaux: 'M9 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM8.1 8.1L20 20M8.1 15.9L20 4',
   film: 'M4 5h16v14H4zM8 5v14M16 5v14M4 9h4M4 15h4M16 9h4M16 15h4',
   pinceau: 'M14 4l6 6-9 9H5v-6zM12 6l6 6',
   note: 'M9 18V5l11-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3z',
@@ -96,6 +97,7 @@ const RUBRIQUES = [
     { type: 'logiciel', ref: 'krita', nom: 'Atelier de peinture', sous: 'Krita, pour aller plus loin', icone: I.pinceau, couleur: '#C2410C', niveau: 3 },
     { type: 'site', ref: 'incredibox', nom: 'Mes beats', sous: 'Incredibox', icone: I.beat, couleur: '#7C5CFA' },
     { type: 'site', ref: 'songmaker', nom: 'Mélodies', sous: 'Song Maker', icone: I.note, couleur: '#2B7BD6' },
+    { type: 'interne', ref: 'mains', nom: 'Mes mains', sous: 'Des défis loin de l\u2019écran', icone: I.ciseaux, couleur: '#F28C28' },
     { type: 'interne', ref: 'cahier', nom: 'Mon cahier', sous: 'Histoires et lettres', icone: I.texte, couleur: '#1F5FA8' },
     { type: 'logiciel', ref: 'writer', nom: 'Mise en page', sous: 'LibreOffice Writer', icone: I.texte, couleur: '#174A85', niveau: 2 },
     { type: 'logiciel', ref: 'magneto', nom: 'Ma voix', sous: 'Le Magnétophone', icone: I.micro, couleur: '#5B3FD6' },

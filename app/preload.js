@@ -2,7 +2,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 const appel = (canal) => (...a) => ipcRenderer.invoke(canal, ...a);
-const canaux = ['init', 'etat', 'demande', 'parent', 'profil', 'mode', 'reduire', 'lancer', 'urlAutorisee', 'jeuxSteam', 'lireDoc', 'ecrireDoc', 'listerDocs', 'ouvrirDossier', 'photos', 'musique', 'livresAudio', 'creations', 'films', 'seance', 'fermer', 'documentExpose', 'documentTexte', 'adresseParent', 'imprimer', 'importerPhotos', 'casque', 'copierCasque', 'choisirFond', 'finir', 'animListe', 'animLire', 'animOctets', 'lireOctets', 'animDecors', 'animProjet', 'animEcrire', 'animEffacer', 'animSupprimer', 'animExporter'];
+const canaux = ['init', 'etat', 'demande', 'parent', 'profil', 'mode', 'reduire', 'lancer', 'urlAutorisee', 'jeuxSteam', 'lireDoc', 'ecrireDoc', 'listerDocs', 'ouvrirDossier', 'photos', 'musique', 'livresAudio', 'creations', 'films', 'seance', 'fermer', 'documentExpose', 'documentTexte', 'adresseParent', 'imprimer', 'importerPhotos', 'casque', 'copierCasque', 'choisirFond', 'finir', 'animListe', 'animLire', 'animOctets', 'lireOctets', 'animDecors', 'animProjet', 'animEcrire', 'animEffacer', 'animSupprimer', 'animExporter', 'creationPhoto'];
 const api = {};
 canaux.forEach((c) => { api[c] = appel(c); });
 api.surFenetreQuittee = (fn) => ipcRenderer.on('fenetre-quittee', () => fn());

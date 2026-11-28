@@ -265,3 +265,46 @@ audio,video{width:100%;border-radius:14px}
 .tous-decors{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;padding-right:4px}
 .tous-decors .decors{max-height:none;overflow:visible}
 .titre-decors{font-size:14px;margin-top:4px}
+
+/* ---------- Mes mains ---------- */
+.affiche-mains{flex-direction:row;align-items:center;gap:18px;background:linear-gradient(135deg,#fff 0%,#FFF1E0 100%)}
+.palier-mains{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;min-width:170px}
+.palier-mains .e{font-size:44px}
+.filtres-mains{flex-wrap:wrap}
+.grille-defis{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.carte-defi{background:#fff;border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:6px;text-align:left;box-shadow:0 8px 22px rgba(20,24,60,.10);transition:transform .15s;position:relative}
+.carte-defi:hover{transform:translateY(-3px) rotate(-.6deg)}
+.carte-defi .e{font-size:40px;line-height:1}
+.carte-defi .infos{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--douce)}
+.carte-defi .fait{color:#2FA36B;font-weight:800;font-size:13px}
+.manque{color:#C2621A;font-size:12px;font-weight:700}
+.bulle-defi{background:linear-gradient(135deg,#FFF1E0,#fff);border:3px dashed #F28C28}
+.texte-defi{font:700 22px/1.35 'Outfit',sans-serif;margin:4px 0 0}
+.deux-colonnes-mains,.mains .deux-colonnes{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.regles,.indices,.methode{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.indices{list-style:none;padding-left:0}
+.encadre-adulte{background:#EEF4FF;border-radius:14px;padding:10px 14px}
+.encadre-adulte p{margin:4px 0 0}
+.liste-materiel{display:flex;flex-direction:column;gap:6px}
+.liste-materiel button,.placard button{display:flex;align-items:center;gap:10px;text-align:left;background:rgba(20,24,60,.04);border-radius:12px;padding:8px 10px}
+.liste-materiel button.on,.placard button.on{background:#E6F6EE}
+.case{width:24px;height:24px;border-radius:7px;border:2px solid #9AA3B8;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;font-weight:900;color:#2FA36B}
+button.on .case{border-color:#2FA36B;background:#fff}
+.placard{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
+.pause-mains{position:fixed;inset:0;z-index:900;background:radial-gradient(circle at 50% 30%,#FFE3C2,#F7B267 60%,#E07B39);display:flex;align-items:center;justify-content:center;padding:30px}
+.contenu-pause{max-width:720px;text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center;color:#3A230F}
+.contenu-pause .grande-e{font-size:110px;line-height:1;animation:clap 3s ease-in-out infinite}
+.contenu-pause h2{margin:0;font:800 40px 'Outfit',sans-serif}
+.chrono-mains{font:800 72px 'Outfit',sans-serif;letter-spacing:2px}
+.centre-rang{justify-content:center}
+.photo-mains{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+.ecran-photo{position:relative;aspect-ratio:4/3;width:min(100%,calc((100vh - 330px) * 4 / 3));margin:0 auto;border-radius:22px;overflow:hidden;background:#11152A;box-shadow:0 16px 40px rgba(20,24,60,.3)}
+.ecran-photo video,.ecran-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.commandes-photo{display:flex;flex-direction:column;gap:14px}
+.humeurs{display:flex;flex-direction:column;gap:6px}
+.humeurs button{display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:8px 12px;font-weight:700;box-shadow:0 2px 8px rgba(20,24,60,.10)}
+.humeurs button .e{font-size:26px}
+.humeurs button.on{background:#1E2A4A;color:#fff}
+.lien{background:none;text-decoration:underline;color:var(--douce);align-self:center}
+.bravo-mains{align-items:center;text-align:center;overflow:hidden;background:#E6F6EE}
+@media (max-width:900px){.mains .deux-colonnes,.photo-mains{grid-template-columns:1fr}.affiche-mains{flex-direction:column}}

@@ -206,3 +206,33 @@ console.log('grâce après fin du temps : ok');
   assert.ok(!T.appliquerParent(cfg, e, { pin: '0000', changements: { terminer: true } }).ok, 'mauvais code refusé');
   console.log('terminer depuis le téléphone : ok');
 }
+
+// Pause bricolage (Mes mains) : le temps ne défile pas, mais 45 minutes au maximum par séance.
+{
+  const assert = require('assert');
+  const d = { sessionId: 'b', jetons: 2 };
+  let e = T.tic(null, cfg, d, lundi, true).etat;
+  for (let i = 1; i <= 5; i++) e = T.tic(e, cfg, d, min(lundi, i), true).etat;
+  assert.strictEqual(e.session.minutes, 6, '6 minutes normales (la première compte)');
+  const enPause = Object.assign({}, d, { pause: { sessionId: 'b' } });
+  for (let i = 6; i <= 30; i++) e = T.tic(e, cfg, enPause, min(lundi, i), true).etat;
+  assert.strictEqual(e.session.minutes, 6, 'pendant la pause, le temps d’écran ne bouge pas');
+  assert.strictEqual(e.session.pauseMinutes, 25);
+  for (let i = 31; i <= 60; i++) e = T.tic(e, cfg, enPause, min(lundi, i), true).etat;
+  assert.strictEqual(e.session.pauseMinutes, T.PAUSE_MAX, 'pause plafonnée');
+  assert.strictEqual(e.session.minutes, 6 + 30 - (T.PAUSE_MAX - 25), 'au-delà du plafond, le temps reprend');
+  // une pause d'une autre séance ne compte pas
+  let f = T.tic(null, cfg, d, lundi, true).etat;
+  f = T.tic(f, cfg, Object.assign({}, d, { pause: { sessionId: 'autre' } }), min(lundi, 1), true).etat;
+  assert.strictEqual(f.session.minutes, 2, 'pause d’une ancienne séance ignorée');
+  // le parent peut régler (ou couper) la pause
+  const r = T.appliquerParent(cfg, e, { pin: '1234', changements: { pauseMax: 0 } });
+  assert.strictEqual(r.config.pauseMax, 0);
+  let g = T.tic(null, r.config, d, lundi, true).etat;
+  g = T.tic(g, r.config, enPause, min(lundi, 1), true).etat;
+  assert.strictEqual(g.session.minutes, 2, 'pause coupée par le parent : le temps défile');
+  // les défis sont complets
+  const { verifierDefis, DEFIS } = require('../app/lib/defis');
+  assert.deepStrictEqual(verifierDefis(), []);
+  console.log('pause bricolage et ' + DEFIS.length + ' défis : ok');
+}
