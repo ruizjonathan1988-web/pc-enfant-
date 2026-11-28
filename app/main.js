@@ -193,22 +193,26 @@ app.on('web-contents-created', (_e, wc) => {
 // Windows Famille ne sait pas interdire le Store à un seul compte, et les applications qui en viennent (WhatsApp…)
 // échappent à la liste blanche. Flocon tourne dans sa session : toutes les 3 secondes, il ferme les applications
 // du Store qui ont une fenêtre et ne sont pas prévues (le Store lui-même compris). Rien à faire au niveau 4.
-const APPLIS_STORE_PERMISES = /^(Minecraft\.Windows|CalculatorApp|WindowsCamera|SoundRec|VoiceRecorder|Incredibox.*|Flocon)$/i;
+// Seules les applications installées depuis le Store (C:\Program Files\WindowsApps) sont visées, et seulement
+// dans sa session. Celles de Microsoft restent (Terminal, Bloc-notes, Photos…), sauf le Store lui-même ;
+// celles des autres éditeurs (WhatsApp, TikTok, Roblox…) sont fermées, sauf celles prévues.
+const APPLIS_STORE_PERMISES = /^(Microsoft\.(?!WindowsStore_)|MicrosoftWindows\.|Microsoft\.MinecraftUWP|.*Incredibox)/i;
 let veilleur = null;
 function veillerApplisStore() {
   // Pas sous le robot de test : PowerShell hériterait de la sortie du robot, qui attendrait sans fin qu'elle se ferme.
   if (process.platform !== 'win32' || veilleur || C.DEV || process.env.FLOCON_CAMERA_FACTICE === '1') return;
   // La boucle s'arrête d'elle-même quand Flocon n'est plus là (fermé, ou arrêté brutalement).
-  const cmd = "while (Get-Process -Id " + process.pid + " -ErrorAction SilentlyContinue) { Get-Process | Where-Object { $_.MainWindowHandle -ne 0 -and $_.Path -like '*\\WindowsApps\\*' } | ForEach-Object { '' + $_.Id + '|' + $_.ProcessName + '|' + $_.MainWindowTitle }; '--'; Start-Sleep -Seconds 3 }";
+  const cmd = "$s = (Get-Process -Id $PID).SessionId; while (Get-Process -Id " + process.pid + " -ErrorAction SilentlyContinue) { Get-Process | Where-Object { $_.SessionId -eq $s -and $_.MainWindowHandle -ne 0 -and $_.Path -like '*:\\Program Files\\WindowsApps\\*' } | ForEach-Object { '' + $_.Id + '|' + ($_.Path -split '\\\\')[3] + '|' + $_.MainWindowTitle }; '--'; Start-Sleep -Seconds 3 }";
   veilleur = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
   let reste = ''; const dejaDit = new Set();
   veilleur.stdout.on('data', (b) => {
     reste += b.toString(); const lignes = reste.split(/\r?\n/); reste = lignes.pop();
     if ((config().niveau || 1) >= 4) return;
     for (const l of lignes) {
-      const [pid, nom, titre] = l.split('|'); if (!pid || !nom || l === '--' || APPLIS_STORE_PERMISES.test(nom)) continue;
+      const [pid, paquet, titre] = l.split('|'); if (!pid || !paquet || l === '--' || APPLIS_STORE_PERMISES.test(paquet)) continue;
+      const nom = paquet.split('_')[0];
       try { process.kill(Number(pid)); } catch (e) { continue; }
-      const lisible = /WinStore/i.test(nom) ? 'Le Microsoft Store' : (titre || nom);
+      const lisible = /WindowsStore/i.test(nom) ? 'Le Microsoft Store' : (titre || nom);
       if (!dejaDit.has(nom)) { dejaDit.add(nom); setTimeout(() => dejaDit.delete(nom), 60000); if (fen) fen.webContents.send('appli-fermee', { nom: lisible }); }
     }
   });
