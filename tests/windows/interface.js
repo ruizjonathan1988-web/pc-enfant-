@@ -467,6 +467,37 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     const b = fs.readFileSync(stl); assert.strictEqual(b.length, 84 + 50 * b.readUInt32LE(80), 'STL binaire valide');
     await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
   });
+  await etape('Atelier 3D : rectangle, étage par étage, annuler et plan en vraies briques', async () => {
+    await page.evaluate(() => ouvrirVue('cubes'));
+    await page.fill('[data-in="cNouveau"]', 'Mon mur'); await clic('[data-a="cCreer"]');
+    await page.waitForFunction(() => window.C3 && window.C3.rendu, null, { timeout: 15000 });
+    const z = await page.locator('#cubes-zone').boundingBox(); const cx = z.x + z.width / 2, cy = z.y + z.height / 2;
+    await clic('[data-a="cMode"][data-m="rectangle"]');
+    await page.mouse.click(cx - 60, cy + 30); await pause(250); await page.mouse.click(cx + 50, cy + 90); await pause(400);
+    const apresRect = await page.evaluate(() => C3.cubes.size);
+    assert.ok(apresRect > 1, 'le rectangle a posé plusieurs cubes (' + apresRect + ')');
+    await page.keyboard.press('Control+z'); await pause(250);
+    assert.strictEqual(await page.evaluate(() => C3.cubes.size), 0, 'Ctrl+Z annule tout le rectangle');
+    await clic('[data-a="cMode"][data-m="poser"]'); await clic('[data-a="cVue2d"]');
+    await page.waitForSelector('#cubes-2d');
+    const g = await page.locator('#cubes-2d').boundingBox(); const t = g.width / 20;
+    await page.mouse.move(g.x + 2.5 * t, g.y + 2.5 * t); await page.mouse.down();
+    for (let i = 3; i <= 8; i++) { await page.mouse.move(g.x + i * t + t / 2, g.y + 2.5 * t); await pause(40); }
+    await page.mouse.up(); await pause(300);
+    assert.strictEqual(await page.evaluate(() => C3.cubes.size), 7, 'le glisser en 2D a posé 7 cubes');
+    await clic('[data-a="cEtage"][data-d="1"]');
+    assert.ok(await page.locator('text=Étage 2').count(), 'on peut monter d’un étage');
+    await clic('[data-a="cAnnuler"]'); await pause(250);
+    assert.strictEqual(await page.evaluate(() => C3.cubes.size), 0, 'Annuler enlève tout le geste');
+    const br = await page.evaluate(() => { const c = []; for (let x = 0; x < 4; x++) for (let z = 0; z < 2; z++) c.push([x + ',' + z, 10]); return briquesEtage(c).map((b) => b.nom); });
+    assert.deepStrictEqual(br, ['2×4'], 'un bloc 4×2 devient une brique 2×4');
+    await page.mouse.move(g.x + 2.5 * t, g.y + 2.5 * t); await page.mouse.down();
+    for (let i = 3; i <= 6; i++) { await page.mouse.move(g.x + i * t + t / 2, g.y + 2.5 * t); await pause(40); }
+    await page.mouse.up(); await pause(300);
+    await clic('[data-a="cVue2d"]'); await clic('[data-a="cPlan"]'); await pause(3000);
+    assert.ok(creationsAvec(/^Plan de montage Mon mur\.pdf$/).length, 'le plan en briques est dans Mes créations');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
   await etape('Studio : dessiner un dessin animé image par image', async () => {
     await rubrique('Je crée'); await tuile('Mon film');
     await page.fill('[data-in="filmTitre"]', 'Le bonhomme'); await clic('[data-a="filmNouveau"]');
