@@ -265,13 +265,14 @@ function vueCubes() {
         <div class="rang"><input class="champ" data-in="cNouveau" maxlength="50" placeholder="${esc(IDEES_3D[Math.floor(Date.now() / 60000) % IDEES_3D.length])}" value="${esc(v.titre || '')}"><button class="btn" style="background:#2FA36B" data-a="cCreer">Construire</button></div></div><div class="grande-e">🧊</div></div>
       ${l.length ? `<div class="liste">${l.map((x) => `<div class="ligne-histoire"><button class="ligne grow" data-a="cOuvrir" data-f="${esc(x.fichier)}"><span class="grow"><b>${esc(x.titre)}</b><br><span class="muet">${(x.cubes || []).length} cubes</span></span></button><button class="btn doux petit" data-a="cSupprimer" data-f="${esc(x.fichier)}">${C3.aSupprimer === x.fichier ? 'Sûr ?' : '🗑'}</button></div>`).join('')}</div>` : ''}</div>`;
   }
-  const modes = [['poser', '➕ Poser'], ['rectangle', '▭ Rectangle'], ['enlever', '➖ Enlever'], ['peindre', '🖌 Peindre']];
+  const plus = outilsPlus('cubes');
+  const modes = [['poser', '➕ Poser'], ['rectangle', '▭ Rectangle'], ['enlever', '➖ Enlever'], ['peindre', '🖌 Peindre']].filter(([m]) => plus || m !== 'rectangle' || C3.mode === 'rectangle');
   return `<div class="section cubes">${entete(c.titre, `<span class="etiquette" id="cubes-nb">${(c.cubes || []).length} cubes</span>`)}
     <div class="atelier-cubes"><div class="cubes-gauche ${C3.vue2d ? 'avec-2d' : ''}"><div class="zone-cubes" id="cubes-zone"></div>${C3.vue2d ? plan2dHtml() : ''}</div>
       <div class="panneau outils-cubes">
         <div class="modes-cubes">${modes.map(([m, n]) => `<button class="${C3.mode === m ? 'on' : ''}" data-a="cMode" data-m="${m}">${n}</button>`).join('')}</div>
         <div class="blocs">${BLOCS.map(([n, col], i) => `<button class="${C3.couleur === i ? 'on' : ''}" data-a="cCouleur" data-i="${i}" title="${esc(n)}"><span style="background:${col}"></span>${esc(n)}</button>`).join('')}</div>
-        <div class="rang wrap"><button class="puce ${C3.miroir ? 'on' : ''}" data-a="cMiroir">🪞 Symétrie</button><button class="puce" data-a="cAnnuler">↶ Annuler</button><button class="puce" data-a="cVue" data-v="face">Face</button><button class="puce" data-a="cVue" data-v="dessus">Dessus</button><button class="puce" data-a="cVue" data-v="tour">↻</button><button class="puce ${C3.vue2d ? 'on' : ''}" data-a="cVue2d">🗺 Étage par étage</button></div>
+        <div class="rang wrap">${plus || C3.miroir ? `<button class="puce ${C3.miroir ? 'on' : ''}" data-a="cMiroir">🪞 Symétrie</button>` : ''}<button class="puce" data-a="cAnnuler">↶ Annuler</button><button class="puce" data-a="cVue" data-v="face">Face</button><button class="puce" data-a="cVue" data-v="dessus">Dessus</button><button class="puce" data-a="cVue" data-v="tour">↻</button>${plus || C3.vue2d ? `<button class="puce ${C3.vue2d ? 'on' : ''}" data-a="cVue2d">🗺 Étage par étage</button>` : ''}${boutonPlus('cubes')}</div>
         <p class="muet aide-cubes">Clic : ${C3.mode === 'poser' ? 'poser un cube' : C3.mode === 'rectangle' ? 'un coin, puis le coin opposé : tout se remplit' : C3.mode === 'enlever' ? 'enlever' : 'peindre'} · clic droit : enlever · glisser : tourner · molette : zoomer</p>
         <h3>En vrai</h3>
         <button class="btn" style="background:#2FA36B" data-a="cPlan">🧱 Imprimer le plan de montage</button>

@@ -56,6 +56,8 @@ const docs = (d) => path.join(os.homedir(), 'Documents', d);
 const creationsAvec = (re) => fs.readdirSync(docs('Mes créations')).filter((f) => re.test(f));
 const clic = (sel) => page.locator(sel).first().click();
 const tuile = (texte) => page.locator('[data-a="tuile"]', { hasText: texte }).first().click();
+// Mode découverte : les options avancées sont repliées derrière « Plus d'outils » ; le robot l'ouvre avant de s'en servir.
+const plusOutils = async (cle) => { const b = page.locator(`[data-a="outilsPlus"][data-k="${cle}"]`).first(); await b.waitFor(); if ((await b.getAttribute('aria-expanded')) !== 'true') await b.click(); await page.waitForSelector(`[data-a="outilsPlus"][data-k="${cle}"][aria-expanded="true"]`); };
 const rubrique = (texte) => page.locator('[data-a="rubrique"]', { hasText: texte }).first().click();
 async function code(pin) { for (const k of pin) await clic(`[data-a="pin"][data-k="${k}"]`); }
 async function dessiner(sel) {
@@ -432,7 +434,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await page.fill('[data-in="bdNouveau"]', 'Robot BD'); await clic('[data-a="bdCreer"]'); await pause(400);
     await clic('[data-a="bdAjouter"][data-g="g4"]'); await pause(300);
     await clic('[data-a="bdImages"]'); await pause(800); await clic('[data-a="bdChoisirImage"] >> nth=0'); await pause(300);
-    await clic('[data-a="bdZoom"][data-d="1"]'); await clic('[data-a="bdZoom"][data-d="1"]');
+    await plusOutils('bd'); await clic('[data-a="bdZoom"][data-d="1"]'); await clic('[data-a="bdZoom"][data-d="1"]');
     const im = await page.locator('[data-cadrer="0"]').boundingBox();
     await page.mouse.move(im.x + im.width / 2, im.y + im.height / 2); await page.mouse.down();
     await page.mouse.move(im.x + im.width / 2 + 50, im.y + im.height / 2 + 30, { steps: 5 }); await page.mouse.up(); await pause(300);
@@ -469,7 +471,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await clic('[data-a="hAjouterChoix"]'); await page.fill('[data-in="hChoixTexte"][data-i="1"]', 'Le phare');
     await clic('[data-a="hCreerSuite"][data-i="0"]'); await clic('[data-a="hCreerSuite"][data-i="1"]');
     await clic('.noeud:has-text("La barque")'); await page.fill('[data-in="hTexte"]', 'Dans la barque, une clé !');
-    await clic('[data-a="hObjet"]'); await clic('[data-a="hObjetEmoji"][data-e="🔑"]'); await page.fill('[data-in="hObjetNom"]', 'la clé');
+    await plusOutils('histoires'); await clic('[data-a="hObjet"]'); await clic('[data-a="hObjetEmoji"][data-e="🔑"]'); await page.fill('[data-in="hObjetNom"]', 'la clé');
     await clic('[data-a="hCam"]'); await page.waitForFunction(() => { const v = document.getElementById('h-video'); return v && v.readyState >= 2; }, null, { timeout: 15000 });
     await clic('[data-a="hClic"]'); await page.waitForSelector('.h-image', { timeout: 15000 });
     await clic('[data-a="hAjouterChoix"]'); await page.fill('[data-in="hChoixTexte"][data-i="0"]', 'Aller au phare');
@@ -520,7 +522,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await page.fill('[data-in="cNouveau"]', 'Mon mur'); await clic('[data-a="cCreer"]');
     await page.waitForFunction(() => window.C3 && window.C3.rendu, null, { timeout: 15000 });
     const z = await page.locator('#cubes-zone').boundingBox(); const cx = z.x + z.width / 2, cy = z.y + z.height / 2;
-    await clic('[data-a="cMode"][data-m="rectangle"]');
+    await plusOutils('cubes'); await clic('[data-a="cMode"][data-m="rectangle"]');
     await page.mouse.click(cx - 60, cy + 30); await pause(250); await page.mouse.click(cx + 50, cy + 90); await pause(400);
     const apresRect = await page.evaluate(() => C3.cubes.size);
     assert.ok(apresRect > 1, 'le rectangle a posé plusieurs cubes (' + apresRect + ')');

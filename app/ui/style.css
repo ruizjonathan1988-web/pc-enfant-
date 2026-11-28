@@ -514,3 +514,5 @@ button:focus-visible,[data-a]:focus-visible{outline:3px solid #FFD54F;outline-of
   .declencheur{width:78px;height:78px}.declencheur span{width:54px;height:54px}
   .studio .entete{margin-bottom:0}
 }
+
+.plus-outils .nouveau{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#FF7A45;color:#fff;font-size:11px;font-weight:800;vertical-align:1px}

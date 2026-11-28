@@ -785,6 +785,14 @@ async function lancer(t, sansPas) {
   $('#mascotte').innerHTML = vueMascotte();
 }
 
+// Mode découverte : chaque outil montre d'abord l'essentiel ; ses options avancées restent repliées derrière
+// « Plus d'outils », qu'elle peut ouvrir quand elle veut (rien n'est interdit). Le choix est gardé dans son profil.
+function outilsPlus(cle) { return !!((S.profil.outilsPlus || {})[cle]); }
+function boutonPlus(cle, libre) {
+  const o = outilsPlus(cle); const vu = (S.profil.outilsVus || {})[cle];
+  return `<button class="puce plus-outils ${o ? 'on' : ''}" data-a="outilsPlus" data-k="${cle}" aria-expanded="${o}">${o ? '▴ ' + (libre ? libre : 'Moins d’outils') : '▾ ' + (libre ? libre : 'Plus d’outils')}${vu ? '' : ' <span class="nouveau">Nouveau !</span>'}</button>`;
+}
+
 function finOuverture() { if (!S.ouverture) return; S.ouverture = null; clearTimeout(S.minuteOuverture); render(); }
 function vueOuverture() {
   if (!S.ouverture) return '';
@@ -902,6 +910,7 @@ const A = {
   guideMission: (d) => { S.vue.guide = S.vue.guide === d.k ? null : d.k; render(); },
   entrainement: async () => { const r = await F.entrainement(); toast(r && r.ok ? 'Ton dossier d’entraînement s’ouvre : essaie tout ce que tu veux !' : 'Je n’ai pas pu ouvrir le dossier.'); },
   finOuverture: () => finOuverture(),
+  outilsPlus: async (d) => { S.profil.outilsPlus = Object.assign({}, S.profil.outilsPlus, { [d.k]: !outilsPlus(d.k) }); S.profil.outilsVus = Object.assign({}, S.profil.outilsVus, { [d.k]: true }); render(); await sauverProfil(); },
   pasOuvrir: async () => { const t = S.voile.t; S.profil.vus = Object.assign({}, S.profil.vus, { [t.ref]: true }); await sauverProfil(); S.voile = null; render(); lancer(t, true); },
   pasDebrouille: async () => { const t = S.voile.t; S.profil.vus = Object.assign({}, S.profil.vus, { [t.ref]: true }); await sauverProfil(); S.voile = null; render(); dire('D’accord ! Si tu bloques, clique sur moi.'); lancer(t, true); },
   autreIdee: () => { if (!S.seance) S.seance = { id: 'x', debut: Date.now(), prevu: 30 }; S.seance.tirages = (S.seance.tirages || 0) + 1; if (S.seance.tirages <= 3) S.idee = tirerIdee(); render(); },

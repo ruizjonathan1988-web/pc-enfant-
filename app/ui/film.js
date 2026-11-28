@@ -563,8 +563,8 @@ function vueAnimation() {
         <button class="declencheur" data-a="filmClic" aria-label="Prendre la photo"><span></span></button>
         <div class="muet centre" id="anim-compteur"></div>
         <button class="btn lecture-btn" data-a="filmLecture" id="anim-lire">▶ Lecture</button>
-        <button class="btn doux petit plus-reglages ${FILM.reglages ? 'on' : ''}" data-a="filmReglages" aria-expanded="${FILM.reglages ? 'true' : 'false'}">⚙️ Réglages ${FILM.reglages ? '▴' : '▾'}</button>
-        <div class="reglages-film" ${FILM.reglages ? '' : 'hidden'}>
+        ${boutonPlus('film', '⚙️ Réglages')}
+        <div class="reglages-film" ${outilsPlus('film') ? '' : 'hidden'}>
         <div class="reglage"><b>Retardateur</b><span class="rang">${[0, 3, 5].map((r) => `<button class="puce ${(p.retard || 0) === r ? 'on' : ''}" data-a="filmRetard" data-r="${r}">${r ? r + ' s' : 'Non'}</button>`).join('')}</span></div>
           <div class="reglage"><b>Photo automatique</b><span class="rang" id="anim-auto">${autoHtml()}</span></div>
           <div class="reglage"><b>Image fantôme</b><input type="range" min="0" max="80" step="5" value="${Math.round((p.oignon === undefined ? 0.35 : p.oignon) * 100)}" data-in="filmOignon"></div>
@@ -717,8 +717,6 @@ Object.assign(A, {
   filmVitesse: (d) => { FILM.p.fps = Number(d.fps); filmSauver(); document.querySelectorAll('.puces-vitesse .puce').forEach((b) => b.classList.toggle('on', b.dataset.fps === d.fps)); majBas(); },
   filmRetard: (d) => { FILM.p.retard = Number(d.r); filmSauver(); document.querySelectorAll('[data-a="filmRetard"]').forEach((b) => b.classList.toggle('on', b.dataset.r === d.r)); },
   filmAuto: (d) => lancerAuto(Number(d.s)),
-  // Retardateur, photo automatique, image fantôme, grille et caméra : repliés au départ, pour ne pas tout montrer d'un coup.
-  filmReglages: () => { FILM.reglages = !FILM.reglages; render(); },
   filmGrille: () => { FILM.p.grille = !FILM.p.grille; filmSauver(); document.querySelector('[data-a="filmGrille"]').classList.toggle('on', FILM.p.grille); majEcran(); },
   filmCamera: () => { FILM.camera++; couperCamera(); demarrerCamera(); },
   filmPhotos: () => ouvrirPhotos(),
