@@ -367,7 +367,7 @@ poser('init', () => {
   }
   return {
     dev: C.DEV, plateforme: process.platform,
-    catalogue: { PERMIS: CAT.PERMIS, PREMIERS_PAS: CAT.PREMIERS_PAS, IDEES: CAT.IDEES, PROJETS: CAT.PROJETS, RUBRIQUES: CAT.RUBRIQUES, SITES: CAT.SITES, EXPOSE_ETAPES: CAT.EXPOSE_ETAPES, INTENTIONS: CAT.INTENTIONS, ICONES: CAT.ICONES, ...require('./lib/fiches'), DEFIS: require('./lib/defis').DEFIS, PLACARD: require('./lib/defis').PLACARD, CATEGORIES_DEFIS: require('./lib/defis').CATEGORIES, METHODE: require('./lib/defis').METHODE },
+    catalogue: { PERMIS: CAT.PERMIS, PREMIERS_PAS: CAT.PREMIERS_PAS, IDEES: CAT.IDEES, PROJETS: CAT.PROJETS, RUBRIQUES: CAT.RUBRIQUES, SITES: CAT.SITES, EXPOSE_ETAPES: CAT.EXPOSE_ETAPES, INTENTIONS: CAT.INTENTIONS, ICONES: CAT.ICONES, ...require('./lib/fiches'), DEFIS: require('./lib/defis').DEFIS, PLACARD: require('./lib/defis').PLACARD, CATEGORIES_DEFIS: require('./lib/defis').CATEGORIES, METHODE: require('./lib/defis').METHODE, METHODE_ARTISTE: require('./lib/defis').METHODE_ARTISTE, COUPS_DE_POUCE: require('./lib/defis').COUPS_DE_POUCE },
     config: configPublique(), etat: lireJson(fichiers().etat, null), profil: lireJson(FICHIER_PROFIL, null), compagnons
   };
 });

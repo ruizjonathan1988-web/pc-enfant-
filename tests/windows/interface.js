@@ -369,18 +369,22 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     tic(); tic();
     const e = lire(path.join(BASE, 'enfants', 'test', 'etat.json'));
     assert.strictEqual(e.session.minutes, avant, 'le temps d’écran ne bouge pas pendant la pause');
-    assert.ok(e.session.pauseMinutes >= 2, 'minutes de pause comptées');
+    // (le décompte précis des minutes de pause est vérifié par les tests de la tirelire)
+    await clic('[data-a="mainsEtape"]'); await clic('[data-a="mainsBloquee"]');
+    assert.strictEqual(await page.locator('.etapes-pause li.on').count(), 1, 'une étape en cours');
+    assert.ok((await page.textContent('#mains-pouce')).length > 10, 'un coup de pouce sous forme de question');
   });
   await etape('Mes mains : photo de la création, mesure et réussite', async () => {
     await clic('[data-a="mainsFini"]');
     assert.ok(!demande().pause, 'pause terminée');
     await page.waitForFunction(() => { const v = document.getElementById('mains-video'); return v && v.readyState >= 2; }, null, { timeout: 15000 });
     await clic('[data-a="mainsClic"]'); await page.waitForSelector('.ecran-photo img', { timeout: 10000 });
-    await page.fill('[data-in="mainsMesure"]', '54'); await clic('[data-a="mainsHumeur"][data-h="reussi"]');
+    await page.fill('[data-in="mainsMesure"]', '54'); await page.fill('[data-in="mainsAmeliore"]', 'Une base en triangle'); await clic('[data-a="mainsHumeur"][data-h="reussi"]');
     await clic('[data-a="mainsEnregistrer"]'); await page.waitForSelector('.bravo-mains');
     assert.ok(fs.existsSync(path.join(os.homedir(), 'Documents', 'Mes créations', 'Défi La tour spaghettis-chamallow.jpg')), 'photo dans la galerie');
     const p = lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json'));
     assert.strictEqual(p.defisMains['tour-spaghettis'][0].mesure, '54');
+    assert.strictEqual(p.defisMains['tour-spaghettis'][0].ameliore, 'Une base en triangle');
     await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
   });
   await etape('Badges : un site utilisé donne « Je découvre »', async () => {

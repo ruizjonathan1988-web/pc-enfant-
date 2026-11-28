@@ -19,6 +19,7 @@ const nbReussis = () => Object.values(S.profil.defisMains || {}).filter((l) => l
 const placard = () => S.profil.placard || {};
 function manquants(d) { const p = placard(); return d.materiel.filter((m) => m.id && !p[m.id]); }
 const placardRempli = () => Object.values(placard()).some(Boolean);
+const methodeDe = (d) => (d.cat === 'construire' || d.cat === 'inventer' ? D.catalogue.METHODE : D.catalogue.METHODE_ARTISTE);
 const etoilesMains = (n) => '★'.repeat(n) + '☆'.repeat(3 - n);
 
 function vueMains() {
@@ -59,17 +60,22 @@ function vueDefiMains(d) {
       <div class="panneau"><h3>Ton matériel</h3><p class="muet" style="margin:0">Touche chaque chose quand tu l’as trouvée.</p>
         <div class="liste-materiel">${d.materiel.map((m, i) => `<button class="${coche[i] ? 'on' : ''}" data-a="mainsCocher" data-i="${i}"><span class="case">${coche[i] ? '✓' : ''}</span><span class="grow">${esc(m.txt)}</span>${m.id && placardRempli() && !p[m.id] ? '<span class="manque">à trouver</span>' : ''}</button>`).join('')}</div></div>
     </div>
-    ${ingenieur ? `<div class="panneau"><h3>Comme une vraie ingénieure</h3><ol class="methode">${D.catalogue.METHODE.map((x) => `<li>${esc(x)}</li>`).join('')}</ol></div>` : ''}
+    <div class="panneau"><h3>${ingenieur ? 'Ta méthode d’ingénieure' : 'Ta méthode d’artiste'}</h3><p class="muet" style="margin:0">Pendant la pause, Flocon te guidera étape par étape.</p><ol class="methode">${methodeDe(d).map((x) => `<li>${esc(x)}</li>`).join('')}</ol></div>
     <div class="panneau"><div class="rang entre"><h3>Un coup de pouce ?</h3>${(v.aides || 0) < d.aide.length ? `<button class="btn doux petit" data-a="mainsAide">${v.aides ? 'Encore un indice' : 'Je veux un indice'}</button>` : ''}</div>
       ${aides.length ? `<ul class="indices">${aides.map((x) => `<li>💡 ${esc(x)}</li>`).join('')}</ul>` : '<p class="muet" style="margin:0">Essaie d’abord tout seul. Les indices sont des questions, pas des réponses !</p>'}</div>
-    ${faits.length ? `<div class="panneau"><h3>Tes réussites</h3><div class="rang">${faits.map((f) => `<span class="etiquette">${new Date(f.le).toLocaleDateString('fr-FR')}${f.mesure ? ' · ' + esc(f.mesure) + (d.mesure && d.mesure.unite ? ' ' + esc(d.mesure.unite) : '') : ''} ${(HUMEURS_MAINS.find((h) => h.id === f.humeur) || {}).e || ''}</span>`).join('')}</div>
+    ${faits.length ? `<div class="panneau"><h3>Tes réussites</h3><div class="rang">${faits.map((f) => `<span class="etiquette">${new Date(f.le).toLocaleDateString('fr-FR')}${f.mesure ? ' · ' + esc(f.mesure) + (d.mesure && d.mesure.unite ? ' ' + esc(d.mesure.unite) : '') : ''} ${(HUMEURS_MAINS.find((h) => h.id === f.humeur) || {}).e || ''}${f.ameliore ? ' · ' + esc(f.ameliore) : ''}</span>`).join('')}</div>
       <h3>Encore plus fort</h3><ul class="regles">${d.plusFort.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
     <div class="rang entre"><button class="btn doux" data-a="mainsPhoto">J’ai déjà fini : la photo !</button><button class="btn grand" style="background:#F28C28" data-a="mainsPartir">✋ C’est parti ! L’écran se met en pause</button></div></div>`;
 }
 function vuePauseMains(d) {
+  const etapes = methodeDe(d); const et = Math.min(S.vue.etape || 0, etapes.length - 1);
+  const pouces = d.aide.concat(D.catalogue.COUPS_DE_POUCE); const np = S.vue.pouce || 0;
   return `<div class="pause-mains"><div class="contenu-pause">
-    <div class="grande-e">${d.e}</div><h2>${esc(d.titre)}</h2><p class="texte-defi">${esc(d.defi)}</p>
+    <div class="rang centre-rang tete-pause"><span class="grande-e">${d.e}</span><div><h2>${esc(d.titre)}</h2><p class="texte-defi">${esc(d.defi)}</p></div></div>
     <div class="chrono-mains" id="mains-chrono">0:00</div>
+    <ol class="etapes-pause">${etapes.map((x, i) => `<li class="${i < et ? 'fait' : i === et ? 'on' : ''}"><span class="num">${i < et ? '✓' : i + 1}</span><span>${esc(x)}</span></li>`).join('')}</ol>
+    <div class="rang centre-rang">${et < etapes.length - 1 ? '<button class="btn" style="background:#1E2A4A" data-a="mainsEtape">Étape suivante ✓</button>' : ''}<button class="btn doux" data-a="mainsBloquee">💡 Je suis bloquée</button></div>
+    ${np ? `<p class="pouce" id="mains-pouce">💡 ${esc(pouces[(np - 1) % pouces.length])}</p>` : '<p class="pouce vide" id="mains-pouce"></p>'}
     <p class="muet" id="mains-info">Ton temps d’écran est en pause pendant que tu crées (45 minutes au maximum). L’écran t’attend !</p>
     <div class="rang centre-rang"><button class="btn grand" style="background:#F28C28" data-a="mainsFini">J’ai fini ! 📸</button><button class="btn doux" data-a="mainsRevenir">Revenir sans finir</button></div>
   </div></div>`;
@@ -84,6 +90,7 @@ function vuePhotoMains(d) {
       <div class="commandes-photo">
         ${ph.url ? '<button class="btn doux" data-a="mainsReprendre">Recommencer la photo</button>' : '<button class="declencheur" data-a="mainsClic" aria-label="Prendre la photo"><span></span></button><span class="muet centre">Pose ta création devant la caméra. Clic : 3 secondes pour retirer ta main.</span>'}
         ${d.mesure ? `<label class="reglage"><b>${esc(d.mesure.nom)}${d.mesure.unite ? ' (' + esc(d.mesure.unite) + ')' : ''}</b><input class="champ" data-in="mainsMesure" inputmode="numeric" maxlength="12" value="${esc(S.vue.mesure || '')}" placeholder="Ton résultat"></label>` : ''}
+        <label class="reglage"><b>Ce que j’ai amélioré en cours de route</b><input class="champ" data-in="mainsAmeliore" maxlength="120" value="${esc(S.vue.ameliore || '')}" placeholder="Par exemple : j’ai élargi la base"></label>
         <div class="reglage"><b>Comment ça s’est passé ?</b><div class="humeurs">${HUMEURS_MAINS.map((h) => `<button class="${humeur === h.id ? 'on' : ''}" data-a="mainsHumeur" data-h="${h.id}"><span class="e">${h.e}</span>${esc(h.nom)}</button>`).join('')}</div></div>
         <button class="btn grand" style="background:#2FA36B" data-a="mainsEnregistrer" ${humeur ? '' : 'disabled'}>C’est réussi !</button>
         ${ph.url ? '' : '<button class="lien" data-a="mainsSansPhoto">Pas de photo cette fois</button>'}
@@ -152,6 +159,8 @@ Object.assign(A, {
     if (S.seance) await F.demande({ pause: { sessionId: S.seance.id, debut: new Date().toISOString(), defi: S.vue.id } });
     S.vue = Object.assign({}, S.vue, { pause: true }); render();
   },
+  mainsEtape: () => { S.vue.etape = (S.vue.etape || 0) + 1; S.vue.pouce = 0; render(); },
+  mainsBloquee: () => { S.vue.pouce = (S.vue.pouce || 0) + 1; render(); },
   mainsRevenir: async () => { await finPause(); S.vue = Object.assign({}, S.vue, { pause: false }); render(); },
   mainsFini: async () => { await finPause(); MAINS.photo = null; S.vue = Object.assign({}, S.vue, { pause: false, photo: true }); render(); },
   mainsPhoto: () => { MAINS.photo = null; S.vue = Object.assign({}, S.vue, { photo: true }); render(); },
@@ -166,7 +175,7 @@ Object.assign(A, {
     if (MAINS.photo) { const r = await F.creationPhoto('Défi ' + d.titre, MAINS.photo.octets); if (r && r.ok) photo = r.nom; }
     const avant = nbReussis();
     S.profil.defisMains = S.profil.defisMains || {};
-    (S.profil.defisMains[d.id] = S.profil.defisMains[d.id] || []).push({ le: new Date().toISOString(), mesure: String(S.vue.mesure || '').trim().slice(0, 12), humeur: S.vue.humeur, photo });
+    (S.profil.defisMains[d.id] = S.profil.defisMains[d.id] || []).push({ le: new Date().toISOString(), mesure: String(S.vue.mesure || '').trim().slice(0, 12), ameliore: String(S.vue.ameliore || '').trim().slice(0, 120), humeur: S.vue.humeur, photo });
     await F.profil(S.profil);
     MAINS.photo = null; couperCamMains();
     const palier = PALIERS_MAINS.find((p) => avant < p.n && nbReussis() >= p.n);
@@ -177,7 +186,7 @@ Object.assign(A, {
   mainsPlacardCocher: (d) => { S.profil.placard = Object.assign({}, placard(), { [d.id]: !placard()[d.id] }); F.profil(S.profil); render(); },
   mainsPlacardFini: () => { S.vue = Object.assign({}, S.vue.depuis || { ref: 'mains' }, { ceQueJai: true }); render(); }
 });
-Object.assign(SAISIES, { mainsMesure: (v) => { S.vue.mesure = v; } });
+Object.assign(SAISIES, { mainsMesure: (v) => { S.vue.mesure = v; }, mainsAmeliore: (v) => { S.vue.ameliore = v; } });
 // Retour : du défi vers la liste (en gardant les filtres), et on sort proprement de la pause.
 const fermerVueAvantMains = A.fermerVue;
 A.fermerVue = async (d) => {

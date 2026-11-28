@@ -28,12 +28,32 @@ const CATEGORIES = {
 };
 
 // Les 5 étapes de l'ingénieur, rappelées sur chaque défi « construire » et « inventer ».
+// Deux démarches, montrées sur chaque défi puis étape par étape pendant la pause :
+// on guide la façon de chercher, jamais le résultat.
 const METHODE = [
-  'Imagine : dessine au moins deux idées sur une feuille avant de toucher au matériel.',
+  'Comprends : relis le défi et les règles. Qu’est-ce qui compte pour réussir ?',
+  'Imagine : dessine au moins deux idées différentes sur une feuille, avant de toucher au matériel.',
   'Construis ton idée préférée.',
-  'Teste-la, pour de vrai.',
+  'Teste-la, pour de vrai, comme dit « Le test ».',
   'Améliore : change une seule chose, puis reteste. Rater, c’est apprendre ce qui ne marche pas !',
-  'Photographie ta création et raconte ce que tu as changé.'
+  'Montre : prends ta création en photo et raconte ce que tu as amélioré.'
+];
+const METHODE_ARTISTE = [
+  'Explore : touche, plie, mélange ton matériel deux minutes, sans rien chercher à faire.',
+  'Imagine : trouve deux idées différentes (dessine-les ou dis-les à voix haute).',
+  'Crée ton idée préférée, à ta façon : il n’y a pas de bonne ou de mauvaise manière.',
+  'Prends du recul : regarde ta création de loin. Qu’est-ce que tu ajoutes ? Qu’est-ce que tu enlèves ?',
+  'Montre : prends ta création en photo et raconte-la à quelqu’un.'
+];
+// Quand elle est bloquée et qu'il n'y a plus d'indice propre au défi : des questions, pas des réponses.
+const COUPS_DE_POUCE = [
+  'Qu’est-ce qui marche déjà ? Garde-le, et change seulement ce qui ne marche pas.',
+  'Et si tu essayais exactement l’inverse de ce que tu fais ?',
+  'Explique ton problème à voix haute, à quelqu’un ou à ton doudou : souvent, la solution vient en parlant.',
+  'Fais une toute petite version d’essai avant la grande.',
+  'Regarde autour de toi : un objet de la maison fait-il déjà ce que tu cherches ?',
+  'Fais une pause de deux minutes, bois un verre d’eau, puis regarde ta création avec des yeux neufs.',
+  'Change un seul matériau et compare.'
 ];
 
 const DEFIS = [
@@ -359,4 +379,5 @@ function verifierDefis() {
   return erreurs;
 }
 
-module.exports = { DEFIS, PLACARD, CATEGORIES, METHODE, verifierDefis };
+const methodeDe = (d) => (d.cat === 'construire' || d.cat === 'inventer' ? METHODE : METHODE_ARTISTE);
+module.exports = { DEFIS, PLACARD, CATEGORIES, METHODE, METHODE_ARTISTE, COUPS_DE_POUCE, methodeDe, verifierDefis };
