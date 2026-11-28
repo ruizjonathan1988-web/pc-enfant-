@@ -162,3 +162,15 @@ audio,video{width:100%;border-radius:14px}
 .badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
 .badge{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:14px;background:#FFF8E5}
 .badge .etoiles{color:#E0A100;font-size:16px;letter-spacing:2px}
+
+/* Fiches et quiz */
+.quiz .retenir{margin:0;padding-left:20px;line-height:1.6;font-size:17px}
+.choix-quiz{display:grid;gap:10px}
+.choix-quiz .choix{text-align:left;padding:14px 16px;border-radius:14px;border:2px solid #E3E8F2;background:#fff;font-size:17px;cursor:pointer}
+.choix-quiz .choix:hover:not([disabled]){border-color:#1F5FA8}
+.choix-quiz .choix.juste{border-color:#2FA36B;background:#E9F7EF}
+.choix-quiz .choix.faux{border-color:#C0392B;background:#FCECEA}
+.choix-quiz .choix.eteint{opacity:.55}
+.astuce.ok b{color:#1E7A4C}.astuce.non b{color:#B03A2E}
+.etoiles-quiz{font-size:34px;color:#E0A100;letter-spacing:4px}
+.etoiles-ligne{color:#E0A100;letter-spacing:2px}

@@ -176,3 +176,21 @@ console.log('grâce après fin du temps : ok');
   assert.ok(!l.includes('winword.exe') && !l.includes('msedge.exe'), 'Word et Edge absents');
   console.log('liste blanche : ok');
 }
+
+// Fiches et leçons écrans : chaque question a une bonne réponse valide et une correction.
+{
+  const assert = require('assert');
+  const { FICHES, ECRANS, MATIERES } = require('../app/lib/fiches');
+  const ids = new Set();
+  for (const f of FICHES.concat(ECRANS)) {
+    assert.ok(!ids.has(f.id), 'identifiant unique : ' + f.id); ids.add(f.id);
+    assert.ok(f.titre && f.retenir.length >= 2 && f.questions.length >= 3, f.id + ' complète');
+    if (f.matiere) assert.ok(MATIERES.some((m) => m.id === f.matiere), f.id + ' matière connue');
+    for (const q of f.questions) {
+      assert.ok(Number.isInteger(q.bonne) && q.bonne >= 0 && q.bonne < q.choix.length, f.id + ' : bonne réponse valide pour « ' + q.q + ' »');
+      assert.ok(new Set(q.choix).size === q.choix.length, f.id + ' : choix distincts');
+      assert.ok(q.pourquoi, f.id + ' : correction');
+    }
+  }
+  console.log('fiches (' + FICHES.length + ') et leçons écrans (' + ECRANS.length + ') : ok');
+}

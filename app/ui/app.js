@@ -331,8 +331,49 @@ function entete(titre, extra) { return `<div class="entete"><button class="retou
 
 function vueInterne() {
   const v = S.vue;
-  const fn = { permis: vuePermis, semaine: vueSemaine, agenda: vueAgenda, idee: vueIdee, galerie: vueGalerie, projet: vueProjet, exposes: vueExposes, cahier: vueCahier, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
+  const fn = { permis: vuePermis, semaine: vueSemaine, agenda: vueAgenda, idee: vueIdee, galerie: vueGalerie, projet: vueProjet, exposes: vueExposes, cahier: vueCahier, fiches: vueFiches, ecrans: vueEcrans, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
   return fn ? fn() : entete('Bientôt');
+}
+
+// ---------- Fiches de révision et Écrans malins : une leçon courte, puis un petit quiz corrigé ----------
+// Résultats dans le profil (meilleur score par fiche), jamais envoyés ailleurs.
+function lecon(liste, id) { return liste.find((x) => x.id === id); }
+function vueQuiz(x, nomListe) {
+  const v = S.vue; const etoiles = (n, t) => '★'.repeat(n) + '☆'.repeat(t - n);
+  if (v.q === undefined) {
+    return `<div class="section quiz">${entete(x.titre, x.niveau ? `<span class="etiquette">${esc(x.niveau)}</span>` : '')}
+      <div class="panneau"><h3>À retenir</h3><ul class="retenir">${x.retenir.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>${x.exemple ? `<div class="astuce"><b>Exemple</b><span>${esc(x.exemple)}</span></div>` : ''}</div>
+      <div class="rang fin"><button class="btn" data-a="quizCommencer">Je m’entraîne (${x.questions.length} questions)</button></div></div>`;
+  }
+  if (v.q >= x.questions.length) {
+    const bons = v.reponses.filter((r, i) => r === x.questions[i].bonne).length;
+    return `<div class="section quiz">${entete(x.titre)}<div class="panneau" style="align-items:center;text-align:center"><span class="etoiles-quiz">${etoiles(bons, x.questions.length)}</span><h3>${bons} sur ${x.questions.length}</h3>
+      <p class="muet">${bons === x.questions.length ? 'Tout juste ! Tu peux passer à une autre fiche.' : 'Relis « À retenir », puis réessaie : c’est comme ça qu’on apprend.'}</p>
+      <div class="rang"><button class="btn doux" data-a="quizRelire">Relire la leçon</button><button class="btn" data-a="quizCommencer">Recommencer</button><button class="btn doux" data-a="fermerVue">${nomListe}</button></div></div></div>`;
+  }
+  const q = x.questions[v.q]; const rep = v.reponses[v.q];
+  const bouton = (c, i) => { const etat = rep === undefined ? '' : i === q.bonne ? 'juste' : i === rep ? 'faux' : 'eteint'; return `<button class="choix ${etat}" data-a="quizRepondre" data-i="${i}" ${rep === undefined ? '' : 'disabled'}>${esc(c)}</button>`; };
+  return `<div class="section quiz">${entete(x.titre, `<span class="etiquette">Question ${v.q + 1} sur ${x.questions.length}</span>`)}
+    <div class="panneau"><h3>${esc(q.q)}</h3><div class="choix-quiz">${q.choix.map(bouton).join('')}</div>
+    ${rep === undefined ? '' : `<div class="astuce ${rep === q.bonne ? 'ok' : 'non'}"><b>${rep === q.bonne ? 'Bravo !' : 'Pas tout à fait.'}</b><span>${esc(q.pourquoi)}</span></div><div class="rang fin"><button class="btn" data-a="quizSuivant">${v.q + 1 < x.questions.length ? 'Question suivante' : 'Voir mon résultat'}</button></div>`}</div></div>`;
+}
+function scoreDe(cle) { return ((S.profil.quiz || {})[cle] || {}).meilleur; }
+function vueFiches() {
+  const v = S.vue; const F_ = D.catalogue.FICHES;
+  if (v.id) return vueQuiz(lecon(F_, v.id), 'Mes fiches');
+  const m = v.matiere || 'maths';
+  const onglets = D.catalogue.MATIERES.map((x) => `<button class="${x.id === m ? 'on' : ''}" data-a="fichesMatiere" data-m="${x.id}">${esc(x.nom)}</button>`).join('');
+  const liste = F_.filter((f) => f.matiere === m).map((f) => { const s = scoreDe(f.id); return `<button class="ligne" data-a="ouvrirFiche" data-id="${f.id}"><span class="grow"><b>${esc(f.titre)}</b><br><span class="muet">${esc(f.niveau)}</span></span><span class="etoiles-ligne">${s === undefined ? '' : '★'.repeat(s) + '☆'.repeat(f.questions.length - s)}</span></button>`; }).join('');
+  return `<div class="section">${entete('Mes fiches', '<span class="etiquette">sans Internet</span>')}<div class="etapes-expose onglets-fiches">${onglets}</div><div class="liste">${liste}</div></div>`;
+}
+function vueEcrans() {
+  const v = S.vue; const L = D.catalogue.ECRANS;
+  if (v.id) return vueQuiz(lecon(L, v.id), 'Écrans malins');
+  const faites = L.filter((x) => scoreDe(x.id) === x.questions.length).length;
+  return `<div class="section">${entete('Écrans malins', `<span class="etiquette">${faites} sur ${L.length}</span>`)}
+    <p class="muet" style="margin:0">Six petites leçons pour bien utiliser Internet et les écrans. Réussis-les toutes pour gagner le badge « Écrans malins ».</p>
+    ${faites === L.length ? '<div class="badge"><span class="etoiles">★★★</span><b>Badge « Écrans malins »</b><span class="muet">Tu sais protéger tes infos, repérer les pièges et t’arrêter.</span></div>' : ''}
+    <div class="liste">${L.map((x) => { const s = scoreDe(x.id); return `<button class="ligne" data-a="ouvrirFiche" data-id="${x.id}"><span class="grow"><b>${esc(x.titre)}</b></span><span class="etoiles-ligne">${s === undefined ? '' : '★'.repeat(s) + '☆'.repeat(x.questions.length - s)}</span></button>`; }).join('')}</div></div>`;
 }
 
 // ---------- Mon cahier : écrire sans se perdre dans un traitement de texte ----------
@@ -797,8 +838,8 @@ const A = {
   premiereSuiv: () => { if (!S.premiere) return; const n = S.docs.creations.length; if (S.premiere.i < n - 1) { S.premiere.i++; dessinerPremiere(); } else A.premiereFin(); },
   premierePrec: () => { if (!S.premiere) return; S.premiere.i = Math.max(0, S.premiere.i - 1); dessinerPremiere(); },
   premiereFin: async () => { S.premiere = null; dessinerPremiere(); await F.mode(false); dire('Bravo pour ta première ! Qu’est-ce que ta famille en a pensé ?'); render(); },
-  // Dans un texte ou un exposé, le retour ramène à la liste ; sinon il ferme la vue.
-  fermerVue: () => { S.vue = S.vue && S.vue.fichier && (S.vue.ref === 'cahier' || S.vue.ref === 'exposes') ? { ref: S.vue.ref } : null; render(); },
+  // Dans un texte, un exposé ou une fiche, le retour ramène à la liste ; sinon il ferme la vue.
+  fermerVue: () => { const v = S.vue; S.vue = v && ((v.fichier && (v.ref === 'cahier' || v.ref === 'exposes')) || (v.id && (v.ref === 'fiches' || v.ref === 'ecrans'))) ? { ref: v.ref, matiere: v.matiere } : null; render(); },
   basculerFlocon: async () => { S.profil.floconVisible = !S.profil.floconVisible; await sauverProfil(); render(); },
   taire: async () => { S.profil.floconVisible = false; await sauverProfil(); render(); },
   conseilSuivant: () => { S.bulle = null; S.conseil++; $('#mascotte').innerHTML = vueMascotte(); },
@@ -853,6 +894,24 @@ const A = {
       if (await (v.verifier ? v.verifier(v.saisie) : pinOk(v.saisie))) { const suite = v.suite; const pin = v.saisie; S.voile = null; render(); suite(pin); }
       else { v.saisie = ''; v.erreur = true; render(); }
     } else render();
+  },
+  fichesMatiere: (d) => { S.vue = { ref: 'fiches', matiere: d.m }; render(); },
+  ouvrirFiche: (d) => { S.vue = { ref: S.vue.ref, matiere: S.vue.matiere, id: d.id }; render(); },
+  quizCommencer: () => { S.vue.q = 0; S.vue.reponses = []; render(); },
+  quizRelire: () => { delete S.vue.q; render(); },
+  quizRepondre: (d) => { if (S.vue.reponses[S.vue.q] !== undefined) return; S.vue.reponses[S.vue.q] = Number(d.i); render(); },
+  quizSuivant: () => {
+    S.vue.q++;
+    const liste = S.vue.ref === 'fiches' ? D.catalogue.FICHES : D.catalogue.ECRANS; const x = lecon(liste, S.vue.id);
+    if (S.vue.q >= x.questions.length) {
+      const bons = S.vue.reponses.filter((r, i) => r === x.questions[i].bonne).length;
+      S.profil.quiz = S.profil.quiz || {}; const p = S.profil.quiz[x.id] || {};
+      S.profil.quiz[x.id] = { meilleur: Math.max(p.meilleur || 0, bons), le: new Date().toISOString() };
+      const L = D.catalogue.ECRANS;
+      if (S.vue.ref === 'ecrans' && L.every((y) => scoreDe(y.id) === y.questions.length) && !S.profil.badgeEcrans) { S.profil.badgeEcrans = new Date().toISOString(); toast('Nouveau badge : « Écrans malins » ★★★', 6000); }
+      sauverProfil();
+    }
+    render();
   },
   creerTexte: async () => {
     const titre = String(S.vue.titre || '').trim() || 'Mon texte';

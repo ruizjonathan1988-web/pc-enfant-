@@ -121,6 +121,7 @@ const RUBRIQUES = [
   { id: 'apprendre', nom: 'J’apprends', tuiles: [
     { type: 'interne', ref: 'exposes', nom: 'Mes exposés', sous: 'De l’idée à l’oral', icone: I.diapo, couleur: '#1F5FA8' },
     { type: 'interne', ref: 'pourquoi', nom: 'Grand Pourquoi', sous: 'Mes questions', icone: I.question, couleur: '#7C5CFA' },
+    { type: 'interne', ref: 'fiches', nom: 'Mes fiches', sous: 'Réviser maths, français, sciences', icone: I.livre, couleur: '#1F5FA8' },
     { type: 'logiciel', ref: 'gcompris', nom: 'Jeux pour apprendre', sous: 'GCompris : maths, lecture, sciences', icone: I.chapeau, couleur: '#2FA36B' },
     { type: 'site', ref: 'blockly', nom: 'Blockly Games', sous: 'Après Scratch : coder pas à pas', icone: I.code, couleur: '#F28C28' },
     { type: 'projet', ref: 'ia', nom: 'J\u2019apprends à l\u2019ordinateur', sous: 'Comprendre l\u2019IA, à deux', icone: I.cube, couleur: '#7C5CFA' },
@@ -138,6 +139,7 @@ const RUBRIQUES = [
     { type: 'interne', ref: 'films', nom: 'Mes films', sous: 'Choisis avec un adulte', icone: I.film, couleur: '#E0457B' }
   ] },
   { id: 'outils', nom: 'Mes outils', tuiles: [
+    { type: 'interne', ref: 'ecrans', nom: 'Écrans malins', sous: 'Bien utiliser Internet et les écrans', icone: I.coeur, couleur: '#7C5CFA' },
     { type: 'logiciel', ref: 'calculatrice', nom: 'Calculatrice', sous: 'Comme une vraie', icone: I.calcul, couleur: '#56607A' },
     { type: 'interne', ref: 'minuteur', nom: 'Minuteur', sous: 'Pour me chronométrer', icone: I.minuteur, couleur: '#E8892A' },
     { type: 'site', ref: 'dicoado', nom: 'Dictionnaire', sous: 'Dicoado', icone: I.dico, couleur: '#1F5FA8' },

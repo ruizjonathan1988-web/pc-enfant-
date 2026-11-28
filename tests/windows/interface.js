@@ -293,6 +293,34 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await page.waitForSelector('text=Encore 3 jours pour « Je me débrouille »');
     await clic('[data-a="fermerVue"]');
   });
+  await etape('Mes fiches : une leçon, un quiz corrigé, le score gardé', async () => {
+    const { FICHES } = require('../../app/lib/fiches');
+    const f = FICHES.find((x) => x.id === 'f-a');
+    await rubrique('J’apprends'); await tuile('Mes fiches');
+    await clic('[data-a="fichesMatiere"][data-m="francais"]'); await clic('[data-a="ouvrirFiche"][data-id="f-a"]');
+    await page.waitForSelector('text=À retenir'); await clic('[data-a="quizCommencer"]');
+    // Première question : une erreur volontaire, la correction doit s'afficher.
+    await clic(`[data-a="quizRepondre"][data-i="${1 - f.questions[0].bonne}"]`); await page.waitForSelector('text=Pas tout à fait.'); await clic('[data-a="quizSuivant"]');
+    for (let i = 1; i < f.questions.length; i++) { await clic(`[data-a="quizRepondre"][data-i="${f.questions[i].bonne}"]`); await page.waitForSelector('text=Bravo !'); await clic('[data-a="quizSuivant"]'); }
+    await page.waitForSelector(`text=${f.questions.length - 1} sur ${f.questions.length}`);
+    await pause(800);
+    assert.strictEqual(lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json')).quiz['f-a'].meilleur, f.questions.length - 1, 'score gardé');
+    await clic('[data-a="fermerVue"]'); await page.waitForSelector('[data-a="ouvrirFiche"][data-id="f-a"] .etoiles-ligne'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Écrans malins : six leçons réussies, le badge', async () => {
+    const { ECRANS } = require('../../app/lib/fiches');
+    await rubrique('Mes outils'); await tuile('Écrans malins');
+    for (const x of ECRANS) {
+      await clic(`[data-a="ouvrirFiche"][data-id="${x.id}"]`); await clic('[data-a="quizCommencer"]');
+      for (const q of x.questions) { await clic(`[data-a="quizRepondre"][data-i="${q.bonne}"]`); await clic('[data-a="quizSuivant"]'); }
+      await page.waitForSelector(`text=${x.questions.length} sur ${x.questions.length}`);
+      await clic('[data-a="fermerVue"]');
+    }
+    await page.waitForSelector('text=Badge « Écrans malins »');
+    await pause(800);
+    assert.ok(lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json')).badgeEcrans, 'badge enregistré');
+    await clic('[data-a="fermerVue"]');
+  });
   await etape('Espace parent : mauvais code refusé', async () => {
     await rubrique('Mon style'); await clic('[data-a="espaceParent"]');
     await code('9999'); await page.waitForSelector('text=Ce n’est pas le bon code');
