@@ -166,3 +166,73 @@ console.log('grâce après fin du temps : ok');
   assert.ok(!listeInterdits({ niveau: 3 }).includes('msedge.exe'), 'Edge permis au niveau 3');
   console.log('programmes interdits : ok');
 }
+
+// Liste blanche des niveaux 1 et 2 : Flocon et ses logiciels, ni Word ni Edge.
+{
+  const assert = require('assert');
+  const { listeAutorises } = require('../app/gardien');
+  const l = listeAutorises().map((x) => x.toLowerCase());
+  for (const x of ['flocon.exe', 'scratch 3.exe', 'tuxpaint.exe', 'swriter.exe', 'soffice.exe', 'minecraftlauncher.exe']) assert.ok(l.includes(x), x + ' permis');
+  assert.ok(!l.includes('winword.exe') && !l.includes('msedge.exe'), 'Word et Edge absents');
+  console.log('liste blanche : ok');
+}
+
+// Fiches et leçons écrans : chaque question a une bonne réponse valide et une correction.
+{
+  const assert = require('assert');
+  const { FICHES, ECRANS, MATIERES } = require('../app/lib/fiches');
+  const ids = new Set();
+  for (const f of FICHES.concat(ECRANS)) {
+    assert.ok(!ids.has(f.id), 'identifiant unique : ' + f.id); ids.add(f.id);
+    assert.ok(f.titre && f.retenir.length >= 2 && f.questions.length >= 3, f.id + ' complète');
+    if (f.matiere) assert.ok(MATIERES.some((m) => m.id === f.matiere), f.id + ' matière connue');
+    for (const q of f.questions) {
+      assert.ok(Number.isInteger(q.bonne) && q.bonne >= 0 && q.bonne < q.choix.length, f.id + ' : bonne réponse valide pour « ' + q.q + ' »');
+      assert.ok(new Set(q.choix).size === q.choix.length, f.id + ' : choix distincts');
+      assert.ok(q.pourquoi, f.id + ' : correction');
+    }
+  }
+  console.log('fiches (' + FICHES.length + ') et leçons écrans (' + ECRANS.length + ') : ok');
+}
+
+// Le parent termine la séance depuis son téléphone : jetons non commencés rendus, grâce courte ensuite.
+{
+  const assert = require('assert');
+  let e = T.tic(null, cfg, { sessionId: 'p', jetons: 3 }, lundi, true).etat;
+  for (let i = 1; i <= 10; i++) e = T.tic(e, cfg, { sessionId: 'p', jetons: 3 }, min(lundi, i), true).etat;
+  const r = T.appliquerParent(cfg, e, { pin: '1234', changements: { terminer: true }, maintenant: min(lundi, 10).toISOString() });
+  assert.ok(r.ok && r.etat.session.fermee && r.etat.session.raison === 'parent', 'séance terminée par le parent');
+  assert.strictEqual(r.etat.session.rendus, 2, '10 minutes utilisées : un jeton entamé, deux rendus');
+  assert.ok(!T.appliquerParent(cfg, e, { pin: '0000', changements: { terminer: true } }).ok, 'mauvais code refusé');
+  console.log('terminer depuis le téléphone : ok');
+}
+
+// Pause bricolage (Mes mains) : le temps ne défile pas, mais 45 minutes au maximum par séance.
+{
+  const assert = require('assert');
+  const d = { sessionId: 'b', jetons: 2 };
+  let e = T.tic(null, cfg, d, lundi, true).etat;
+  for (let i = 1; i <= 5; i++) e = T.tic(e, cfg, d, min(lundi, i), true).etat;
+  assert.strictEqual(e.session.minutes, 6, '6 minutes normales (la première compte)');
+  const enPause = Object.assign({}, d, { pause: { sessionId: 'b' } });
+  for (let i = 6; i <= 30; i++) e = T.tic(e, cfg, enPause, min(lundi, i), true).etat;
+  assert.strictEqual(e.session.minutes, 6, 'pendant la pause, le temps d’écran ne bouge pas');
+  assert.strictEqual(e.session.pauseMinutes, 25);
+  for (let i = 31; i <= 60; i++) e = T.tic(e, cfg, enPause, min(lundi, i), true).etat;
+  assert.strictEqual(e.session.pauseMinutes, T.PAUSE_MAX, 'pause plafonnée');
+  assert.strictEqual(e.session.minutes, 6 + 30 - (T.PAUSE_MAX - 25), 'au-delà du plafond, le temps reprend');
+  // une pause d'une autre séance ne compte pas
+  let f = T.tic(null, cfg, d, lundi, true).etat;
+  f = T.tic(f, cfg, Object.assign({}, d, { pause: { sessionId: 'autre' } }), min(lundi, 1), true).etat;
+  assert.strictEqual(f.session.minutes, 2, 'pause d’une ancienne séance ignorée');
+  // le parent peut régler (ou couper) la pause
+  const r = T.appliquerParent(cfg, e, { pin: '1234', changements: { pauseMax: 0 } });
+  assert.strictEqual(r.config.pauseMax, 0);
+  let g = T.tic(null, r.config, d, lundi, true).etat;
+  g = T.tic(g, r.config, enPause, min(lundi, 1), true).etat;
+  assert.strictEqual(g.session.minutes, 2, 'pause coupée par le parent : le temps défile');
+  // les défis sont complets
+  const { verifierDefis, DEFIS } = require('../app/lib/defis');
+  assert.deepStrictEqual(verifierDefis(), []);
+  console.log('pause bricolage et ' + DEFIS.length + ' défis : ok');
+}

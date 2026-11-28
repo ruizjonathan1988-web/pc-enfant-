@@ -294,6 +294,26 @@ $xmlGardien = @"
   <Actions Context="Systeme"><Exec><Command>cmd.exe</Command><Arguments>/d /c "set ELECTRON_RUN_AS_NODE=1&amp;&amp; "$exe" "$gardien""</Arguments></Exec></Actions>
 </Task>
 "@
+# Le tableau parent (téléphone, Wi-Fi de la maison) : un petit serveur qui tourne en permanence, relancé s'il s'arrête.
+$serveurParent = Join-Path $Dest 'resources\app\serveur-parent.js'
+$xmlParent = @"
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo><Description>Flocon : le tableau parent pour le téléphone, sur le réseau de la maison (port 4747).</Description></RegistrationInfo>
+  <Triggers>
+    <BootTrigger><Enabled>true</Enabled><Repetition><Interval>PT5M</Interval><StopAtDurationEnd>false</StopAtDurationEnd></Repetition></BootTrigger>
+    <TimeTrigger><StartBoundary>$debut</StartBoundary><Enabled>true</Enabled><Repetition><Interval>PT5M</Interval><StopAtDurationEnd>false</StopAtDurationEnd></Repetition></TimeTrigger>
+  </Triggers>
+  <Principals><Principal id="Systeme"><UserId>S-1-5-18</UserId><RunLevel>HighestAvailable</RunLevel></Principal></Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries><StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <StartWhenAvailable>true</StartWhenAvailable><ExecutionTimeLimit>PT0S</ExecutionTimeLimit><Hidden>true</Hidden>
+    <IdleSettings><StopOnIdleEnd>false</StopOnIdleEnd><RestartOnIdle>false</RestartOnIdle></IdleSettings>
+  </Settings>
+  <Actions Context="Systeme"><Exec><Command>cmd.exe</Command><Arguments>/d /c "set ELECTRON_RUN_AS_NODE=1&amp;&amp; "$exe" "$serveurParent""</Arguments></Exec></Actions>
+</Task>
+"@
 function XmlSession($sid) {
 @"
 <?xml version="1.0" encoding="UTF-16"?>
@@ -323,6 +343,12 @@ foreach ($e in $enfants) {
 }
 Start-ScheduledTask -TaskPath '\Flocon\' -TaskName 'Flocon Gardien'
 Ok 'Gardien installé (compte SYSTEM, chaque minute).'
+Register-ScheduledTask -TaskName 'Flocon Parent' -TaskPath '\Flocon\' -Xml $xmlParent -Force | Out-Null
+# Le pare-feu ne l'ouvre que sur un réseau « privé » (la maison), jamais sur un Wi-Fi public.
+Get-NetFirewallRule -DisplayName 'Flocon - tableau parent' -ErrorAction SilentlyContinue | Remove-NetFirewallRule
+New-NetFirewallRule -DisplayName 'Flocon - tableau parent' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 4747 -Profile Private -Program $exe | Out-Null
+Start-ScheduledTask -TaskPath '\Flocon\' -TaskName 'Flocon Parent'
+Ok 'Tableau parent installé : sur votre téléphone, dans le Wi-Fi de la maison (adresse dans l''espace parent de Flocon).'
 
 # ------------------------------------------------------------------ verrous des comptes enfants (si leur profil existe déjà)
 # C'est le gardien qui les pose, selon le niveau de chaque enfant : une seule liste, celle de app\gardien.js.

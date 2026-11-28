@@ -287,9 +287,19 @@ function noterBadge(t) {
   sauverProfil();
   if (apres > avant) toast(`Nouveau badge : « ${PALIERS[apres - 1].nom} » en ${t.nom} ${'★'.repeat(apres)}`, 6000);
 }
+// « Nouveau » : les tuiles arrivées avec une mise à jour, tant qu'elle ne les a pas ouvertes.
+const NOUVEAUTES = ['interne:animation', 'interne:mains', 'interne:histoires', 'interne:bd', 'interne:coloriages', 'interne:cubes', 'site:arcade', 'interne:ecole', 'interne:fiches', 'interne:ecrans'];
+function tuilesConnues() {
+  if (!S.profil.tuilesConnues) {
+    const toutes = D.catalogue.RUBRIQUES.flatMap((r) => r.tuiles).map(cleBadge);
+    S.profil.tuilesConnues = S.profil.atelierFait ? toutes.filter((k) => !NOUVEAUTES.includes(k)) : toutes; sauverProfil();
+  }
+  return S.profil.tuilesConnues;
+}
+function noterTuileVue(t) { const k = cleBadge(t); const l = tuilesConnues(); if (!l.includes(k)) { l.push(k); sauverProfil(); } }
 function tuileHtml(t, i) {
   const p = palier(t);
-  const badge = p ? `<span class="badge-tuile" title="${esc(PALIERS[p - 1].nom)}">${'★'.repeat(p)}</span>` : '';
+  const badge = p ? `<span class="badge-tuile" title="${esc(PALIERS[p - 1].nom)}">${'★'.repeat(p)}</span>` : !tuilesConnues().includes(cleBadge(t)) ? '<span class="badge-nouveau">Nouveau</span>' : '';
   return `<button class="tuile" data-a="tuile" data-i="${i}">${badge}<span class="ic" style="background:${t.couleur}">${ic(t.icone)}</span><span><span class="n">${esc(t.nom)}</span><br><span class="s">${esc(t.sous || '')}</span></span></button>`;
 }
 function vueBadges() {
@@ -331,8 +341,85 @@ function entete(titre, extra) { return `<div class="entete"><button class="retou
 
 function vueInterne() {
   const v = S.vue;
-  const fn = { permis: vuePermis, semaine: vueSemaine, agenda: vueAgenda, idee: vueIdee, galerie: vueGalerie, projet: vueProjet, exposes: vueExposes, cahier: vueCahier, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
+  const fn = { permis: vuePermis, semaine: vueSemaine, agenda: vueAgenda, idee: vueIdee, galerie: vueGalerie, projet: vueProjet, exposes: vueExposes, cahier: vueCahier, fiches: vueFiches, ecrans: vueEcrans, pourquoi: vuePourquoi, carnetLecture: vueLectures, journal: vueJournal, photos: vuePhotos, musique: () => vueMusique('Ma musique', 'musique', 'Pas encore de musique. Un adulte peut en ajouter dans le dossier Musique.'), livresAudio: () => vueMusique('Mes livres audio', 'livresAudio', 'Pas encore de livre audio. Un adulte peut en déposer dans Musique, « Mes livres audio ».'), films: vueFilms, animation: () => vueAnimation(), mains: () => vueMains(), histoires: () => vueHistoires(), bd: () => vueBD(), coloriages: () => vueColoriages(), ecole: () => vueEcole(), cubes: () => (window.vueCubes ? window.vueCubes() : ''), minuteur: vueMinuteur, dossiers: vueDossiers }[v.ref];
   return fn ? fn() : entete('Bientôt');
+}
+
+// ---------- Fiches de révision et Écrans malins : une leçon courte, puis un petit quiz corrigé ----------
+// Résultats dans le profil (meilleur score par fiche), jamais envoyés ailleurs.
+function lecon(liste, id) { return liste.find((x) => x.id === id); }
+function vueQuiz(x, nomListe) {
+  const v = S.vue; const etoiles = (n, t) => '★'.repeat(n) + '☆'.repeat(t - n);
+  if (v.q === undefined) {
+    return `<div class="section quiz">${entete(x.titre, x.niveau ? `<span class="etiquette">${esc(x.niveau)}</span>` : '')}
+      <div class="panneau"><h3>À retenir</h3><ul class="retenir">${x.retenir.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>${x.exemple ? `<div class="astuce"><b>Exemple</b><span>${esc(x.exemple)}</span></div>` : ''}</div>
+      <div class="rang fin"><button class="btn" data-a="quizCommencer">Je m’entraîne (${x.questions.length} questions)</button></div></div>`;
+  }
+  if (v.q >= x.questions.length) {
+    const bons = v.reponses.filter((r, i) => r === x.questions[i].bonne).length;
+    const parfait = bons === x.questions.length;
+    return `<div class="section quiz">${entete(x.titre)}<div class="panneau ${parfait ? 'fete' : ''}" style="align-items:center;text-align:center">${parfait ? pluieDeFlocons(28) + '<span class="tampon">Sans faute !</span>' : ''}<span class="etoiles-quiz">${etoiles(bons, x.questions.length)}</span><h3>${bons} sur ${x.questions.length}</h3>
+      <p class="muet">${bons === x.questions.length ? 'Tout juste ! Tu peux passer à une autre fiche.' : 'Relis « À retenir », puis réessaie : c’est comme ça qu’on apprend.'}</p>
+      <div class="rang"><button class="btn doux" data-a="quizRelire">Relire la leçon</button><button class="btn" data-a="quizCommencer">Recommencer</button><button class="btn doux" data-a="fermerVue">${nomListe}</button></div></div></div>`;
+  }
+  const q = x.questions[v.q]; const rep = v.reponses[v.q];
+  const ordre = (v.ordres && v.ordres[v.q]) || q.choix.map((_, i) => i);
+  const bouton = (i) => { const c = q.choix[i]; const etat = rep === undefined ? '' : i === q.bonne ? 'juste' : i === rep ? 'faux' : 'eteint'; return `<button class="choix ${etat}" data-a="quizRepondre" data-i="${i}" ${rep === undefined ? '' : 'disabled'}>${esc(c)}</button>`; };
+  return `<div class="section quiz">${entete(x.titre, `<span class="etiquette">Question ${v.q + 1} sur ${x.questions.length}</span>`)}
+    <div class="panneau"><h3>${esc(q.q)}</h3><div class="choix-quiz">${ordre.map(bouton).join('')}</div>${v.pluie ? pluieDeFlocons(v.pluie) : ''}
+    ${rep === undefined ? '' : `<div class="astuce ${rep === q.bonne ? 'ok' : 'non'}"><b>${rep === q.bonne ? 'Bravo !' : 'Pas tout à fait.'}</b><span>${esc(q.pourquoi)}</span></div><div class="rang fin"><button class="btn" data-a="quizSuivant">${v.q + 1 < x.questions.length ? 'Question suivante' : 'Voir mon résultat'}</button></div>`}</div></div>`;
+}
+// Une pluie de flocons, en CSS : n flocons qui tombent une fois, à des places et vitesses différentes.
+function pluieDeFlocons(n) {
+  let h = '<div class="pluie" aria-hidden="true">';
+  for (let i = 0; i < n; i++) h += `<span style="left:${Math.round(Math.random() * 96)}%;animation-delay:${(Math.random() * 0.6).toFixed(2)}s;animation-duration:${(1.4 + Math.random() * 1.2).toFixed(2)}s;font-size:${14 + Math.round(Math.random() * 16)}px">❄</span>`;
+  return h + '</div>';
+}
+const MOTS_BRAVO = ['Bravo !', 'Exactement !', 'Bien vu !', 'Tu l’as !', 'Super !', 'Juste !'];
+const MOTS_COURAGE = ['Presque ! Lis bien la correction.', 'Pas grave : c’est en se trompant qu’on retient.', 'On réessaiera tout à l’heure, tu vas l’avoir.'];
+const auHasard = (l) => l[Math.floor(Math.random() * l.length)];
+function melanger(n) { const l = Array.from({ length: n }, (_, i) => i); for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; } return l; }
+
+function scoreDe(cle) { return ((S.profil.quiz || {})[cle] || {}).meilleur; }
+function vueFiches() {
+  const v = S.vue; const F_ = D.catalogue.FICHES;
+  if (v.id) return vueQuiz(lecon(F_, v.id), 'Mes fiches');
+  const m = v.matiere || 'maths';
+  const onglets = D.catalogue.MATIERES.map((x) => `<button class="${x.id === m ? 'on' : ''}" data-a="fichesMatiere" data-m="${x.id}">${esc(x.nom)}</button>`).join('');
+  const reussie = (f) => scoreDe(f.id) === f.questions.length;
+  const medailles = D.catalogue.MATIERES.filter((x) => F_.filter((f) => f.matiere === x.id).every(reussie)).map((x) => `<span class="medaille">🏅 Médaille de ${esc(x.nom)}</span>`).join('');
+  const faites = F_.filter((f) => f.matiere === m && reussie(f)).length; const total = F_.filter((f) => f.matiere === m).length;
+  const liste = F_.filter((f) => f.matiere === m).map((f) => { const s = scoreDe(f.id); return `<button class="ligne" data-a="ouvrirFiche" data-id="${f.id}"><span class="grow"><b>${esc(f.titre)}</b><br><span class="muet">${esc(f.niveau)}</span></span><span class="etoiles-ligne">${s === undefined ? '' : '★'.repeat(s) + '☆'.repeat(f.questions.length - s)}</span></button>`; }).join('');
+  return `<div class="section">${entete('Mes fiches', '<span class="etiquette">sans Internet</span>')}${vueDefi()}${medailles ? `<div class="rang">${medailles}</div>` : ''}
+    <div class="etapes-expose onglets-fiches">${onglets}</div>
+    <div class="progression"><span style="width:${Math.round(100 * faites / total)}%"></span></div><span class="muet">${faites} fiche${faites > 1 ? 's' : ''} sur ${total} en sans-faute : toutes pour la médaille.</span>
+    <div class="liste">${liste}</div></div>`;
+}
+
+// Défi du jour : une question tirée des fiches, la même toute la journée. Réussie, elle rapporte un flocon
+// pour la collection. Une seule par jour : on revient le lendemain, pas de course.
+function questionDuJour() {
+  const toutes = D.catalogue.FICHES.flatMap((f) => f.questions.map((q) => ({ f, q })));
+  const jour = new Date().toISOString().slice(0, 10);
+  let h = 0; for (const c of jour + (S.profil.prenom || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return { jour, ...toutes[h % toutes.length] };
+}
+function vueDefi() {
+  const { jour, f, q } = questionDuJour(); const d = S.profil.defi || {}; const fait = d.jour === jour;
+  const flocons = S.profil.flocons || 0;
+  const collection = `<span class="muet">Ma collection : ${flocons} flocon${flocons > 1 ? 's' : ''} ${'❄'.repeat(Math.min(flocons, 20))}${flocons > 20 ? '…' : ''}</span>`;
+  if (fait) return `<div class="panneau defi">${S.vue && S.vue.pluieDefi ? pluieDeFlocons(16) : ''}<h3>Défi du jour</h3><span>${d.juste ? 'Réussi ! Un flocon de plus dans ta collection.' : 'Raté de peu. ' + esc(q.pourquoi)} Reviens demain pour un nouveau défi.</span>${collection}</div>`;
+  return `<div class="panneau defi"><h3>Défi du jour <span class="muet">· ${esc(f.titre)}</span></h3><b>${esc(q.q)}</b>
+    <div class="choix-quiz">${q.choix.map((c, i) => `<button class="choix" data-a="defiRepondre" data-i="${i}">${esc(c)}</button>`).join('')}</div>${collection}</div>`;
+}
+function vueEcrans() {
+  const v = S.vue; const L = D.catalogue.ECRANS;
+  if (v.id) return vueQuiz(lecon(L, v.id), 'Écrans malins');
+  const faites = L.filter((x) => scoreDe(x.id) === x.questions.length).length;
+  return `<div class="section">${entete('Écrans malins', `<span class="etiquette">${faites} sur ${L.length}</span>`)}
+    <p class="muet" style="margin:0">Six petites leçons pour bien utiliser Internet et les écrans. Réussis-les toutes pour gagner le badge « Écrans malins ».</p>
+    ${faites === L.length ? '<div class="badge"><span class="etoiles">★★★</span><b>Badge « Écrans malins »</b><span class="muet">Tu sais protéger tes infos, repérer les pièges et t’arrêter.</span></div>' : ''}
+    <div class="liste">${L.map((x) => { const s = scoreDe(x.id); return `<button class="ligne" data-a="ouvrirFiche" data-id="${x.id}"><span class="grow"><b>${esc(x.titre)}</b></span><span class="etoiles-ligne">${s === undefined ? '' : '★'.repeat(s) + '☆'.repeat(x.questions.length - s)}</span></button>`; }).join('')}</div></div>`;
 }
 
 // ---------- Mon cahier : écrire sans se perdre dans un traitement de texte ----------
@@ -384,10 +471,14 @@ function vuePermis() {
   if (suivant) {
     const faites = suivant.missions.filter((_, i) => m[suivant.n + '-' + i]).length;
     missions = `<div class="panneau"><h3>Pour passer au niveau ${suivant.n} : ${esc(suivant.nom)}</h3><p class="muet" style="margin:0">Coche ce que tu sais faire, puis montre-le à un adulte. C’est lui qui valide le passage avec son code.</p>
-      <div class="section" style="gap:8px">${suivant.missions.map((t, i) => { const k = suivant.n + '-' + i; return `<button class="coche ${m[k] ? 'on' : ''}" data-a="mission" data-k="${k}"><span class="case">${m[k] ? '✓' : ''}</span>${esc(t)}</button>`; }).join('')}</div>
+      <div class="section" style="gap:8px">${suivant.missions.map((t, i) => { const k = suivant.n + '-' + i; const g = (suivant.guides || [])[i]; const ouvert = S.vue && S.vue.guide === k;
+        return `<div class="mission-ligne"><button class="coche grow ${m[k] ? 'on' : ''}" data-a="mission" data-k="${k}"><span class="case">${m[k] ? '✓' : ''}</span>${esc(t)}</button>${g ? `<button class="btn doux petit" data-a="guideMission" data-k="${k}">${ouvert ? 'Fermer' : '👀 Montre-moi'}</button>` : ''}</div>
+        ${g && ouvert ? `<div class="guide-mission"><ol class="etapes-pause">${g.etapes.map((e, j) => `<li class="on"><span class="num">${j + 1}</span><span>${esc(e)}</span></li>`).join('')}</ol><p class="pouce">💡 ${esc(g.astuce)}</p>${g.entrainement ? '<div class="rang"><button class="btn" style="background:#2FA36B" data-a="entrainement">📂 Ouvrir mon dossier d’entraînement</button><span class="muet">Tu peux tout y essayer : rien de grave ne peut arriver.</span></div>' : ''}</div>` : ''}`; }).join('')}</div>
       <div class="rang entre"><span class="etiquette">${faites} sur ${suivant.missions.length}</span><button class="btn" data-a="passerNiveau" ${faites === suivant.missions.length ? '' : 'disabled'}>Je le montre à un adulte</button></div></div>`;
   } else missions = '<div class="panneau"><b>Tu as ton permis complet.</b><span class="muet">Bravo : tu sais te servir d’un ordinateur, et t’arrêter quand tu as fini.</span></div>';
-  return `<div class="section">${entete('Mon permis')}<div class="liste">${niveaux}</div>${missions}${vueBadges()}</div>`;
+  const ne = typeof nbEcole === 'function' ? nbEcole() : 0; const te = typeof ECOLE !== 'undefined' ? ECOLE.length : 10;
+  const ecole = `<div class="panneau affiche-ecole"><div class="grow"><h3>🖱️ L’école de l’ordinateur : ${ne} sur ${te} ★</h3><p class="muet" style="margin:4px 0 0">${ne === te ? 'Tous tes premiers pas sont faits. Bravo !' : 'Les premiers pas : la souris, le clavier, les fenêtres. Dix petits jeux, une étoile chacun.'}</p></div><button class="btn" style="background:#2FA36B" data-a="ouvrirEcole">${ne ? (ne === te ? 'Rejouer' : 'Continuer') : 'Commencer'}</button></div>`;
+  return `<div class="section">${entete('Mon permis')}${n === 1 || ne < te ? ecole : ''}<div class="liste">${niveaux}</div>${missions}${n > 1 && ne === te ? ecole : ''}${vueBadges()}</div>`;
 }
 
 function seancesDeLaSemaine(sem) {
@@ -558,6 +649,7 @@ function vueVoile() {
       <div class="panneau"><h3>Ses jeux</h3>${steam.length ? `<div class="rang">${steam.map((j) => `<button class="puce ${jeuxOn.has(j.id) ? 'on' : ''}" data-a="pJeu" data-id="${esc(j.id)}" data-nom="${esc(j.nom)}">${esc(j.nom)}</button>`).join('')}</div>` : '<p class="muet" style="margin:0">Aucun jeu Steam trouvé sur cet ordinateur. Installez-les depuis Steam (Steam Families), puis revenez ici.</p>'}</div>
       <div class="panneau"><h3>Sites en plus</h3><p class="muet" style="margin:0">Les sites des tuiles de Flocon sont toujours permis. Ajoutez ici d’autres sites, un domaine par ligne (par exemple « monecole.fr »). Rien d’autre ne s’ouvre, et les autres navigateurs sont bloqués sur sa session.</p><textarea class="champ" data-in="pSites" rows="4" placeholder="monecole.fr">${esc(sites)}</textarea></div>
       <div class="panneau"><h3>Permis</h3><div class="rang">${D.catalogue.PERMIS.map((x) => `<button class="puce ${Number(v.niveau) === x.n ? 'on' : ''}" data-a="pNiveau" data-n="${x.n}">${x.n}. ${esc(x.nom)}</button>`).join('')}</div><p class="muet" style="margin:0">Au niveau 3, Edge s’ouvre sur sa session, limité aux sites autorisés. Au niveau 4, elle peut fermer Flocon et la fin de séance laisse cinq minutes.</p></div>
+      <div class="panneau"><h3>Sur votre téléphone</h3><p class="muet" style="margin:0">Voir la semaine, ajouter des jetons, changer le niveau ou terminer une séance depuis votre téléphone, connecté au Wi-Fi de la maison. Ouvrez cette adresse dans son navigateur, puis tapez votre code :</p><b class="adresse-parent">${(v.adresses || []).map(esc).join('<br>') || 'Cet ordinateur n’est pas connecté à un réseau.'}</b><span class="muet">Si la page ne s’ouvre pas : dans les paramètres Wi-Fi de cet ordinateur, réglez le réseau de la maison sur « Privé ».</span></div>
       <div class="panneau"><h3>Programmes interdits</h3><p class="muet" style="margin:0">Les navigateurs et l’invite de commandes le sont déjà. Ajoutez ici, un par ligne, le nom des programmes à bloquer sur sa session (par exemple les logiciels professionnels de la famille). Pour trouver un nom : clic droit sur le raccourci, Propriétés, la cible se termine par « nom.exe ».</p><textarea class="champ" data-in="pInterdits" rows="3" placeholder="exemple.exe">${esc(v.interdits || '')}</textarea></div>
       <div class="panneau"><h3>Atelier de première connexion</h3><div class="rang entre"><span class="muet">Pour que ${esc(prenom() || 'votre enfant')} choisisse elle-même ou lui-même son compagnon, son monde et son portrait. Ses créations et sa tirelire ne bougent pas.</span><button class="btn doux petit" data-a="pRefaireAtelier">Refaire l’atelier</button></div></div>
       <div class="panneau"><h3>Changer le code</h3><input class="champ" style="max-width:200px" data-in="pNouveauPin" inputmode="numeric" maxlength="8" placeholder="Nouveau code" value="${esc(v.nouveauPin || '')}"></div>
@@ -589,6 +681,13 @@ function poseCompa() {
 function vueMascotte() {
   if (S.ecran !== 'bureau' || !S.profil || !S.profil.floconVisible) return '';
   const texte = S.bulle || CONSEILS[S.conseil % CONSEILS.length]();
+  // Les conseils ne restent pas collés sur l'écran : ils s'effacent au bout de 12 s (un clic sur le compagnon les rappelle).
+  let cache = false;
+  if (!S.bulle) {
+    if (S.conseilAffiche !== S.conseil) { S.conseilAffiche = S.conseil; S.conseilDepuis = Date.now(); clearTimeout(vueMascotte.t); vueMascotte.t = setTimeout(() => { const m = $('#mascotte'); if (S.ecran === 'bureau' && m) m.innerHTML = vueMascotte(); }, 12500); }
+    cache = Date.now() - (S.conseilDepuis || 0) > 12000;
+  }
+  if (cache) return `<div class="mascotte"><button class="compagnon" data-a="conseilSuivant" aria-label="${esc(nomCompa())}, ton compagnon"><img src="${imgCompa(poseCompa())}" alt=""></button></div>`;
   return `<div class="mascotte"><div class="dire"><span>${esc(texte)}</span><button class="btn doux petit" style="align-self:flex-end;height:28px" data-a="taire">Chut, ${esc(nomCompa())}</button></div><button class="compagnon" data-a="conseilSuivant" aria-label="${esc(nomCompa())}, ton compagnon"><img src="${imgCompa(poseCompa())}" alt=""></button></div>`;
 }
 function dire(t) { S.bulle = t; clearTimeout(dire.t); dire.t = setTimeout(() => { S.bulle = null; if (S.ecran === 'bureau') $('#mascotte').innerHTML = vueMascotte(); }, 8000); }
@@ -616,6 +715,12 @@ function apresRendu() {
   });
   const m = document.getElementById('lecteur');
   if (m) m.onended = () => {};
+  if (typeof filmApresRendu === 'function') filmApresRendu();
+  if (typeof mainsApresRendu === 'function') mainsApresRendu();
+  if (typeof bdApresRendu === 'function') bdApresRendu();
+  if (typeof ecoleApresRendu === 'function') ecoleApresRendu();
+  if (window.cubesApresRendu) window.cubesApresRendu();
+  if (typeof visitesApresRendu === 'function') visitesApresRendu();
 }
 function sauverToile(id) {
   const c = document.getElementById(id); if (!c) return;
@@ -642,6 +747,10 @@ async function ouvrirVue(ref) {
   S.vue = { ref };
   if (ref === 'exposes') S.docs.exposes = await F.listerDocs('exposes');
   if (ref === 'cahier') S.docs.textes = await F.listerDocs('textes');
+  if (ref === 'animation') S.docs.animations = await F.animListe();
+  if (ref === 'histoires') S.docs.histoires = await F.listerDocs('histoires');
+  if (ref === 'bd') S.docs.bd = await F.listerDocs('bd');
+  if (ref === 'cubes') S.docs.cubes = await F.listerDocs('cubes');
   if (ref === 'pourquoi') await chargerDoc('pourquoi', 'grand-pourquoi.json', { questions: [] });
   if (ref === 'carnetLecture') await chargerDoc('lectures', 'lectures.json', { livres: [] });
   if (ref === 'journal') await chargerDoc('journal', 'journal.json', { pages: [] });
@@ -657,6 +766,7 @@ async function ouvrirVue(ref) {
 }
 
 async function lancer(t, sansPas) {
+  noterTuileVue(t);
   if (t.type === 'projet') { S.vue = { ref: 'projet', id: t.ref }; render(); return; }
   if (t.type === 'logiciel' && !sansPas && D.catalogue.PREMIERS_PAS[t.ref] && !((S.profil.vus || {})[t.ref])) { S.voile = { type: 'premiersPas', t }; render(); return; }
   if (t.type === 'site') { noterBadge(t); return ouvrirSite(D.catalogue.SITES[t.ref].url, D.catalogue.SITES[t.ref].nom); }
@@ -673,6 +783,14 @@ async function lancer(t, sansPas) {
   else dire((r && r.nom ? r.nom : t.nom) + ' n’est pas encore installé sur cet ordinateur. Demande à un adulte.');
   if (!S.profil.floconVisible) toast(r && r.ok ? 'Ouverture de ' + t.nom + '…' : t.nom + ' n’est pas encore installé.');
   $('#mascotte').innerHTML = vueMascotte();
+}
+
+// Mode découverte : chaque outil montre d'abord l'essentiel ; ses options avancées restent repliées derrière
+// « Plus d'outils », qu'elle peut ouvrir quand elle veut (rien n'est interdit). Le choix est gardé dans son profil.
+function outilsPlus(cle) { return !!((S.profil.outilsPlus || {})[cle]); }
+function boutonPlus(cle, libre) {
+  const o = outilsPlus(cle); const vu = (S.profil.outilsVus || {})[cle];
+  return `<button class="puce plus-outils ${o ? 'on' : ''}" data-a="outilsPlus" data-k="${cle}" aria-expanded="${o}">${o ? '▴ ' + (libre ? libre : 'Moins d’outils') : '▾ ' + (libre ? libre : 'Plus d’outils')}${vu ? '' : ' <span class="nouveau">Nouveau !</span>'}</button>`;
 }
 
 function finOuverture() { if (!S.ouverture) return; S.ouverture = null; clearTimeout(S.minuteOuverture); render(); }
@@ -788,7 +906,11 @@ const A = {
   reduire: () => F.reduire(),
   rubrique: (d) => { S.rubrique = d.id; S.vue = null; render(); },
   tuile: (d) => lancer(S.tuilesAffichees[Number(d.i)]),
+  ouvrirEcole: () => ouvrirVue('ecole'),
+  guideMission: (d) => { S.vue.guide = S.vue.guide === d.k ? null : d.k; render(); },
+  entrainement: async () => { const r = await F.entrainement(); toast(r && r.ok ? 'Ton dossier d’entraînement s’ouvre : essaie tout ce que tu veux !' : 'Je n’ai pas pu ouvrir le dossier.'); },
   finOuverture: () => finOuverture(),
+  outilsPlus: async (d) => { S.profil.outilsPlus = Object.assign({}, S.profil.outilsPlus, { [d.k]: !outilsPlus(d.k) }); S.profil.outilsVus = Object.assign({}, S.profil.outilsVus, { [d.k]: true }); render(); await sauverProfil(); },
   pasOuvrir: async () => { const t = S.voile.t; S.profil.vus = Object.assign({}, S.profil.vus, { [t.ref]: true }); await sauverProfil(); S.voile = null; render(); lancer(t, true); },
   pasDebrouille: async () => { const t = S.voile.t; S.profil.vus = Object.assign({}, S.profil.vus, { [t.ref]: true }); await sauverProfil(); S.voile = null; render(); dire('D’accord ! Si tu bloques, clique sur moi.'); lancer(t, true); },
   autreIdee: () => { if (!S.seance) S.seance = { id: 'x', debut: Date.now(), prevu: 30 }; S.seance.tirages = (S.seance.tirages || 0) + 1; if (S.seance.tirages <= 3) S.idee = tirerIdee(); render(); },
@@ -797,8 +919,8 @@ const A = {
   premiereSuiv: () => { if (!S.premiere) return; const n = S.docs.creations.length; if (S.premiere.i < n - 1) { S.premiere.i++; dessinerPremiere(); } else A.premiereFin(); },
   premierePrec: () => { if (!S.premiere) return; S.premiere.i = Math.max(0, S.premiere.i - 1); dessinerPremiere(); },
   premiereFin: async () => { S.premiere = null; dessinerPremiere(); await F.mode(false); dire('Bravo pour ta première ! Qu’est-ce que ta famille en a pensé ?'); render(); },
-  // Dans un texte ou un exposé, le retour ramène à la liste ; sinon il ferme la vue.
-  fermerVue: () => { S.vue = S.vue && S.vue.fichier && (S.vue.ref === 'cahier' || S.vue.ref === 'exposes') ? { ref: S.vue.ref } : null; render(); },
+  // Dans un texte, un exposé ou une fiche, le retour ramène à la liste ; sinon il ferme la vue.
+  fermerVue: () => { const v = S.vue; S.vue = v && ((v.fichier && (v.ref === 'cahier' || v.ref === 'exposes')) || (v.id && (v.ref === 'fiches' || v.ref === 'ecrans'))) ? { ref: v.ref, matiere: v.matiere } : null; render(); },
   basculerFlocon: async () => { S.profil.floconVisible = !S.profil.floconVisible; await sauverProfil(); render(); },
   taire: async () => { S.profil.floconVisible = false; await sauverProfil(); render(); },
   conseilSuivant: () => { S.bulle = null; S.conseil++; $('#mascotte').innerHTML = vueMascotte(); },
@@ -854,6 +976,46 @@ const A = {
       else { v.saisie = ''; v.erreur = true; render(); }
     } else render();
   },
+  fichesMatiere: (d) => { S.vue = { ref: 'fiches', matiere: d.m }; render(); },
+  ouvrirFiche: (d) => { S.vue = { ref: S.vue.ref, matiere: S.vue.matiere, id: d.id }; render(); },
+  defiRepondre: (d) => {
+    const { jour, q } = questionDuJour(); if ((S.profil.defi || {}).jour === jour) return;
+    const juste = Number(d.i) === q.bonne;
+    S.profil.defi = { jour, juste };
+    if (juste) S.profil.flocons = (S.profil.flocons || 0) + 1;
+    sauverProfil();
+    dire(juste ? 'Défi réussi ! Un flocon de plus.' : 'Pas cette fois. On se retrouve demain pour un autre défi.');
+    if (S.vue) S.vue.pluieDefi = juste;
+    render();
+  },
+  quizCommencer: () => {
+    const liste = S.vue.ref === 'fiches' ? D.catalogue.FICHES : D.catalogue.ECRANS; const x = lecon(liste, S.vue.id);
+    S.vue.q = 0; S.vue.reponses = []; S.vue.pluie = 0; S.vue.ordres = x.questions.map((q) => melanger(q.choix.length)); render();
+  },
+  quizRelire: () => { delete S.vue.q; render(); },
+  quizRepondre: (d) => {
+    if (S.vue.reponses[S.vue.q] !== undefined) return;
+    const liste = S.vue.ref === 'fiches' ? D.catalogue.FICHES : D.catalogue.ECRANS; const q = lecon(liste, S.vue.id).questions[S.vue.q];
+    S.vue.reponses[S.vue.q] = Number(d.i);
+    const juste = Number(d.i) === q.bonne;
+    S.vue.pluie = juste ? 10 : 0;
+    dire(juste ? auHasard(MOTS_BRAVO) : auHasard(MOTS_COURAGE));
+    render();
+  },
+  quizSuivant: () => {
+    S.vue.q++; S.vue.pluie = 0;
+    const liste = S.vue.ref === 'fiches' ? D.catalogue.FICHES : D.catalogue.ECRANS; const x = lecon(liste, S.vue.id);
+    if (S.vue.q >= x.questions.length) {
+      const bons = S.vue.reponses.filter((r, i) => r === x.questions[i].bonne).length;
+      S.profil.quiz = S.profil.quiz || {}; const p = S.profil.quiz[x.id] || {};
+      S.profil.quiz[x.id] = { meilleur: Math.max(p.meilleur || 0, bons), le: new Date().toISOString() };
+      const L = D.catalogue.ECRANS;
+      if (bons === x.questions.length) dire(`Sans faute ! ${(S.profil.compagnon && S.profil.compagnon.nom) || 'Ton compagnon'} est fier de toi.`);
+      if (S.vue.ref === 'ecrans' && L.every((y) => scoreDe(y.id) === y.questions.length) && !S.profil.badgeEcrans) { S.profil.badgeEcrans = new Date().toISOString(); toast('Nouveau badge : « Écrans malins » ★★★', 6000); }
+      sauverProfil();
+    }
+    render();
+  },
   creerTexte: async () => {
     const titre = String(S.vue.titre || '').trim() || 'Mon texte';
     const fichier = titre.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w-]+/g, '-').replace(/^-|-$/g, '').toLowerCase().slice(0, 40) + '-' + Date.now().toString(36) + '.json';
@@ -878,6 +1040,7 @@ const A = {
     const cat = new Set(Object.values(D.catalogue.SITES).flatMap((s) => s.domaines));
     const sitesActuels = (S.config.sites || []).map((d) => String(d).toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '')).filter((d) => d && !cat.has(d));
     S.voile = { type: 'parent', pin, steam: Array.isArray(steam) ? steam : [], jeux: (S.config.jeux || []).slice(), jetonsSemaine: S.config.jetonsSemaine, maxParSeance: S.config.maxParSeance, niveau: niveau(), ajouter: 0, sites: sitesActuels.join('\n'), interdits: (S.config.interdits || []).join('\n'), nouveauPin: '' };
+    F.adresseParent().then((r) => { if (S.voile && S.voile.type === 'parent') { S.voile.adresses = r.adresses; render(); } }).catch(() => {});
     render();
   }),
   pRefaireAtelier: async () => {

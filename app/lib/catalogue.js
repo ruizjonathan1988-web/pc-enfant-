@@ -23,7 +23,8 @@ const LOGICIELS = {
   camera: { nom: 'Caméra', uri: 'microsoft.windows.camera:' },
   explorateur: { nom: 'Explorateur de fichiers', chemins: ['%SystemRoot%\\explorer.exe'] },
   edge: { nom: 'Internet', chemins: [PF86 + '\\Microsoft\\Edge\\Application\\msedge.exe', PF + '\\Microsoft\\Edge\\Application\\msedge.exe'], menu: 'Microsoft Edge' },
-  minecraft: { nom: 'Minecraft', chemins: [PF86 + '\\Minecraft Launcher\\MinecraftLauncher.exe', PF + '\\Minecraft Launcher\\MinecraftLauncher.exe'], menus: ['Minecraft Launcher', 'Minecraft pour Windows', 'Minecraft for Windows', 'Minecraft Bedrock', 'Minecraft'] }, // Bedrock seul (sans lanceur) : trouvé par le menu Démarrer
+  // Bedrock d'abord (ouvert directement, sans passer par le lanceur qui propose Java), le lanceur à défaut.
+  minecraft: { nom: 'Minecraft', menusAvant: ['Minecraft pour Windows', 'Minecraft for Windows', 'Minecraft Bedrock'], chemins: [PF86 + '\\Minecraft Launcher\\MinecraftLauncher.exe', PF + '\\Minecraft Launcher\\MinecraftLauncher.exe'], menus: ['Minecraft Launcher', 'Minecraft'] },
   // RapidTyping, installé à la main (rapidtyping.com). Klavaro n'est plus installé : sa version Windows plante au démarrage
   // (0xC0000374, relevé par le testeur des logiciels) ; il reste en secours s'il est déjà là.
   klavaro: { nom: 'Le clavier', manuel: 'RapidTyping, à installer à la main (rapidtyping.com)', chemins: [PF + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\RapidTyping\\RapidTyping.exe', PF86 + '\\Klavaro\\bin\\klavaro.exe', PF + '\\Klavaro\\bin\\klavaro.exe'], menus: ['RapidTyping', 'Klavaro'] }
@@ -43,6 +44,7 @@ const SITES = {
   fondamentaux: { nom: 'Les Fondamentaux', url: 'https://lesfondamentaux.reseau-canope.fr/accueil.html', domaines: ['reseau-canope.fr'] },
   calcul: { nom: 'Calcul mental', url: 'https://calculatice.ac-lille.fr/exercices/', domaines: ['calculatice.ac-lille.fr'] },
   dicoado: { nom: 'Dicoado', url: 'https://www.dicoado.org', domaines: ['dicoado.org'] },
+  arcade: { nom: 'MakeCode Arcade', url: 'https://arcade.makecode.com/', domaines: ['arcade.makecode.com', 'makecode.com'] },
   songmaker: { nom: 'Mélodies', url: 'https://musiclab.chromeexperiments.com/Song-Maker/', domaines: ['musiclab.chromeexperiments.com'] },
   teachable: { nom: 'Teachable Machine', url: 'https://teachablemachine.withgoogle.com/train/image', domaines: ['teachablemachine.withgoogle.com'], camera: true },
   blockly: { nom: 'Blockly Games', url: 'https://blockly.games/?lang=fr', domaines: ['blockly.games'] },
@@ -52,6 +54,10 @@ const SITES = {
 // Icônes : tracés SVG 24×24 (trait).
 const I = {
   code: 'M8 7l-5 5 5 5M16 7l5 5-5 5M13 5l-2 14',
+  carte: 'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15',
+  bulle: 'M4 5h16v11H9l-5 4z',
+  palette: 'M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-1-1.5-1-2.5 1-1.5 2-1.5h2a4 4 0 0 0 4-4c0-4.4-4-8-9-8zM7.5 11.5h.01M10 7.5h.01M15 7.5h.01',
+  ciseaux: 'M9 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM8.1 8.1L20 20M8.1 15.9L20 4',
   film: 'M4 5h16v14H4zM8 5v14M16 5v14M4 9h4M4 15h4M16 9h4M16 15h4',
   pinceau: 'M14 4l6 6-9 9H5v-6zM12 6l6 6',
   note: 'M9 18V5l11-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3z',
@@ -89,20 +95,28 @@ const RUBRIQUES = [
     { type: 'interne', ref: 'idee', nom: 'Une idée ?', sous: 'Quand je ne sais pas quoi faire', icone: I.etoile, couleur: '#F2B33D' },
     { type: 'interne', ref: 'galerie', nom: 'Ma galerie', sous: 'Et la première en famille', icone: I.photo, couleur: '#E0457B' },
     { type: 'logiciel', ref: 'scratch', nom: 'Scratch', sous: 'Jeux et animations', icone: I.code, couleur: '#F28C28' },
-    { type: 'logiciel', ref: 'stopmotion', nom: 'Mon film', sous: 'Stop Motion Studio', icone: I.film, couleur: '#E0457B' },
+    { type: 'interne', ref: 'animation', nom: 'Mon film', sous: 'Mon studio d\u2019animation', icone: I.film, couleur: '#E0457B' },
     { type: 'logiciel', ref: 'tuxpaint', nom: 'Dessin', sous: 'Tux Paint', icone: I.pinceau, couleur: '#FF7A45' },
     { type: 'logiciel', ref: 'mypaint', nom: 'Peinture', sous: 'MyPaint, des vrais pinceaux', icone: I.pinceau, couleur: '#E8692A', niveau: 2 },
     { type: 'logiciel', ref: 'krita', nom: 'Atelier de peinture', sous: 'Krita, pour aller plus loin', icone: I.pinceau, couleur: '#C2410C', niveau: 3 },
     { type: 'site', ref: 'incredibox', nom: 'Mes beats', sous: 'Incredibox', icone: I.beat, couleur: '#7C5CFA' },
     { type: 'site', ref: 'songmaker', nom: 'Mélodies', sous: 'Song Maker', icone: I.note, couleur: '#2B7BD6' },
-    { type: 'interne', ref: 'cahier', nom: 'Mon cahier', sous: 'Histoires et lettres', icone: I.texte, couleur: '#1F5FA8' },
-    { type: 'logiciel', ref: 'writer', nom: 'Mise en page', sous: 'LibreOffice Writer', icone: I.texte, couleur: '#174A85', niveau: 2 },
+    { type: 'interne', ref: 'coloriages', nom: 'Coloriages', sous: 'Magiques, mandalas, pixels', icone: I.palette, couleur: '#F2B33D' },
+    { type: 'interne', ref: 'cubes', nom: 'Atelier 3D', sous: 'Des cubes, puis en vrai', icone: I.cube, couleur: '#2FA36B', niveau: 2 },
+    { type: 'site', ref: 'arcade', nom: 'Mes jeux vidéo', sous: 'MakeCode Arcade, après Scratch', icone: I.code, couleur: '#3949AB', niveau: 3 },
+    { type: 'interne', ref: 'mains', nom: 'Mes mains', sous: 'Des défis loin de l\u2019écran', icone: I.ciseaux, couleur: '#F28C28' },
     { type: 'logiciel', ref: 'magneto', nom: 'Ma voix', sous: 'Le Magnétophone', icone: I.micro, couleur: '#5B3FD6' },
     { type: 'logiciel', ref: 'audacity', nom: 'Studio son', sous: 'Audacity, pour monter', icone: I.micro, couleur: '#3F2BA8', niveau: 3 },
     { type: 'logiciel', ref: 'camera', nom: 'Photomaton', sous: 'La caméra', icone: I.camera, couleur: '#13A39F' },
     { type: 'projet', ref: 'radio', nom: 'Ma radio', sous: 'Une émission à faire écouter', icone: I.micro, couleur: '#B0471B' },
     { type: 'projet', ref: 'livre', nom: 'Mon livre', sous: 'Écrire, illustrer, imprimer', icone: I.livre, couleur: '#2FA36B' },
     { type: 'projet', ref: 'papier', nom: 'Du papier à l\u2019écran', sous: 'Mes dessins prennent vie', icone: I.pinceau, couleur: '#7C5CFA' }
+  ] },
+  { id: 'ecrire', nom: 'J\u2019écris', tuiles: [
+    { type: 'interne', ref: 'histoires', nom: 'Histoire à choix', sous: 'Le lecteur décide de la suite', icone: I.carte, couleur: '#7C5CFA' },
+    { type: 'interne', ref: 'bd', nom: 'Ma BD', sous: 'Au crayon, puis en album', icone: I.bulle, couleur: '#E0457B' },
+    { type: 'interne', ref: 'cahier', nom: 'Mon cahier', sous: 'Histoires et lettres', icone: I.texte, couleur: '#1F5FA8' },
+    { type: 'logiciel', ref: 'writer', nom: 'Mise en page', sous: 'LibreOffice Writer', icone: I.texte, couleur: '#174A85', niveau: 2 }
   ] },
   { id: 'lire', nom: 'Mes lectures', tuiles: [
     { type: 'interne', ref: 'carnetLecture', nom: 'Mon carnet de lecture', sous: 'Les livres que j’ai lus', icone: I.livre, couleur: '#B0471B' },
@@ -121,6 +135,7 @@ const RUBRIQUES = [
   { id: 'apprendre', nom: 'J’apprends', tuiles: [
     { type: 'interne', ref: 'exposes', nom: 'Mes exposés', sous: 'De l’idée à l’oral', icone: I.diapo, couleur: '#1F5FA8' },
     { type: 'interne', ref: 'pourquoi', nom: 'Grand Pourquoi', sous: 'Mes questions', icone: I.question, couleur: '#7C5CFA' },
+    { type: 'interne', ref: 'fiches', nom: 'Mes fiches', sous: 'Réviser maths, français, sciences', icone: I.livre, couleur: '#1F5FA8' },
     { type: 'logiciel', ref: 'gcompris', nom: 'Jeux pour apprendre', sous: 'GCompris : maths, lecture, sciences', icone: I.chapeau, couleur: '#2FA36B' },
     { type: 'site', ref: 'blockly', nom: 'Blockly Games', sous: 'Après Scratch : coder pas à pas', icone: I.code, couleur: '#F28C28' },
     { type: 'projet', ref: 'ia', nom: 'J\u2019apprends à l\u2019ordinateur', sous: 'Comprendre l\u2019IA, à deux', icone: I.cube, couleur: '#7C5CFA' },
@@ -138,12 +153,14 @@ const RUBRIQUES = [
     { type: 'interne', ref: 'films', nom: 'Mes films', sous: 'Choisis avec un adulte', icone: I.film, couleur: '#E0457B' }
   ] },
   { id: 'outils', nom: 'Mes outils', tuiles: [
+    { type: 'interne', ref: 'ecrans', nom: 'Écrans malins', sous: 'Bien utiliser Internet et les écrans', icone: I.coeur, couleur: '#7C5CFA' },
     { type: 'logiciel', ref: 'calculatrice', nom: 'Calculatrice', sous: 'Comme une vraie', icone: I.calcul, couleur: '#56607A' },
     { type: 'interne', ref: 'minuteur', nom: 'Minuteur', sous: 'Pour me chronométrer', icone: I.minuteur, couleur: '#E8892A' },
     { type: 'site', ref: 'dicoado', nom: 'Dictionnaire', sous: 'Dicoado', icone: I.dico, couleur: '#1F5FA8' },
     { type: 'interne', ref: 'dossiers', nom: 'Mes dossiers', sous: 'Tout ce que je fabrique', icone: I.dossier, couleur: '#F2B33D' },
     { type: 'interne', ref: 'agenda', nom: 'Mon agenda', sous: 'Ce qui m\u2019attend', icone: I.agenda, couleur: '#E0457B' },
     { type: 'interne', ref: 'semaine', nom: 'Ma semaine', sous: 'Le bilan du dimanche', icone: I.graphe, couleur: '#2FA36B' },
+    { type: 'interne', ref: 'ecole', nom: 'L\u2019école de l\u2019ordi', sous: 'Souris, clavier, fenêtres', icone: I.ecran, couleur: '#2FA36B' },
     { type: 'interne', ref: 'permis', nom: 'Mon permis', sous: 'Gagner en autonomie', icone: I.permis, couleur: '#1F5FA8' },
     { type: 'logiciel', ref: 'explorateur', nom: 'Explorateur', sous: 'Tous mes fichiers', icone: I.dossier, couleur: '#56607A', niveau: 2 }
   ] },
@@ -152,13 +169,14 @@ const RUBRIQUES = [
 
 // Premiers pas : trois gestes, montrés la première fois qu'on ouvre un logiciel, puis plus jamais.
 const PREMIERS_PAS = {
+  arcade: ['Commence par un tutoriel (« Skillmap ») : il te guide pas à pas pour ton premier jeu.', 'Les blocs ressemblent à Scratch ; l\u2019onglet JavaScript montre le même programme écrit en vrai code.', 'Pour garder ton jeu : la disquette télécharge une image .png dans Mes créations. Pour le rouvrir, glisse cette image dans l\u2019éditeur.'],
   scratch: ['Clique sur un bloc pour voir ce qu\u2019il fait.', 'Glisse les blocs les uns sous les autres : c\u2019est ton programme.', 'Le drapeau vert lance tout. Pour garder ton travail : Fichier, puis « Enregistrer sur ton ordinateur », dans Mes créations.'],
   stopmotion: ['Pose la caméra bien stable : elle ne doit plus bouger.', 'Bouge ton personnage tout doucement, une photo à chaque fois.', 'Exporte ton film dans Documents, Mes créations : il ira dans ta galerie.'],
   tuxpaint: ['Les outils sont à gauche, les couleurs en bas : essaie les « Magie », ils font des choses surprenantes.', 'Défaire (la flèche) annule ton dernier geste : tu peux tout essayer.', 'Enregistrer garde ton dessin dans Tux Paint ; pour le mettre dans ta galerie, demande « Exporter » à un adulte la première fois.'],
   gcompris: ['Chaque activité est une petite île : clique dessus, puis sur la flèche pour commencer.', 'Les étoiles en haut, c\u2019est le niveau : monte quand c\u2019est trop facile.', 'La maison en bas te ramène au menu.'],
   magneto: ['Le gros bouton rond enregistre, le carré arrête.', 'Approche-toi du micro, mais pas trop : parle comme à quelqu\u2019un assis en face de toi.', 'Ton enregistrement est rangé tout seul dans Documents, Enregistrements audio.'],
   mypaint: ['Choisis un pinceau dans la colonne de droite, et ta couleur sur la roue.', 'Ctrl+Z annule ton dernier trait : tu peux tout essayer.', 'Pour garder ton dessin : Fichier, Exporter, choisis le format PNG et range-le dans Documents, Mes créations.'],
-  minecraft: ['La toute première fois, un adulte connecte ton compte Minecraft avec toi.', 'Choisis « Minecraft pour Windows » (l\u2019édition Bedrock), puis Jouer, puis Créer un monde.', 'Le jeu peut mettre une à deux minutes à démarrer : patiente, ne clique pas plusieurs fois.'],
+  minecraft: ['La toute première fois, un adulte connecte ton compte Minecraft avec toi.', 'Si le lanceur s\u2019ouvre, choisis « Minecraft pour Windows » (l\u2019édition Bedrock), puis Jouer, puis Créer un monde.', 'Le jeu peut mettre une à deux minutes à démarrer : patiente, ne clique pas plusieurs fois.'],
   krita: ['Choisis un pinceau à gauche et une couleur à droite.', 'Ctrl+Z annule ton dernier trait : tu peux tout essayer.', 'Fichier, puis Exporter en PNG, dans Documents, Mes créations.'],
   writer: ['Écris d\u2019abord, la mise en forme viendra après.', 'Pour un titre, sélectionne-le et choisis « Titre 1 ».', 'Fichier, puis Enregistrer sous : choisis bien ton dossier, et donne un nom qui veut dire quelque chose.'],
   impress: ['Une diapo = une idée et une image.', 'Insertion, puis Image, pour ajouter un dessin ou une photo.', 'F5 lance le diaporama, Échap l\u2019arrête.'],
@@ -209,7 +227,7 @@ const PROJETS = {
     ['Prends-le en photo', 'Bien à plat, à la lumière du jour, sans ombre.'],
     ['Importe tes photos', 'Branche l\u2019appareil et va dans Mes photos.'],
     ['Donne-lui vie', 'Colorie-le dans MyPaint, ou anime-le image par image dans Stop Motion.']
-  ], outils: [['interne', 'photos', 'Mes photos'], ['logiciel', 'mypaint', 'Colorier'], ['logiciel', 'stopmotion', 'Animer']] }
+  ], outils: [['interne', 'photos', 'Mes photos'], ['logiciel', 'mypaint', 'Colorier'], ['interne', 'animation', 'Animer']] }
 };
 
 // Le permis : quatre niveaux. On passe au suivant quand les missions sont acquises, avec un adulte, jamais avec du temps d'écran.
@@ -225,6 +243,36 @@ const PERMIS = [
     'J\u2019utilise la barre d\u2019adresse et les onglets sans me perdre.', 'Je reconnais une publicité et un lien douteux.', 'Je ferme ce que je ne veux pas voir et j\u2019en parle à un adulte.',
     'Pendant un mois, j\u2019ai dit « J\u2019ai fini » sans attendre que le temps s\u2019arrête.', 'Je prépare ma semaine de jetons et je la respecte à peu près.', 'J\u2019explique à un adulte comment je range mes fichiers.'] }
 ];
+
+// « Montre-moi » : le pas-à-pas de chaque mission du permis (mêmes positions que les missions).
+// entrainement : true = on propose le dossier d'entraînement, où l'on peut tout essayer sans risque.
+const GUIDES_PERMIS = {
+  2: [
+    { etapes: ['Ouvre « Mes outils », puis « Mes dossiers », puis « Mes créations ».', 'Fais un clic droit dans un espace vide de la fenêtre (pas sur un fichier).', 'Choisis « Nouveau », puis « Dossier ».', 'Tape le nom de ton dossier (par exemple « Mes dessins »), puis appuie sur Entrée.'], astuce: 'Si le nom est resté « Nouveau dossier » : clic droit dessus, puis « Renommer ».', entrainement: true },
+    { etapes: ['Fais un clic droit sur le fichier, puis choisis « Renommer » (ou appuie sur la touche F2).', 'Seul le nom est sélectionné, pas la fin après le point (.png, .jpg…) : c’est l’extension.', 'Tape le nouveau nom sans toucher au point ni à ce qui suit.', 'Appuie sur Entrée.'], astuce: 'L’extension dit à l’ordinateur quel logiciel doit ouvrir le fichier. Si tu l’effaces, il ne saura plus l’ouvrir !', entrainement: true },
+    { etapes: ['Dans ton logiciel de dessin, ouvre le menu « Fichier », puis « Enregistrer sous » (ou « Exporter »).', 'Dans la fenêtre qui s’ouvre, choisis à gauche « Documents », puis « Mes créations ».', 'Donne un nom à ton dessin.', 'Clique sur « Enregistrer ». Va ensuite dans « Ma galerie » : ton dessin doit y être !'], astuce: 'Avant de cliquer sur « Enregistrer », regarde toujours en haut de la fenêtre dans quel dossier tu es.' },
+    { etapes: ['Appuie sur la touche Windows (le petit drapeau en bas à gauche du clavier) ou clique sur la loupe en bas de l’écran.', 'Tape le début du nom du fichier que tu cherches.', 'Clique sur le bon résultat pour l’ouvrir.'], astuce: 'Pas besoin d’écrire tout le nom : les premières lettres suffisent souvent.', entrainement: true },
+    { etapes: ['Branche la clé USB.', 'Dans « Mes dossiers », fais un clic droit sur ta création, puis « Copier ».', 'Ouvre la clé : dans la fenêtre, clique à gauche sur « Ce PC », puis sur la clé.', 'Fais un clic droit dans un espace vide de la clé, puis « Coller ».', 'Pour retirer la clé : en bas à droite de l’écran, clique sur la petite flèche ^, puis sur l’icône de la clé, puis « Éjecter ». Attends le message « Le matériel peut être retiré ».'], astuce: '« Copier » garde le fichier sur l’ordinateur ET le met sur la clé. Si tu retires la clé trop tôt, le fichier peut être abîmé.', entrainement: true },
+    { etapes: ['Ouvre ta création, puis appuie sur Ctrl + P (ou « Fichier », puis « Imprimer »).', 'Vérifie le nom de l’imprimante et le nombre de copies (1, c’est souvent assez !).', 'Clique sur « Imprimer ».', 'Va voir l’imprimante : du papier ? allumée ?'], astuce: 'Dans Flocon, tes livrets, BD et coloriages ont déjà un bouton « Imprimer ».' }
+  ],
+  3: [
+    { etapes: ['Assieds-toi le dos droit, les pieds à plat.', 'Pose tes index sur F et J : ce sont les touches avec une petite bosse.', 'Chaque doigt a ses touches : « Taper au clavier » te montre lesquelles.', 'Dix minutes par jour, sans regarder tes mains : la vitesse viendra toute seule.'], astuce: 'Mieux vaut lentement sans regarder que vite en regardant.' },
+    { etapes: ['Dans « Mise en page » (Writer), écris ton texte d’abord, sans t’occuper de la forme.', 'Le titre : clique dans la ligne, puis choisis « Titre 1 » dans la liste des styles en haut à gauche.', 'Le gras : sélectionne des mots en glissant la souris dessus, puis Ctrl + G.', 'Une image : menu « Insertion », puis « Image », puis choisis-la dans Mes créations.'], astuce: 'Sélectionner d’abord, puis choisir ce qu’on fait : c’est la règle de presque tous les logiciels.' },
+    { etapes: ['Appuie en même temps sur la touche Windows, Maj et S.', 'L’écran devient gris : glisse la souris pour entourer ce que tu veux garder.', 'C’est copié ! Colle-le avec Ctrl + V dans ton texte ou ton dessin.', 'Pour le garder en image : clique sur le petit message qui apparaît en bas à droite, puis sur la disquette.'], astuce: 'Pratique pour ton exposé : une carte, un schéma… sans oublier de citer d’où il vient.' },
+    { etapes: ['Trouve ton information dans une première source (Vikidia, un livre…).', 'Cherche la même chose dans une deuxième source, différente.', 'Compare : si les deux disent pareil, c’est sûrement juste.', 'Si elles ne sont pas d’accord, demande à un adulte ou cherche une troisième source.'], astuce: 'Un seul site peut se tromper. Deux sources d’accord, c’est beaucoup plus sûr.' },
+    { etapes: ['À la fin de ton exposé, écris « Mes sources : ».', 'Pour un site : son nom et le titre de la page (par exemple « Vikidia, Le loup »).', 'Pour un livre : son titre et son auteur.'], astuce: 'Citer ses sources, c’est être honnête : on dit d’où viennent les informations qu’on n’a pas inventées.' },
+    { etapes: ['Ton nom de famille, ton adresse, ton école, ton numéro de téléphone : jamais.', 'Tes photos et tes mots de passe : jamais non plus.', 'Si un site, un jeu ou quelqu’un te les demande : tu fermes la page et tu en parles à un adulte.'], astuce: 'Même si la personne a l’air gentille : sur Internet, on ne sait jamais vraiment qui est derrière l’écran.' }
+  ],
+  4: [
+    { etapes: ['Ctrl + T ouvre un nouvel onglet, Ctrl + W ferme celui où tu es.', 'Clique sur un onglet en haut pour y aller.', 'La barre d’adresse, c’est le nom du site où tu es : regarde-la avant de taper quoi que ce soit.', 'La flèche ← revient à la page d’avant.'], astuce: 'Trop d’onglets ? Ferme ceux dont tu n’as plus besoin, un par un.' },
+    { etapes: ['Une publicité a souvent un petit mot : « Annonce », « Sponsorisé », « Publicité ».', 'Méfie-toi des gros boutons « Télécharger » qui clignotent et des « Tu as gagné ! ».', 'Avant de cliquer sur un lien, passe la souris dessus : son adresse apparaît en bas à gauche.'], astuce: 'Personne ne gagne un téléphone en cliquant sur une page. Si c’est trop beau, c’est un piège.' },
+    { etapes: ['Ne clique nulle part dans la page.', 'Ferme l’onglet (Ctrl + W ou la croix).', 'Va voir un adulte et raconte ce que tu as vu.'], astuce: 'Ce n’est jamais ta faute si tu tombes sur quelque chose de choquant. En parler, c’est la bonne chose à faire.' },
+    { etapes: ['Quand tu as fini ce que tu voulais faire, appuie sur « J’ai fini » en bas à droite.', 'Tes jetons pas commencés te sont rendus pour une autre fois.', '« Ma semaine » te montre combien de fois tu l’as fait.'], astuce: 'S’arrêter tout seul, c’est la vraie preuve qu’on est autonome.' },
+    { etapes: ['Ouvre « Mes outils », puis « Ma semaine ».', 'Répartis tes jetons sur les jours de la semaine.', 'Le dimanche, regarde si tu as à peu près suivi ton plan.'], astuce: 'Garde quelques jetons pour les jours de pluie ou de mercredi.' },
+    { etapes: ['Ouvre « Mes dossiers » avec un adulte.', 'Montre-lui où vont tes dessins, tes textes, tes films, tes photos.', 'Explique comment tu nommes tes fichiers pour les retrouver.'], astuce: 'Un bon nom de fichier dit ce que c’est : « dessin-chat-2026 » plutôt que « image1 ».' }
+  ]
+};
+PERMIS.forEach((p) => { if (GUIDES_PERMIS[p.n]) p.guides = GUIDES_PERMIS[p.n]; });
 
 const EXPOSE_ETAPES = [
   { nom: 'Mon sujet', titre: 'Choisir et cerner mon sujet', consigne: 'Un sujet trop grand, c’est un exposé qui déborde. Écris trois questions auxquelles ton exposé va répondre.', astuce: 'Pas « Les loups », mais « Comment vivent les loups, et pourquoi en a-t-on peur ? »', outils: [] },

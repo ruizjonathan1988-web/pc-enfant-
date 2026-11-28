@@ -45,11 +45,19 @@ async function etape(nom, fn) {
     resultats.push({ nom, ok: true }); console.log('ok');
   } catch (e) {
     resultats.push({ nom, ok: false, detail: e.message.split('\n')[0] }); console.log('ÉCHEC : ' + e.message.split('\n')[0]);
+    try { await page.screenshot({ path: path.join(CAPTURES, String(++numero).padStart(2, '0') + ' ÉCHEC ' + nom.replace(/[^\p{L}\p{N} '-]/gu, '') + '.png') }); } catch (e2) { /* rien */ }
+    // Revenir au bureau pour que l'échec d'une étape ne fasse pas échouer les suivantes.
+    try { await page.evaluate(() => { document.querySelectorAll('#film-dessin').forEach((z) => z.remove()); for (let k = 0; k < 6 && S.vue; k++) A.fermerVue(); }); await pause(300); } catch (e2) { /* rien */ }
+    return;
   }
   try { await page.screenshot({ path: path.join(CAPTURES, String(++numero).padStart(2, '0') + ' ' + nom.replace(/[^\p{L}\p{N} '-]/gu, '') + '.png') }); } catch (e) { /* rien */ }
 }
+const docs = (d) => path.join(os.homedir(), 'Documents', d);
+const creationsAvec = (re) => fs.readdirSync(docs('Mes créations')).filter((f) => re.test(f));
 const clic = (sel) => page.locator(sel).first().click();
 const tuile = (texte) => page.locator('[data-a="tuile"]', { hasText: texte }).first().click();
+// Mode découverte : les options avancées sont repliées derrière « Plus d'outils » ; le robot l'ouvre avant de s'en servir.
+const plusOutils = async (cle) => { const b = page.locator(`[data-a="outilsPlus"][data-k="${cle}"]`).first(); await b.waitFor(); if ((await b.getAttribute('aria-expanded')) !== 'true') await b.click(); await page.waitForSelector(`[data-a="outilsPlus"][data-k="${cle}"][aria-expanded="true"]`); };
 const rubrique = (texte) => page.locator('[data-a="rubrique"]', { hasText: texte }).first().click();
 async function code(pin) { for (const k of pin) await clic(`[data-a="pin"][data-k="${k}"]`); }
 async function dessiner(sel) {
@@ -69,7 +77,7 @@ async function toutFermer() {
 }
 async function lancer() {
   await toutFermer();
-  appli = await electron.launch({ executablePath: EXE, env: Object.assign({}, process.env, { FLOCON_COMPTE: COMPTE }), timeout: 60000 });
+  appli = await electron.launch({ executablePath: EXE, env: Object.assign({}, process.env, { FLOCON_COMPTE: COMPTE, FLOCON_CAMERA_FACTICE: '1' }), timeout: 60000 });
   page = await appli.firstWindow();
   erreursPage = [];
   page.on('pageerror', (e) => erreursPage.push(e.message));
@@ -129,9 +137,9 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.ok(!f.kiosk, 'plus en plein écran');
     assert.deepStrictEqual(f.b, f.zone, `fenêtre = zone de travail (barre des tâches visible) : ${JSON.stringify(f.b)} pour ${JSON.stringify(f.zone)}`);
   });
-  await etape('Bureau : les huit rubriques s’ouvrent', async () => {
+  await etape('Bureau : les neuf rubriques s’ouvrent', async () => {
     const n = await page.locator('[data-a="rubrique"]').count();
-    assert.strictEqual(n, 8);
+    assert.strictEqual(n, 9);
     for (let i = 0; i < n; i++) { await page.locator('[data-a="rubrique"]').nth(i).click(); await page.waitForSelector('.contenu'); }
     assert.strictEqual(await page.locator('[data-a="rubrique"]').first().textContent(), 'Mes lectures', 'son envie « lire » passe en premier');
   });
@@ -265,7 +273,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await clic('[data-a="fermerVue"]');
   });
   await etape('Mon cahier : écrire un texte, enregistré tout seul', async () => {
-    await rubrique('Je crée'); await tuile('Mon cahier');
+    await rubrique('J’écris'); await tuile('Mon cahier');
     await page.fill('[data-in="nouveauTexte"]', 'Le renard des neiges'); await clic('[data-a="creerTexte"]');
     await page.fill('[data-in="texteCorps"]', 'Il était une fois un renard tout blanc.\nIl aimait la neige.'); await pause(1200);
     assert.strictEqual(await page.textContent('.cahier .entete .etiquette'), '12 mots');
@@ -283,6 +291,336 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.ok(xml.includes('Le renard des neiges') && xml.includes('Il aimait la neige'), 'titre et texte dans le document');
     await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
   });
+  // ---------- Mon studio de films ----------
+  const dossierFilm = () => { const d = path.join(os.homedir(), 'Documents', 'Mes animations'); return path.join(d, fs.readdirSync(d).find((x) => fs.existsSync(path.join(d, x, 'film.json')))); };
+  const nbImages = () => page.evaluate(() => FILM.p.images.length);
+  await etape('Mon film : le studio s’ouvre avec la caméra', async () => {
+    await rubrique('Je crée'); await tuile('Mon film');
+    await page.fill('[data-in="filmTitre"]', 'La grande évasion'); await clic('[data-a="filmNouveau"]');
+    await page.waitForFunction(() => FILM.flux && document.getElementById('anim-video').readyState >= 2, null, { timeout: 15000 });
+    assert.strictEqual(lire(path.join(dossierFilm(), 'film.json')).titre, 'La grande évasion');
+  });
+  await etape('Mon film : le gros bouton et la barre d’espace prennent les photos', async () => {
+    for (let i = 0; i < 3; i++) await clic('.declencheur');
+    await page.keyboard.press('Space');
+    await page.waitForFunction(() => FILM.p.images.length === 4, null, { timeout: 10000 });
+    await pause(800);
+    assert.strictEqual(fs.readdirSync(dossierFilm()).filter((x) => x.endsWith('.jpg')).length, 4, '4 photos sur le disque');
+    assert.strictEqual(await page.locator('.frise-film .vignette').count(), 4);
+    assert.ok(await page.evaluate(() => getComputedStyle(document.getElementById('anim-oignon')).display === 'block'), 'image fantôme visible');
+  });
+  await etape('Mon film : copier, jeter, annuler dans la frise', async () => {
+    await clic('[data-a="filmChoisir"][data-i="1"]'); await clic('[data-a="filmDupliquer"]');
+    assert.strictEqual(await nbImages(), 5);
+    await clic('[data-a="filmEffacer"]'); assert.strictEqual(await nbImages(), 4);
+    await clic('.actions-frise [data-a="filmChoisir"]'); await clic('[data-a="filmAnnuler"]');
+    assert.strictEqual(await nbImages(), 3); await pause(800);
+    assert.strictEqual(lire(path.join(dossierFilm(), 'film.json')).images.length, 3, 'frise enregistrée');
+  });
+  await etape('Mon film : les photos de son appareil photo', async () => {
+    const jpg = path.join(dossierFilm(), fs.readdirSync(dossierFilm()).find((x) => x.endsWith('.jpg')));
+    const mesPhotos = path.join(os.homedir(), 'Pictures', 'Mes photos', '2026-11-28'); fs.mkdirSync(mesPhotos, { recursive: true });
+    fs.copyFileSync(jpg, path.join(mesPhotos, 'PICT0001.JPG')); fs.copyFileSync(jpg, path.join(mesPhotos, 'PICT0002.JPG'));
+    await clic('[data-a="filmPhotos"]'); await clic('[data-a="filmToutPrendre"][data-k="0"]');
+    await clic('[data-a="filmAjouterPhotos"]');
+    await page.waitForFunction(() => FILM.p.images.length === 5, null, { timeout: 15000 });
+  });
+  await etape('Mon film : fond vert avec un décor à elle, filtre, musique', async () => {
+    const decors = path.join(os.homedir(), 'Pictures', 'Mes décors'); fs.mkdirSync(decors, { recursive: true });
+    fs.copyFileSync(path.join(os.homedir(), 'Pictures', 'Mes photos', '2026-11-28', 'PICT0001.JPG'), path.join(decors, 'chateau.jpg'));
+    await clic('[data-a="filmOnglet"][data-o="vert"]'); await clic('[data-a="filmVert"]');
+    await clic('[data-a="filmDecor"][data-r="mer"]');
+    await page.waitForSelector('[data-a="filmDecor"][data-r$="chateau.jpg"]', { timeout: 10000 });
+    await clic('[data-a="filmDecor"][data-r$="chateau.jpg"]');
+    await page.waitForFunction(() => FILM.decor && FILM.decor.bmp, null, { timeout: 10000 });
+    // la caméra simulée filme sur fond vert : le vert doit disparaître
+    const transparent = await page.evaluate(() => { const v = document.getElementById('anim-video'); const c = document.createElement('canvas'); c.width = 64; c.height = 48; const x = c.getContext('2d'); x.drawImage(v, 0, 0, 64, 48); const im = x.getImageData(0, 0, 64, 48); detourer(im, FILM.p.vert.couleur, FILM.p.vert.tolerance); let z = 0; for (let i = 3; i < im.data.length; i += 4) if (im.data[i] < 128) z++; return z / (64 * 48); });
+    assert.ok(transparent > 0.2, 'une bonne partie de l’image est détourée (' + Math.round(transparent * 100) + ' %)');
+    await clic('[data-a="filmOnglet"][data-o="filtre"]'); await clic('[data-a="filmFiltre"][data-f="vieux"]');
+    await clic('[data-a="filmOnglet"][data-o="musique"]'); await clic('[data-a="filmMusique"][data-m="aventure"]');
+    await pause(800);
+    const f = lire(path.join(dossierFilm(), 'film.json'));
+    assert.ok(f.vert.actif && f.vert.decor.type === 'fichier' && f.filtre === 'vieux' && f.musique === 'aventure', 'réglages enregistrés');
+  });
+  await etape('Mon film : lecture, puis sa voix enregistrée sur le film', async () => {
+    await clic('[data-a="filmLecture"]'); await pause(1500);
+    assert.ok(await page.evaluate(() => !!FILM.lecture), 'le film se joue'); await clic('[data-a="filmLecture"]');
+    await clic('[data-a="filmOnglet"][data-o="voix"]'); await clic('[data-a="filmVoix"]');
+    await page.waitForFunction(() => FILM.p.voix, null, { timeout: 30000 });
+    assert.ok(fs.statSync(path.join(dossierFilm(), await page.evaluate(() => FILM.p.voix))).size > 1000, 'voix sur le disque');
+  });
+  await etape('Mon film : « Faire mon film » le range dans la galerie', async () => {
+    await clic('[data-a="filmFaire"]');
+    await page.waitForSelector('.bravo-film', { timeout: 60000 });
+    const nomF = creationsAvec(/^La grande évasion\.(mp4|webm)$/)[0];
+    assert.ok(nomF, 'vidéo dans Mes créations : ' + fs.readdirSync(docs('Mes créations')).join(', '));
+    const f = path.join(docs('Mes créations'), nomF);
+    assert.ok(fs.statSync(f).size > 20000, 'vidéo non vide (' + nomF + ')');
+    await clic('[data-a="filmGalerie"]'); await page.waitForSelector('.galerie video');
+    assert.ok(await page.evaluate(() => !FILM.flux), 'caméra éteinte en quittant le studio');
+    await clic('[data-a="fermerVue"]');
+  });
+  // ---------- Mes mains ----------
+  await etape('Mes mains : ce que j’ai à la maison filtre les défis', async () => {
+    await rubrique('Je crée'); await tuile('Mes mains');
+    assert.ok(await page.locator('.carte-defi').count() >= 30, 'au moins 30 défis');
+    await clic('[data-a="mainsPlacard"]');
+    for (const id of ['papier', 'scotch', 'regle', 'spaghettis', 'chamallows', 'ficelle', 'ciseaux']) await clic(`[data-a="mainsPlacardCocher"][data-id="${id}"]`);
+    await clic('[data-a="mainsPlacardFini"]');
+    const titres = await page.$$eval('.carte-defi b', (l) => l.map((x) => x.textContent));
+    assert.ok(titres.includes('La tour spaghettis-chamallow') && !titres.includes('Sauvez l’œuf !'), 'seulement les défis faisables : ' + titres.join(', '));
+  });
+  await etape('Mes mains : la pause bricolage arrête le temps d’écran', async () => {
+    await clic('[data-a="mainsOuvrir"][data-id="tour-spaghettis"]');
+    await clic('[data-a="mainsAide"]'); assert.strictEqual(await page.locator('.indices li').count(), 1, 'un indice à la fois');
+    await clic('[data-a="mainsPartir"]'); await page.waitForSelector('.pause-mains');
+    const d = demande(); assert.ok(d.pause && d.pause.sessionId === d.sessionId, 'pause transmise au gardien');
+    const avant = lire(path.join(BASE, 'enfants', 'test', 'etat.json')).session.minutes;
+    tic(); tic();
+    const e = lire(path.join(BASE, 'enfants', 'test', 'etat.json'));
+    assert.strictEqual(e.session.minutes, avant, 'le temps d’écran ne bouge pas pendant la pause');
+    // (le décompte précis des minutes de pause est vérifié par les tests de la tirelire)
+    await clic('[data-a="mainsEtape"]'); await clic('[data-a="mainsBloquee"]');
+    assert.strictEqual(await page.locator('.etapes-pause li.on').count(), 1, 'une étape en cours');
+    assert.ok((await page.textContent('#mains-pouce')).length > 10, 'un coup de pouce sous forme de question');
+  });
+  await etape('Mes mains : photo de la création, mesure et réussite', async () => {
+    await clic('[data-a="mainsFini"]');
+    assert.ok(!demande().pause, 'pause terminée');
+    await page.waitForFunction(() => { const v = document.getElementById('mains-video'); return v && v.readyState >= 2; }, null, { timeout: 15000 });
+    await clic('[data-a="mainsClic"]'); await page.waitForSelector('.ecran-photo img', { timeout: 10000 });
+    await page.fill('[data-in="mainsMesure"]', '54'); await page.fill('[data-in="mainsAmeliore"]', 'Une base en triangle'); await clic('[data-a="mainsHumeur"][data-h="reussi"]');
+    await clic('[data-a="mainsEnregistrer"]'); await page.waitForSelector('.bravo-mains');
+    assert.ok(fs.existsSync(path.join(os.homedir(), 'Documents', 'Mes créations', 'Défi La tour spaghettis-chamallow.jpg')), 'photo dans la galerie');
+    const p = lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json'));
+    assert.strictEqual(p.defisMains['tour-spaghettis'][0].mesure, '54');
+    assert.strictEqual(p.defisMains['tour-spaghettis'][0].ameliore, 'Une base en triangle');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  // ---------- Écrire, dessiner, construire : et sortir de l'écran ----------
+  await etape('Histoire à choix : pages reliées, partie jouée, livret imprimé', async () => {
+    await rubrique('J’écris'); await tuile('Histoire à choix');
+    await page.fill('[data-in="hNouveau"]', 'Le grenier secret'); await clic('[data-a="hCreer"]');
+    await page.fill('[data-in="hTexte"]', 'Dans le grenier, une petite porte.');
+    await clic('[data-a="hAjouterChoix"]'); await page.fill('[data-in="hChoixTexte"][data-i="0"]', 'Ouvrir la porte');
+    await clic('[data-a="hAjouterChoix"]'); await page.fill('[data-in="hChoixTexte"][data-i="1"]', 'Appeler maman');
+    await clic('[data-a="hCreerSuite"][data-i="0"]'); await clic('[data-a="hCreerSuite"][data-i="1"]');
+    await clic('.noeud:has-text("Ouvrir la porte")'); await page.fill('[data-in="hTexte"]', 'Un escalier descend dans le noir.'); await clic('[data-a="hFin"][data-f="bonne"]');
+    await clic('.noeud:has-text("Appeler maman")'); await page.fill('[data-in="hTexte"]', 'La porte a disparu.'); await clic('[data-a="hFin"][data-f="drole"]');
+    await page.waitForSelector('.bien');
+    await clic('[data-a="hJouer"]'); await clic('.choix-jeu button >> nth=0'); await page.waitForSelector('.fin-jeu');
+    await clic('[data-a="hEcrire"]'); await clic('[data-a="hImprimer"]'); await pause(4000);
+    assert.ok(creationsAvec(/^Le grenier secret\.pdf$/).length, 'livret PDF dans Mes créations');
+    const h = lire(path.join(docs('Mes histoires'), fs.readdirSync(docs('Mes histoires')).find((f) => f.endsWith('.json'))));
+    assert.strictEqual(h.pages.length, 3); assert.strictEqual(h.pages.filter((x) => x.fin).length, 2);
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Ma BD : planches vides imprimées, planche dessinée photographiée, bulles, album', async () => {
+    await rubrique('J’écris'); await tuile('Ma BD');
+    await clic('[data-a="bdVidesDirect"]'); await clic('[data-a="bdImprimerVides"]'); await pause(3000);
+    assert.ok(creationsAvec(/^Planches de BD vides\.pdf$/).length, 'planches vides');
+    await page.fill('[data-in="bdNouveau"]', 'Les aventures de Givre'); await clic('[data-a="bdCreer"]');
+    await clic('[data-a="bdPhotoPlanche"]'); await page.waitForFunction(() => { const v = document.getElementById('bd-video'); return v && v.readyState >= 2; }, null, { timeout: 15000 });
+    await clic('[data-a="bdClic"]'); await page.waitForSelector('.carte-album:has-text("dessinée sur papier")', { timeout: 15000 });
+    await clic('[data-a="bdAjouter"][data-g="g4"]'); await clic('[data-a="bdBulle"][data-t="parole"]'); await page.fill('[data-in="bdTexteBulle"]', 'On part !');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="bdImprimerAlbum"]'); await pause(4000);
+    assert.ok(creationsAvec(/^Les aventures de Givre\.pdf$/).length, 'album PDF');
+    const a = lire(path.join(docs('Mes BD'), fs.readdirSync(docs('Mes BD')).find((f) => f.endsWith('.json'))));
+    assert.strictEqual(a.planches.length, 2); assert.strictEqual(a.planches[1].cases[0].bulles[0].texte, 'On part !');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Ma BD : recadrer une image, orienter une bulle, taille du texte, bruitage', async () => {
+    await rubrique('J’écris'); await tuile('Ma BD');
+    await page.fill('[data-in="bdNouveau"]', 'Robot BD'); await clic('[data-a="bdCreer"]'); await pause(400);
+    await clic('[data-a="bdAjouter"][data-g="g4"]'); await pause(300);
+    await clic('[data-a="bdImages"]'); await pause(800); await clic('[data-a="bdChoisirImage"] >> nth=0'); await pause(300);
+    await plusOutils('bd'); await clic('[data-a="bdZoom"][data-d="1"]'); await clic('[data-a="bdZoom"][data-d="1"]');
+    const im = await page.locator('[data-cadrer="0"]').boundingBox();
+    await page.mouse.move(im.x + im.width / 2, im.y + im.height / 2); await page.mouse.down();
+    await page.mouse.move(im.x + im.width / 2 + 50, im.y + im.height / 2 + 30, { steps: 5 }); await page.mouse.up(); await pause(300);
+    await clic('[data-a="bdCase"][data-i="0"]');
+    await clic('[data-a="bdBulle"][data-t="parole"]'); await page.fill('[data-in="bdTexteBulle"]', 'Salut');
+    await clic('[data-a="bdPointe"][data-q="hd"]'); await clic('[data-a="bdTaille"][data-t="g"]');
+    await clic('[data-a="bdEffets"]'); await clic('[data-a="bdEffet"][data-k="0"]');
+    const c0 = await page.evaluate(() => album().planches[0].cases[0]);
+    assert.ok(c0.cadrage && c0.cadrage.z === 1.5, 'cadrage enregistré : ' + JSON.stringify(c0.cadrage));
+    assert.strictEqual(c0.bulles[0].queue, 'hd'); assert.strictEqual(c0.bulles[0].taille, 'g'); assert.strictEqual(c0.bulles[1].type, 'effet');
+    await clic('[data-a="bdRecentrer"]');
+    assert.strictEqual(await page.evaluate(() => album().planches[0].cases[0].cadrage.z), 1, 'recentrer');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="bdImprimerAlbum"]'); await pause(4000);
+    assert.ok(creationsAvec(/^Robot BD\.pdf$/).length, 'album PDF avec cadrage et bruitage');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Coloriages : mandala imprimé, coloriage magique vérifié', async () => {
+    await rubrique('Je crée'); await tuile('Coloriages');
+    await clic('[data-a="colMode"][data-m="mandala"]'); await clic('#col-svg path >> nth=0'); await clic('[data-a="colImprimer"]'); await pause(3000);
+    assert.ok(creationsAvec(/^Mandala\.pdf$/).length, 'mandala PDF');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="colMode"][data-m="magique"]'); await clic('[data-a="colMagie"][data-t="tables69"]');
+    await page.evaluate(() => { const v = S.vue; const k = Object.keys(SPRITES); const sp = SPRITES[v.sprite || k[v.graine % k.length]]; const p = preparerMagie(sp, 'tables69', v.graine); p.r.liste.forEach((z, i) => { COL.peint['z' + i] = sp.couleurs[z.ch]; }); });
+    await clic('[data-a="colVerifier"]'); await page.waitForSelector('.bravo-col');
+    await clic('[data-a="colGarder"]'); await pause(1000);
+    assert.ok(creationsAvec(/^Coloriage .*\.png$/).length, 'coloriage dans la galerie');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Histoire à choix : image de page, objet à trouver, choix sous condition', async () => {
+    await rubrique('J’écris'); await tuile('Histoire à choix');
+    await page.fill('[data-in="hNouveau"]', 'La clé du phare'); await clic('[data-a="hCreer"]');
+    await page.fill('[data-in="hTexte"]', 'Le phare est fermé. Il y a une barque sur la plage.');
+    await clic('[data-a="hImages"]'); await clic('[data-a="hChoisirImage"] >> nth=0'); await page.waitForSelector('.h-image');
+    await clic('[data-a="hAjouterChoix"]'); await page.fill('[data-in="hChoixTexte"][data-i="0"]', 'La barque');
+    await clic('[data-a="hAjouterChoix"]'); await page.fill('[data-in="hChoixTexte"][data-i="1"]', 'Le phare');
+    await clic('[data-a="hCreerSuite"][data-i="0"]'); await clic('[data-a="hCreerSuite"][data-i="1"]');
+    await clic('.noeud:has-text("La barque")'); await page.fill('[data-in="hTexte"]', 'Dans la barque, une clé !');
+    await plusOutils('histoires'); await clic('[data-a="hObjet"]'); await clic('[data-a="hObjetEmoji"][data-e="🔑"]'); await page.fill('[data-in="hObjetNom"]', 'la clé');
+    await clic('[data-a="hCam"]'); await page.waitForFunction(() => { const v = document.getElementById('h-video'); return v && v.readyState >= 2; }, null, { timeout: 15000 });
+    await clic('[data-a="hClic"]'); await page.waitForSelector('.h-image', { timeout: 15000 });
+    await clic('[data-a="hAjouterChoix"]'); await page.fill('[data-in="hChoixTexte"][data-i="0"]', 'Aller au phare');
+    await page.selectOption('[data-in="hChoixVers"][data-i="0"]', { label: 'Le phare' });
+    await clic('.noeud:has-text("Le phare")'); await page.fill('[data-in="hTexte"]', 'Tout en haut, la lumière brille.'); await clic('[data-a="hFin"][data-f="bonne"]');
+    await clic('.noeud >> nth=0'); await page.selectOption('[data-in="hChoixRequis"][data-i="1"]', 'la clé'); await page.waitForSelector('.bien');
+    await clic('[data-a="hJouer"]'); await page.waitForSelector('.choix-jeu button.bloque');
+    await clic('.choix-jeu button >> nth=0'); await page.waitForSelector('.trouve-jeu'); await page.waitForSelector('.sac-jeu:has-text("la clé")');
+    await clic('.choix-jeu button >> nth=0'); await page.waitForSelector('.fin-jeu');
+    await clic('[data-a="hEcrire"]'); await clic('[data-a="hImprimer"]'); await pause(4000);
+    assert.ok(creationsAvec(/^La clé du phare\.pdf$/).length, 'livret PDF avec objets');
+    assert.ok(creationsAvec(/^Histoire La clé du phare.*\.jpg$/).length, 'photo du dessin de la page');
+    const h = fs.readdirSync(docs('Mes histoires')).filter((f) => f.endsWith('.json')).map((f) => lire(path.join(docs('Mes histoires'), f))).find((x) => x.titre === 'La clé du phare');
+    assert.ok(h.pages[0].image && h.pages[1].image, 'images des pages');
+    assert.strictEqual(h.pages[1].objet.nom, 'la clé'); assert.strictEqual(h.pages[0].choix[1].requis, 'la clé');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Coloriages : nouveaux dessins en pixels, mon dessin au feutre devient un coloriage', async () => {
+    await rubrique('Je crée'); await tuile('Coloriages');
+    await clic('[data-a="colMode"][data-m="pixel"]');
+    for (const k of ['chouette', 'baleine', 'cactus', 'papillon', 'robot', 'voiture', 'pingouin', 'fraise', 'chateau']) { await clic(`[data-a="colSprite"][data-s="${k}"]`); await page.waitForSelector('#col-svg rect.px'); }
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="colMode"][data-m="dessin"]');
+    await clic('[data-a="coldCam"]'); await page.waitForFunction(() => { const v = document.getElementById('cold-video'); return v && v.readyState >= 2; }, null, { timeout: 15000 });
+    await clic('[data-a="coldClic"]'); await page.waitForSelector('#cold-toile', { timeout: 15000 });
+    assert.ok(await page.evaluate(() => COLD.cam === null), 'caméra coupée');
+    const b = await page.locator('#cold-toile').boundingBox(); await clic('[data-a="colPinceau"][data-i="2"]'); await page.mouse.click(b.x + 10, b.y + 10);
+    await clic('[data-a="coldSensib"][data-s="5"]'); await clic('[data-a="coldImprimer"]'); await pause(3000);
+    assert.ok(creationsAvec(/^Mon dessin en coloriage\.pdf$/).length, 'mon dessin en PDF');
+    await clic('[data-a="colGarder"]'); await pause(1000);
+    assert.ok(creationsAvec(/^Mon coloriage .*\.png$/).length, 'mon coloriage dans la galerie');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Atelier 3D : des cubes, le plan de montage et le fichier pour l’imprimante 3D', async () => {
+    await page.evaluate(() => ouvrirVue('cubes'));
+    await page.fill('[data-in="cNouveau"]', 'Ma tour'); await clic('[data-a="cCreer"]');
+    await page.waitForFunction(() => window.C3 && window.C3.rendu, null, { timeout: 15000 });
+    const z = await page.locator('#cubes-zone').boundingBox();
+    for (let i = 0; i < 3; i++) { await page.mouse.click(z.x + z.width / 2, z.y + z.height / 2 + 40); await pause(250); }
+    const n = await page.evaluate(() => window.C3.cubes.size); assert.ok(n >= 1, 'des cubes posés (' + n + ')');
+    await clic('[data-a="cPlan"]'); await pause(4000); await clic('[data-a="cStl"]'); await pause(1500);
+    assert.ok(creationsAvec(/^Plan de montage Ma tour\.pdf$/).length, 'plan de montage');
+    const stl = path.join(docs('Mes créations 3D'), 'Ma tour.stl'); assert.ok(fs.existsSync(stl), 'fichier STL');
+    const b = fs.readFileSync(stl); assert.strictEqual(b.length, 84 + 50 * b.readUInt32LE(80), 'STL binaire valide');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Atelier 3D : rectangle, étage par étage, annuler et plan en vraies briques', async () => {
+    await page.evaluate(() => ouvrirVue('cubes'));
+    await page.fill('[data-in="cNouveau"]', 'Mon mur'); await clic('[data-a="cCreer"]');
+    await page.waitForFunction(() => window.C3 && window.C3.rendu, null, { timeout: 15000 });
+    const z = await page.locator('#cubes-zone').boundingBox(); const cx = z.x + z.width / 2, cy = z.y + z.height / 2;
+    await plusOutils('cubes'); await clic('[data-a="cMode"][data-m="rectangle"]');
+    await page.mouse.click(cx - 60, cy + 30); await pause(250); await page.mouse.click(cx + 50, cy + 90); await pause(400);
+    const apresRect = await page.evaluate(() => C3.cubes.size);
+    assert.ok(apresRect > 1, 'le rectangle a posé plusieurs cubes (' + apresRect + ')');
+    await page.keyboard.press('Control+z'); await pause(250);
+    assert.strictEqual(await page.evaluate(() => C3.cubes.size), 0, 'Ctrl+Z annule tout le rectangle');
+    await clic('[data-a="cMode"][data-m="poser"]'); await clic('[data-a="cVue2d"]');
+    await page.waitForSelector('#cubes-2d'); await pause(600); await page.locator('#cubes-2d').scrollIntoViewIfNeeded();
+    let g = await page.locator('#cubes-2d').boundingBox(); const t = g.width / 20;
+    await page.mouse.move(g.x + 2.5 * t, g.y + 2.5 * t); await page.mouse.down();
+    for (let i = 3; i <= 8; i++) { await page.mouse.move(g.x + i * t + t / 2, g.y + 2.5 * t); await pause(40); }
+    await page.mouse.up(); await pause(300);
+    const n2d = await page.evaluate(() => C3.cubes.size);
+    assert.ok(n2d >= 3, 'le glisser en 2D a posé une rangée (' + n2d + ' cubes)');
+    await clic('[data-a="cEtage"][data-d="1"]');
+    assert.ok(await page.locator('text=Étage 2').count(), 'on peut monter d’un étage');
+    await clic('[data-a="cAnnuler"]'); await pause(250);
+    assert.strictEqual(await page.evaluate(() => C3.cubes.size), 0, 'Annuler enlève tout le geste');
+    const br = await page.evaluate(() => { const c = []; for (let x = 0; x < 4; x++) for (let z = 0; z < 2; z++) c.push([x + ',' + z, 10]); return briquesEtage(c).map((b) => b.nom); });
+    assert.deepStrictEqual(br, ['2×4'], 'un bloc 4×2 devient une brique 2×4');
+    await page.locator('#cubes-2d').scrollIntoViewIfNeeded(); await pause(300); const g2 = await page.locator('#cubes-2d').boundingBox(); g.x = g2.x; g.y = g2.y;
+    await page.mouse.move(g.x + 2.5 * t, g.y + 2.5 * t); await page.mouse.down();
+    for (let i = 3; i <= 6; i++) { await page.mouse.move(g.x + i * t + t / 2, g.y + 2.5 * t); await pause(40); }
+    await page.mouse.up(); await pause(300);
+    assert.ok(await page.evaluate(() => C3.cubes.size) > 0, 'une rangée pour le plan');
+    await clic('[data-a="cVue2d"]'); await clic('[data-a="cPlan"]'); await pause(3000);
+    assert.ok(creationsAvec(/^Plan de montage Mon mur\.pdf$/).length, 'le plan en briques est dans Mes créations');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Studio : dessiner un dessin animé image par image', async () => {
+    await rubrique('Je crée'); await tuile('Mon film');
+    await page.fill('[data-in="filmTitre"]', 'Le bonhomme'); await clic('[data-a="filmNouveau"]');
+    await clic('[data-a="filmDessiner"]');
+    for (let i = 0; i < 2; i++) { const b = await page.locator('#fd-trait').boundingBox(); await page.mouse.move(b.x + 100 + i * 30, b.y + 120); await page.mouse.down(); await page.mouse.move(b.x + 200 + i * 30, b.y + 220, { steps: 6 }); await page.mouse.up(); await clic('#film-dessin [data-d="ajouter"]'); if (i === 0) await page.waitForFunction(() => FILM.p.images.length === 1, null, { timeout: 10000 }); } // la 2e : Fermer tout de suite, comme une enfant pressée
+    await clic('#film-dessin [data-d="fermer"]');
+    await page.waitForSelector('#film-dessin', { state: 'detached', timeout: 10000 });
+    assert.strictEqual(await page.evaluate(() => FILM.p.images.length), 2, 'deux images dessinées dans la frise');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Studio : glisser une image dans la frise, pot de peinture, aperçu, film en MP4 ou WebM', async () => {
+    await rubrique('Je crée'); await tuile('Mon film');
+    await page.fill('[data-in="filmTitre"]', 'Le saut'); await clic('[data-a="filmNouveau"]');
+    await page.waitForFunction(() => FILM.flux && document.getElementById('anim-video').readyState >= 2, null, { timeout: 15000 });
+    for (let i = 0; i < 3; i++) await clic('.declencheur');
+    await page.waitForFunction(() => FILM.p.images.length === 3, null, { timeout: 10000 });
+    const avant = await page.evaluate(() => FILM.p.images[0]);
+    await page.locator('#anim-frise').scrollIntoViewIfNeeded(); await pause(300);
+    const a = await page.locator('#anim-frise .vignette >> nth=0').boundingBox(); const b = await page.locator('#anim-frise .vignette >> nth=2').boundingBox();
+    await page.mouse.move(a.x + 20, a.y + 20); await page.mouse.down(); await page.mouse.move(b.x + b.width - 5, b.y + 20, { steps: 10 }); await page.mouse.up(); await pause(300);
+    assert.notStrictEqual(await page.evaluate(() => FILM.p.images[0]), avant, 'image déplacée dans la frise');
+    await clic('[data-a="filmDessiner"]'); const t = await page.locator('#fd-trait').boundingBox();
+    await clic('#film-dessin [data-d="pot"]'); await page.mouse.click(t.x + 50, t.y + 50); await pause(300);
+    assert.ok(await page.evaluate(() => document.getElementById('fd-trait').getContext('2d').getImageData(10, 10, 1, 1).data[3] === 255), 'zone remplie');
+    await clic('#film-dessin [data-d="apercu"]'); await pause(500);
+    assert.ok(await page.evaluate(() => !document.getElementById('fd-apercu').hidden), 'aperçu animé');
+    await clic('#film-dessin [data-d="apercu"]'); await clic('#film-dessin [data-d="fermer"]');
+    await clic('[data-a="filmOnglet"][data-o="musique"]'); await clic('[data-a="filmMusique"][data-m="joyeuse"]');
+    await clic('[data-a="filmFaire"]'); await page.waitForSelector('.bravo-film', { timeout: 60000 });
+    const f = fs.readdirSync(path.join(os.homedir(), 'Documents', 'Mes créations')).find((x) => /^Le saut\.(mp4|webm)$/.test(x));
+    assert.ok(f, 'film enregistré en MP4 ou WebM');
+    assert.ok(fs.statSync(path.join(os.homedir(), 'Documents', 'Mes créations', f)).size > 20000, 'vidéo non vide (' + f + ')');
+    await clic('[data-a="filmContinuer"]'); await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  // ---------- Apprendre à se servir de l'ordinateur ----------
+  await etape('L’école de l’ordinateur : clic, double-clic, glisser, clic droit, accents, Ctrl+Z', async () => {
+    await rubrique('Mes outils'); assert.strictEqual(await page.locator('[data-a="tuile"]', { hasText: 'L’école de l’ordi' }).count(), 1, 'tuile de l’école');
+    await page.evaluate(() => ouvrirVue('ecole'));
+    let jeu = 'liste';
+    try {
+    jeu = 'clic'; await page.evaluate((i) => A.ecoleJeu({ id: i }), 'clic'); await pause(200); for (let i = 0; i < 10; i++) { await page.click('#eco-flocon', { force: true }); await pause(60); }
+    await page.waitForSelector('.bravo-ecole');
+    jeu = 'double'; await page.evaluate((i) => A.ecoleJeu({ id: i }), 'double'); await pause(200); for (let k = 0; k < 5; k++) await page.dblclick(`.cadeau[data-k="${k}"]`); await page.waitForSelector('.bravo-ecole');
+    jeu = 'glisser'; await page.evaluate((i) => A.ecoleJeu({ id: i }), 'glisser'); await pause(200);
+    for (let k = 0; k < 6; k++) { const b = await page.getAttribute(`.objet[data-k="${k}"]`, 'data-b'); const o = await page.locator(`.objet[data-k="${k}"]`).boundingBox(); const c = await page.locator(`.boite[data-b="${b}"]`).boundingBox();
+      await page.mouse.move(o.x + o.width / 2, o.y + o.height / 2); await page.mouse.down(); await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2, { steps: 6 }); await page.mouse.up(); await pause(80); }
+    await page.waitForSelector('.bravo-ecole');
+    jeu = 'droit'; await page.evaluate((i) => A.ecoleJeu({ id: i }), 'droit'); await pause(200); await page.click('.fichier.cible', { button: 'right' }); await clic('#eco-menu [data-m="renommer"]'); await page.fill('#eco-saisie', 'mon chat'); await page.press('#eco-saisie', 'Enter'); await page.waitForSelector('.bravo-ecole');
+    jeu = 'accents'; await page.evaluate((i) => A.ecoleJeu({ id: i }), 'accents'); await pause(200); for (const m of ['été', 'très', 'garçon', 'là']) { await page.fill('#eco-saisie', m); await pause(150); } await page.waitForSelector('.bravo-ecole');
+    jeu = 'annuler'; await page.evaluate((i) => A.ecoleJeu({ id: i }), 'annuler'); await pause(200); await page.type('#eco-saisie', 'flocon'); await clic('#eco-oups'); await page.keyboard.press('Control+z'); await page.waitForSelector('.bravo-ecole');
+    } catch (e) { await page.screenshot({ path: path.join(CAPTURES, 'ecole-' + jeu + '.png') }).catch(() => {}); throw new Error('jeu « ' + jeu + ' » : ' + e.message.split('\n')[0] + ' ' + (e.message.match(/<[^>]+> (from|subtree)[^\n]*/) || [''])[0]); }
+    const p = lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json'));
+    assert.strictEqual(Object.keys(p.ecole || {}).length, 6, 'six étoiles');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Permis : « Montre-moi » et le dossier d’entraînement', async () => {
+    await page.evaluate(() => ouvrirVue('permis'));
+    assert.ok((await page.textContent('.affiche-ecole')).includes('6 sur 10'), 'étoiles de l’école sur le permis');
+    await clic('[data-a="guideMission"][data-k="2-1"]'); await page.waitForSelector('.guide-mission');
+    await clic('[data-a="entrainement"]'); await pause(1500);
+    const d = path.join(os.homedir(), 'Documents', 'Entraînement'); assert.ok(fs.existsSync(path.join(d, 'dessin à renommer.jpg')), 'fichiers d’entraînement');
+    await clic('[data-a="fermerVue"]');
+  });
+  await etape('Visite guidée : Givre montre les boutons du studio, et « ? » la relance', async () => {
+    await rubrique('Je crée'); await tuile('Mon film'); await clic('[data-a="filmOuvrir"] >> nth=0');
+    await clic('[data-a="revoirVisite"]'); await page.waitForSelector('#visite .visite-bulle');
+    let n = 0; while (await page.locator('#visite').count() && n < 10) { await page.click('#visite [data-v="suivant"]'); n++; await pause(150); }
+    assert.ok(n >= 4, 'plusieurs étapes (' + n + ')');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
   await etape('Badges : un site utilisé donne « Je découvre »', async () => {
     const p = lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json'));
     assert.ok(p.badges && p.badges['site:vikidia'] && p.badges['site:vikidia'].jours.length === 1, 'jour noté pour Vikidia');
@@ -293,12 +631,51 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await page.waitForSelector('text=Encore 3 jours pour « Je me débrouille »');
     await clic('[data-a="fermerVue"]');
   });
+  await etape('Mes fiches : une leçon, un quiz corrigé, le score gardé', async () => {
+    const { FICHES } = require('../../app/lib/fiches');
+    const f = FICHES.find((x) => x.id === 'f-a');
+    await rubrique('J’apprends'); await tuile('Mes fiches');
+    await clic('[data-a="fichesMatiere"][data-m="francais"]'); await clic('[data-a="ouvrirFiche"][data-id="f-a"]');
+    await page.waitForSelector('text=À retenir'); await clic('[data-a="quizCommencer"]');
+    // Première question : une erreur volontaire, la correction doit s'afficher.
+    await clic(`[data-a="quizRepondre"][data-i="${1 - f.questions[0].bonne}"]`); await page.waitForSelector('text=Pas tout à fait.'); await clic('[data-a="quizSuivant"]');
+    for (let i = 1; i < f.questions.length; i++) { await clic(`[data-a="quizRepondre"][data-i="${f.questions[i].bonne}"]`); await page.waitForSelector('text=Bravo !'); await clic('[data-a="quizSuivant"]'); }
+    await page.waitForSelector(`text=${f.questions.length - 1} sur ${f.questions.length}`);
+    await pause(800);
+    assert.strictEqual(lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json')).quiz['f-a'].meilleur, f.questions.length - 1, 'score gardé');
+    await clic('[data-a="fermerVue"]'); await page.waitForSelector('[data-a="ouvrirFiche"][data-id="f-a"] .etoiles-ligne'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Défi du jour : un flocon pour la collection, une seule fois par jour', async () => {
+    await rubrique('J’apprends'); await tuile('Mes fiches');
+    const bonne = await page.evaluate(() => questionDuJour().q.bonne);
+    await clic(`[data-a="defiRepondre"][data-i="${bonne}"]`);
+    await page.waitForSelector('text=Reviens demain');
+    assert.strictEqual(await page.locator('[data-a="defiRepondre"]').count(), 0, 'plus de défi aujourd’hui');
+    await pause(800);
+    assert.strictEqual(lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json')).flocons, 1, 'un flocon');
+    await clic('[data-a="fermerVue"]');
+  });
+  await etape('Écrans malins : six leçons réussies, le badge', async () => {
+    const { ECRANS } = require('../../app/lib/fiches');
+    await rubrique('Mes outils'); await tuile('Écrans malins');
+    for (const x of ECRANS) {
+      await clic(`[data-a="ouvrirFiche"][data-id="${x.id}"]`); await clic('[data-a="quizCommencer"]');
+      for (const q of x.questions) { await clic(`[data-a="quizRepondre"][data-i="${q.bonne}"]`); await clic('[data-a="quizSuivant"]'); }
+      await page.waitForSelector(`text=${x.questions.length} sur ${x.questions.length}`);
+      await clic('[data-a="fermerVue"]');
+    }
+    await page.waitForSelector('text=Badge « Écrans malins »');
+    await pause(800);
+    assert.ok(lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json')).badgeEcrans, 'badge enregistré');
+    await clic('[data-a="fermerVue"]');
+  });
   await etape('Espace parent : mauvais code refusé', async () => {
     await rubrique('Mon style'); await clic('[data-a="espaceParent"]');
     await code('9999'); await page.waitForSelector('text=Ce n’est pas le bon code');
   });
   await etape('Espace parent : jetons, niveau 3 et un site', async () => {
     await code('1234'); await page.waitForSelector('[data-in="pJetons"]');
+    await page.waitForSelector('.adresse-parent:has-text(":4747")', { timeout: 10000 });
     await page.fill('[data-in="pJetons"]', '6');
     await clic('[data-a="pNiveau"][data-n="3"]');
     const sites = await page.inputValue('[data-in="pSites"]');
@@ -380,7 +757,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.notStrictEqual(code, 'toujours ouvert', 'Flocon s’est rouvert tout seul');
   });
   await etape('Niveau 4 : rouvert par le menu Démarrer, il reprend la séance', async () => {
-    appli = await electron.launch({ executablePath: EXE, args: ['--ouvrir'], env: Object.assign({}, process.env, { FLOCON_COMPTE: COMPTE }), timeout: 60000 });
+    appli = await electron.launch({ executablePath: EXE, args: ['--ouvrir'], env: Object.assign({}, process.env, { FLOCON_COMPTE: COMPTE, FLOCON_CAMERA_FACTICE: '1' }), timeout: 60000 });
     page = await appli.firstWindow(); page.on('pageerror', (e) => erreursPage.push(e.message));
     await page.waitForSelector('.fenetre', { timeout: 30000 });
     await page.waitForSelector('text=Séance à deux');

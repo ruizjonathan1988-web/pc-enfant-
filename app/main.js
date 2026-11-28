@@ -37,13 +37,20 @@ function dossiers() {
     photos: path.join(app.getPath('pictures'), 'Mes photos'),
     musique: app.getPath('music'),
     livresAudio: path.join(app.getPath('music'), 'Mes livres audio'),
-    films: path.join(app.getPath('videos'), 'Mes films')
+    films: path.join(app.getPath('videos'), 'Mes films'),
+    animations: path.join(docs, 'Mes animations'),
+    histoires: path.join(docs, 'Mes histoires'),
+    bd: path.join(docs, 'Mes BD'),
+    cubes: path.join(docs, 'Mes créations 3D'),
+    decors: path.join(app.getPath('pictures'), 'Mes décors')
   };
 }
 
 // L'enfant de cette session : celui dont le compte Windows est ouvert.
 // En test (ou depuis un compte inconnu), le premier enfant de la configuration.
 const COMPTE = process.env.FLOCON_COMPTE || os.userInfo().username;
+// Robot de test : une caméra et un micro simulés (jamais en usage normal).
+if (process.env.FLOCON_CAMERA_FACTICE === '1') { app.commandLine.appendSwitch('use-fake-device-for-media-stream'); app.commandLine.appendSwitch('use-fake-ui-for-media-stream'); app.commandLine.appendSwitch('enable-unsafe-swiftshader'); }
 function configComplete() { return E.normaliser(lireJson(C.config, null) || require('./lib/tirelire').configParDefaut()); }
 function enfantCourant(c) { return E.trouver(c, COMPTE) || c.enfants[0]; }
 function config() { const c = configComplete(); return E.vue(c, enfantCourant(c)); }
@@ -162,6 +169,11 @@ app.whenReady().then(() => {
     cb(media && permisCamera(url));
   });
   ses.setPermissionCheckHandler((wc, perm, origin) => perm === 'media' && permisCamera(origin));
+  // La fenêtre de Flocon elle-même : caméra et micro pour le studio d'animation, rien d'autre.
+  const def = require('electron').session.defaultSession;
+  const pageFlocon = (u) => String(u || '').startsWith('file:');
+  def.setPermissionRequestHandler((wc, perm, cb, details) => cb(perm === 'media' && pageFlocon((details && details.requestingUrl) || wc.getURL())));
+  def.setPermissionCheckHandler((wc, perm, origin) => perm === 'media' && pageFlocon(origin || (wc && wc.getURL())));
 });
 
 app.on('web-contents-created', (_e, wc) => {
@@ -177,6 +189,20 @@ app.on('web-contents-created', (_e, wc) => {
 function developper(p) { return p.replace(/%([^%]+)%/g, (_, v) => process.env[v] || process.env[v.toUpperCase()] || ''); }
 const cacheMenu = {};
 
+// Les AppID du menu Démarrer des logiciels de bureau commencent par un dossier connu de Windows.
+const DOSSIERS_CONNUS = {
+  '{6D809377-6AF0-444B-8957-A3773F02200E}': '%ProgramFiles%',
+  '{7C5A40EF-A0FB-4BFC-874A-C0F2E0B9FA8E}': '%ProgramFiles(x86)%',
+  '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}': '%SystemRoot%\\System32',
+  '{F38BF404-1D43-42F2-9305-67DE0B28FC23}': '%SystemRoot%'
+};
+function cheminDepuisMenu(id) {
+  let c = null;
+  const m = /^(\{[0-9A-F-]+\})\\(.+\.exe)$/i.exec(id);
+  if (m && DOSSIERS_CONNUS[m[1].toUpperCase()]) c = developper(DOSSIERS_CONNUS[m[1].toUpperCase()] + '\\' + m[2]);
+  else if (/^[A-Z]:\\.+\.exe$/i.test(id)) c = id;
+  return c && fs.existsSync(c) ? c : null;
+}
 function idDemarrer(nom, exact) {
   return new Promise((ok) => {
     if (cacheMenu[nom]) return ok(cacheMenu[nom]);
@@ -216,16 +242,30 @@ async function lancerLogiciel(ref) {
   const l = CAT.LOGICIELS[ref] || (config().logiciels || {})[ref];
   if (!l) return { ok: false, raison: 'inconnu' };
   if (l.uri) { noterLancement(`${l.nom} : ${l.uri}`); await shell.openExternal(l.uri); return { ok: true }; }
+  // Certains logiciels se cherchent d'abord dans le menu Démarrer (Minecraft Bedrock avant le lanceur).
+  for (const m of (l.menusAvant || [])) {
+    const r = await lancerParMenu(l, m); if (r) return r;
+  }
   for (const c of (l.chemins || []).map(developper)) {
     if (fs.existsSync(c)) { noterLancement(`${l.nom} : ${c}`); surveiller(spawn(c, [], { detached: true, stdio: 'ignore', cwd: path.dirname(c) }), l.nom, c); return { ok: true }; }
   }
   for (const m of (l.menus || (l.menu ? [l.menu] : []))) {
-    const id = await idDemarrer(m, l.menuExact);
-    // explorer.exe rend la main tout de suite, souvent avec le code 1 : pas de surveillance possible ici.
-    if (id) { noterLancement(`${l.nom} : menu Démarrer ${id}`); spawn('explorer.exe', ['shell:AppsFolder\\' + id], { detached: true, stdio: 'ignore' }).unref(); return { ok: true }; }
+    const r = await lancerParMenu(l, m); if (r) return r;
   }
   noterLancement(`${l.nom} : introuvable (chemins : ${(l.chemins || []).map(developper).join(' ; ') || 'aucun'})`);
   return { ok: false, raison: 'absent', nom: l.nom };
+}
+async function lancerParMenu(l, m) {
+  {
+    const id = await idDemarrer(m, l.menuExact);
+    // Un logiciel de bureau ({dossier connu}\chemin\x.exe) : lancé directement, comme ceux trouvés par leur chemin.
+    // (Passer par l'Explorateur le soumettrait à la liste blanche des niveaux 1 et 2.)
+    const direct = id && cheminDepuisMenu(id);
+    if (direct) { noterLancement(`${l.nom} : menu Démarrer, ${direct}`); surveiller(spawn(direct, [], { detached: true, stdio: 'ignore', cwd: path.dirname(direct) }), l.nom, direct); return { ok: true }; }
+    // explorer.exe rend la main tout de suite, souvent avec le code 1 : pas de surveillance possible ici.
+    if (id) { noterLancement(`${l.nom} : menu Démarrer ${id}`); spawn('explorer.exe', ['shell:AppsFolder\\' + id], { detached: true, stdio: 'ignore' }).unref(); return { ok: true }; }
+  }
+  return null;
 }
 
 // ---------- Jeux Steam installés (pour le panneau parent) ----------
@@ -291,8 +331,9 @@ function importerPhotos() {
   const dest = path.join(dossiers().photos, new Date().toISOString().slice(0, 10));
   let copies = 0, trouve = false;
   for (const r of lecteursAmovibles()) {
-    const dcim = path.join(r, 'DCIM');
-    if (!fs.existsSync(dcim)) continue;
+    // DCIM pour la plupart des appareils ; certains appareils pour enfants (KidiZoom…) rangent ailleurs.
+    const dcim = ['DCIM', 'PHOTO', 'PHOTOS', 'Photo', 'PICTURE', 'PICTURES'].map((n) => path.join(r, n)).find((d) => fs.existsSync(d));
+    if (!dcim) continue;
     trouve = true;
     for (const f of listerRecursif(dcim, /\.(jpe?g|png|mp4|mov|avi)$/i, 3000)) {
       const cible = path.join(dest, path.basename(f.chemin));
@@ -329,7 +370,8 @@ poser('init', () => {
   }
   return {
     dev: C.DEV, plateforme: process.platform,
-    catalogue: { PERMIS: CAT.PERMIS, PREMIERS_PAS: CAT.PREMIERS_PAS, IDEES: CAT.IDEES, PROJETS: CAT.PROJETS, RUBRIQUES: CAT.RUBRIQUES, SITES: CAT.SITES, EXPOSE_ETAPES: CAT.EXPOSE_ETAPES, INTENTIONS: CAT.INTENTIONS, ICONES: CAT.ICONES },
+    test: process.env.FLOCON_CAMERA_FACTICE === '1',
+    catalogue: { PERMIS: CAT.PERMIS, PREMIERS_PAS: CAT.PREMIERS_PAS, IDEES: CAT.IDEES, PROJETS: CAT.PROJETS, RUBRIQUES: CAT.RUBRIQUES, SITES: CAT.SITES, EXPOSE_ETAPES: CAT.EXPOSE_ETAPES, INTENTIONS: CAT.INTENTIONS, ICONES: CAT.ICONES, ...require('./lib/fiches'), DEFIS: require('./lib/defis').DEFIS, PLACARD: require('./lib/defis').PLACARD, CATEGORIES_DEFIS: require('./lib/defis').CATEGORIES, METHODE: require('./lib/defis').METHODE, METHODE_ARTISTE: require('./lib/defis').METHODE_ARTISTE, COUPS_DE_POUCE: require('./lib/defis').COUPS_DE_POUCE },
     config: configPublique(), etat: lireJson(fichiers().etat, null), profil: lireJson(FICHIER_PROFIL, null), compagnons
   };
 });
@@ -397,9 +439,109 @@ poser('lancer', async (t) => {
   return { ok: false };
 });
 poser('urlAutorisee', (u) => CAT.urlAutorisee(u, domaines()));
+// Les adresses où le téléphone joint le tableau parent : celles de cet ordinateur sur le réseau de la maison.
+poser('adresseParent', () => {
+  const ips = Object.values(os.networkInterfaces()).flat().filter((i) => i && i.family === 'IPv4' && !i.internal && !/^169\.254\./.test(i.address)).map((i) => i.address);
+  return { adresses: ips.map((ip) => 'http://' + ip + ':4747'), nom: 'http://' + os.hostname().toLowerCase() + ':4747' };
+});
+// ---------- Studio d'animation : un dossier par film dans Documents, « Mes animations » ----------
+const versUrl = (p) => 'file:///' + p.replace(/\\/g, '/').replace(/^\//, '').split('/').map(encodeURIComponent).join('/').replace(/^([A-Za-z])%3A/, '$1:');
+function dossierAnim(id) {
+  const s = String(id || '');
+  if (!/^[a-z0-9-]{1,40}$/.test(s)) throw new Error('film inconnu');
+  return path.join(dossiers().animations, s);
+}
+const NOM_ANIM = /^[a-z0-9-]{1,40}\.(jpg|webm)$/;
+poser('animListe', () => {
+  const d = dossiers().animations; let ids = [];
+  try { ids = fs.readdirSync(d, { withFileTypes: true }).filter((x) => x.isDirectory() && /^[a-z0-9-]{1,40}$/.test(x.name)).map((x) => x.name); } catch (e) { return []; }
+  return ids.map((id) => {
+    const p = lireJson(path.join(d, id, 'film.json'), null); if (!p) return null;
+    const premiere = (p.images || [])[0];
+    return { id, titre: p.titre, modifie: p.modifie, n: (p.images || []).length, vignette: premiere ? versUrl(path.join(d, id, premiere)) : '' };
+  }).filter(Boolean).sort((a, b) => String(b.modifie || '').localeCompare(String(a.modifie || '')));
+});
+poser('animLire', (id) => lireJson(path.join(dossierAnim(id), 'film.json'), null));
+poser('animOctets', (id, nom) => { if (!NOM_ANIM.test(String(nom))) return null; try { return fs.readFileSync(path.join(dossierAnim(id), nom)); } catch (e) { return null; } });
+// Une image de ses dossiers (photos, créations, décors) en octets, pour la travailler dans le studio.
+const DECORS_FLOCON = path.join(__dirname, 'ui', 'img', 'decors');
+poser('lireOctets', (chemin) => {
+  const c = path.resolve(String(chemin || ''));
+  const permis = Object.values(dossiers()).concat([DECORS_FLOCON]).map((d) => path.resolve(d));
+  if (!permis.some((d) => c.startsWith(d + path.sep)) || !EXT_IMG.test(c)) return null;
+  try { return fs.readFileSync(c); } catch (e) { return null; }
+});
+poser('animDecors', () => {
+  try { fs.mkdirSync(dossiers().decors, { recursive: true }); } catch (e) { /* rien */ }
+  const tag = (l, origine) => l.map((f) => Object.assign(f, { origine }));
+  return tag(listerRecursif(DECORS_FLOCON, EXT_IMG, 60).sort((a, b) => a.nom.localeCompare(b.nom, 'fr')), 'flocon').concat(tag(listerRecursif(dossiers().decors, EXT_IMG, 120), 'mes'), tag(listerRecursif(dossiers().creations, EXT_IMG, 120), 'creations'));
+});
+poser('animProjet', (id, projet) => { const d = dossierAnim(id); fs.mkdirSync(d, { recursive: true }); ecrireJson(path.join(d, 'film.json'), projet); return true; });
+poser('animEcrire', (id, nom, donnees) => {
+  if (!NOM_ANIM.test(String(nom))) throw new Error('nom refusé');
+  const d = dossierAnim(id); fs.mkdirSync(d, { recursive: true });
+  const p = path.join(d, nom); fs.writeFileSync(p, Buffer.from(donnees)); return versUrl(p);
+});
+poser('animEffacer', (id, nom) => { if (!NOM_ANIM.test(String(nom))) return false; try { fs.unlinkSync(path.join(dossierAnim(id), nom)); } catch (e) { /* déjà parti */ } return true; });
+poser('animSupprimer', (id) => { fs.rmSync(dossierAnim(id), { recursive: true, force: true }); return true; });
+poser('animExporter', (titre, donnees, ext) => {
+  const e = ext === 'mp4' ? 'mp4' : 'webm'; // seulement ces deux formats de vidéo
+  const dossier = dossiers().creations; fs.mkdirSync(dossier, { recursive: true });
+  const base = (String(titre || 'Mon film').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim().slice(0, 60)) || 'Mon film';
+  let cible = path.join(dossier, base + '.' + e);
+  for (let i = 2; fs.existsSync(cible); i++) cible = path.join(dossier, `${base} (${i}).${e}`);
+  fs.writeFileSync(cible, Buffer.from(donnees)); return { ok: true, nom: path.basename(cible), url: versUrl(cible) };
+});
+// Mes mains : la photo d'une création faite loin de l'écran rejoint « Mes créations ».
+poser('creationPhoto', (titre, donnees, ext) => {
+  const e = ext === 'png' ? 'png' : 'jpg';
+  const dossier = dossiers().creations; fs.mkdirSync(dossier, { recursive: true });
+  const base = (String(titre || 'Ma création').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim().slice(0, 60)) || 'Ma création';
+  let cible = path.join(dossier, base + '.' + e);
+  for (let i = 2; fs.existsSync(cible); i++) cible = path.join(dossier, `${base} (${i}).${e}`);
+  fs.writeFileSync(cible, Buffer.from(donnees)); return { ok: true, nom: path.basename(cible), chemin: cible };
+});
+// Fichier pour l'imprimante 3D : seulement du STL, seulement dans « Mes créations 3D ».
+poser('ecrireStl', (titre, donnees) => {
+  const dossier = dossiers().cubes; fs.mkdirSync(dossier, { recursive: true });
+  const base = (String(titre || 'Ma création').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim().slice(0, 60)) || 'Ma création';
+  const cible = path.join(dossier, base + '.stl'); fs.writeFileSync(cible, Buffer.from(donnees));
+  return { ok: true, nom: path.basename(cible), chemin: cible };
+});
+// Un livret (histoire à choix, BD, coloriage à imprimer) : la page HTML préparée par Flocon devient un PDF
+// dans « Mes créations », puis part à l'imprimante si on le demande. Fenêtre cachée, sans JavaScript ni réseau.
+poser('fairePdf', async (titre, html, options) => {
+  const o = options || {};
+  const tmp = path.join(os.tmpdir(), 'flocon-pdf-' + process.pid + '-' + Date.now() + '.html');
+  fs.writeFileSync(tmp, String(html || ''), 'utf8');
+  const w = new BrowserWindow({ show: false, webPreferences: { javascript: false, sandbox: true, partition: 'flocon-pdf' } });
+  try {
+    w.webContents.session.webRequest.onBeforeRequest((d, cb) => cb({ cancel: !/^(file|data):/.test(d.url) }));
+    await w.loadFile(tmp);
+    const pdf = await w.webContents.printToPDF({ pageSize: o.format === 'A5' ? 'A5' : 'A4', landscape: !!o.paysage, printBackground: true, margins: { marginType: 'none' } });
+    const dossier = dossiers().creations; fs.mkdirSync(dossier, { recursive: true });
+    const base = (String(titre || 'Mon livret').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim().slice(0, 60)) || 'Mon livret';
+    const cible = path.join(dossier, base + '.pdf'); fs.writeFileSync(cible, pdf);
+    if (o.imprimer && process.platform === 'win32') spawn('powershell.exe', ['-NoProfile', '-Command', 'Start-Process -FilePath $args[0] -Verb Print', cible], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+    return { ok: true, nom: path.basename(cible), chemin: cible };
+  } finally { w.destroy(); try { fs.unlinkSync(tmp); } catch (e) { /* rien */ } }
+});
 poser('jeuxSteam', () => jeuxSteam());
 poser('lireDoc', (dossier, fichier) => { const { p } = sur(dossier, fichier); return lireJson(p, null); });
 poser('ecrireDoc', (dossier, fichier, contenu) => { const { p } = sur(dossier, fichier); ecrireJson(p, contenu); return true; });
+// Permis niveau 2 : un dossier où l'on peut tout essayer (renommer, copier, créer des dossiers) sans risque.
+// Il est remis à neuf à chaque fois qu'on l'ouvre depuis « Montre-moi ».
+poser('entrainement', async () => {
+  const d = path.join(app.getPath('documents'), 'Entraînement');
+  try { fs.rmSync(d, { recursive: true, force: true }); } catch (e) { /* rien */ }
+  fs.mkdirSync(path.join(d, 'Un dossier rangé'), { recursive: true });
+  const decors = path.join(__dirname, 'ui', 'img', 'decors');
+  [['La plage.jpg', 'plage.jpg'], ['Le château fort.jpg', 'dessin à renommer.jpg'], ['Sous la mer.jpg', path.join('Un dossier rangé', 'poisson.jpg')]].forEach(([a, b]) => { try { fs.copyFileSync(path.join(decors, a), path.join(d, b)); } catch (e) { /* rien */ } });
+  fs.writeFileSync(path.join(d, 'mon texte.txt'), 'Ceci est un fichier pour s’entraîner. Tu peux le renommer, le copier ou le déplacer !\r\n', 'utf8');
+  if (process.platform === 'win32') await shell.openPath(d);
+  return { ok: true, chemin: d };
+});
+poser('effacerDoc', (dossier, fichier) => { if (!['histoires', 'bd', 'cubes'].includes(dossier) || !/\.json$/.test(String(fichier))) return false; const { p } = sur(dossier, fichier); try { fs.unlinkSync(p); } catch (e) { /* déjà parti */ } return true; });
 poser('listerDocs', (dossier) => { const { d } = sur(dossier, ''); try { return fs.readdirSync(d).filter((f) => f.endsWith('.json')).map((f) => ({ fichier: f, ...(lireJson(path.join(d, f), {}) || {}) })); } catch (e) { return []; } });
 poser('ouvrirDossier', (dossier) => { const { d } = sur(dossier, ''); fs.mkdirSync(d, { recursive: true }); return shell.openPath(d); });
 poser('photos', () => listerRecursif(dossiers().photos, EXT_IMG, 300));

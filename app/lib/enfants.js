@@ -7,7 +7,7 @@
 // Le code parent est commun ; tout le reste est propre à chaque enfant.
 // La tirelire (tirelire.js) travaille sur une « vue » à plat, au format de la version 1.
 
-const CLES_ENFANT = ['jetonsSemaine', 'maxParSeance', 'niveau', 'sites', 'jeux', 'logiciels', 'interdits'];
+const CLES_ENFANT = ['pauseMax', 'jetonsSemaine', 'maxParSeance', 'niveau', 'sites', 'jeux', 'logiciels', 'interdits'];
 const CLES_COMMUNES = ['pinSel', 'pinHash', 'aDeuxMaxMinutes', 'graceMinutes'];
 
 function copie(x) { return x === undefined ? undefined : JSON.parse(JSON.stringify(x)); }

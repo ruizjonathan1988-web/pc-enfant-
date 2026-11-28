@@ -60,6 +60,7 @@ function fermerSession(etat, config, raison, maintenant) {
  * actif    : la session Windows de l'enfant est-elle ouverte et active ?
  * Retourne { etat, deconnecter, message }
  */
+const PAUSE_MAX = 45;
 function tic(etatEntree, config, demande, maintenant, actif) {
   let etat = etatEntree ? JSON.parse(JSON.stringify(etatEntree)) : etatInitial(config, maintenant);
   let deconnecter = false;
@@ -93,7 +94,11 @@ function tic(etatEntree, config, demande, maintenant, actif) {
     fermerSession(etat, config, 'fini', maintenant);
   } else if (actif) {
     if (enCours) {
-      s.minutes += 1;
+      // Pause bricolage : pendant un défi « Mes mains », l'écran attend et le temps ne défile pas,
+      // dans la limite de PAUSE_MAX minutes par séance (ensuite, le temps reprend normalement).
+      const enPause = demande && demande.pause && demande.pause.sessionId === s.id;
+      if (enPause && (s.pauseMinutes || 0) < (config.pauseMax === undefined ? PAUSE_MAX : config.pauseMax)) s.pauseMinutes = (s.pauseMinutes || 0) + 1;
+      else s.minutes += 1;
       if (s.minutes >= limiteSession(s, config)) {
         // Temps écoulé : la séance se ferme, l'écran « au revoir » a une minute pour s'afficher.
         fermerSession(etat, config, 'temps', maintenant);
@@ -109,7 +114,7 @@ function tic(etatEntree, config, demande, maintenant, actif) {
       const graceTemps = (config.niveau || 1) >= 4 ? 5 : 1;
       // La grâce courte ne vaut que juste après la fin du temps : à la connexion suivante (même un peu plus tard),
       // elle retrouve le temps normal pour choisir ses jetons.
-      const justeApres = s && s.raison === 'temps' && s.fermeeLe && (maintenant - new Date(s.fermeeLe)) <= (graceTemps + 2) * 60000;
+      const justeApres = s && (s.raison === 'temps' || s.raison === 'parent') && s.fermeeLe && (maintenant - new Date(s.fermeeLe)) <= (graceTemps + 2) * 60000;
       const grace = premiere ? 30 : justeApres ? graceTemps : (config.graceMinutes || 5);
       if (etat.attente > grace) { deconnecter = true; etat.attente = 0; }
     }
@@ -122,7 +127,7 @@ function tic(etatEntree, config, demande, maintenant, actif) {
 }
 
 // Changements demandés depuis le panneau parent : appliqués seulement avec le bon code.
-const CLES_PARENT = ['jetonsSemaine', 'maxParSeance', 'aDeuxMaxMinutes', 'sites', 'jeux', 'logiciels', 'niveau', 'interdits'];
+const CLES_PARENT = ['pauseMax', 'jetonsSemaine', 'maxParSeance', 'aDeuxMaxMinutes', 'sites', 'jeux', 'logiciels', 'niveau', 'interdits'];
 function appliquerParent(config, etat, requete) {
   if (!requete || !pinValide(config, requete.pin)) return { ok: false, config, etat };
   const c = JSON.parse(JSON.stringify(config));
@@ -132,7 +137,10 @@ function appliquerParent(config, etat, requete) {
   c.jetonsSemaine = Math.max(0, Math.min(40, Math.floor(Number(c.jetonsSemaine) || 0)));
   c.maxParSeance = Math.max(1, Math.min(8, Math.floor(Number(c.maxParSeance) || 1)));
   c.niveau = Math.max(1, Math.min(4, Math.floor(Number(c.niveau) || 1)));
+  if (c.pauseMax !== undefined) c.pauseMax = Math.max(0, Math.min(90, Math.floor(Number(c.pauseMax) || 0)));
   if (ch.ajouterJetons && e) e.jetonsRestants = Math.max(0, e.jetonsRestants + Math.floor(Number(ch.ajouterJetons)));
+  // Depuis le téléphone : terminer la séance en cours (les jetons non commencés sont rendus, comme toujours).
+  if (ch.terminer && e && e.session && !e.session.fermee) fermerSession(e, c, 'parent', requete.maintenant ? new Date(requete.maintenant) : new Date());
   if (ch.nouveauPin && String(ch.nouveauPin).length >= 4) {
     c.pinSel = crypto.randomBytes(8).toString('hex');
     c.pinHash = hacherPin(ch.nouveauPin, c.pinSel);
@@ -157,4 +165,4 @@ function configParDefaut() {
   };
 }
 
-module.exports = { JETON_MIN, hacherPin, pinValide, idSemaine, etatInitial, limiteSession, fermerSession, tic, appliquerParent, configParDefaut };
+module.exports = { PAUSE_MAX, JETON_MIN, hacherPin, pinValide, idSemaine, etatInitial, limiteSession, fermerSession, tic, appliquerParent, configParDefaut };

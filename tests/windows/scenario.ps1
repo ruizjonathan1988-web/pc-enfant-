@@ -100,6 +100,14 @@ Etape 'Le gardien tourne sous SYSTEM et tient la tirelire' {
   Vrai (-not ((Get-Content $log -Raw -ErrorAction SilentlyContinue) -match 'erreur')) 'le journal du gardien contient une erreur'
 }
 
+Etape 'Tableau parent sur le téléphone (serveur, code, jetons, blocage)' {
+  Vrai ((Taches) -contains 'Flocon Parent') 'tâche Flocon Parent absente'
+  $r = Get-NetFirewallRule -DisplayName 'Flocon - tableau parent' -ErrorAction SilentlyContinue
+  Vrai ($r -and $r.Profile -eq 'Private') 'règle de pare-feu absente ou pas limitée au réseau privé'
+  & node (Join-Path $Ici 'telephone.js') Brune 1234
+  Vrai ($LASTEXITCODE -eq 0) 'le téléphone n''a pas pu piloter Flocon'
+}
+
 Etape 'Le gardien lancé à la main ne plante pas' {
   # Flocon.exe est une application graphique : le « | Out-String » oblige PowerShell à attendre sa fin et son code.
   $env:ELECTRON_RUN_AS_NODE = '1'
@@ -169,8 +177,14 @@ Etape 'Verrous réels dans le registre de Test (niveaux 1 et 3)' {
     foreach ($x in 'chrome.exe', 'firefox.exe', 'msedge.exe', 'powershell.exe', 'cmd.exe', 'regedit.exe') { Vrai ($dr -contains $x) "$x non bloqué au niveau 1" }
     Vrai (-not (Test-Path $edge)) 'stratégies Edge présentes au niveau 1'
     foreach ($v in 'NoDesktop', 'NoControlPanel', 'NoStartMenuMorePrograms') { Vrai ((Get-ItemProperty "$pol\Explorer").$v -eq 1) "$v absent au niveau 1" }
+    Vrai ((Get-ItemProperty "$pol\Explorer").TaskbarNoPinnedList -eq 1) 'icônes épinglées encore là au niveau 1'
+    Vrai ((Get-ItemProperty "$pol\Explorer").RestrictRun -eq 1) 'liste blanche inactive au niveau 1'
+    $rr = & $liste "$pol\Explorer\RestrictRun"
+    foreach ($x in 'Flocon.exe', 'swriter.exe', 'tuxpaint.exe', 'Scratch 3.exe') { Vrai ($rr -contains $x) "$x absent de la liste blanche" }
+    Vrai (-not ($rr -contains 'WINWORD.EXE')) 'Word dans la liste blanche'
     & $poser 3
-    foreach ($v in 'NoDesktop', 'NoControlPanel', 'NoStartMenuMorePrograms') { Vrai ($null -eq (Get-ItemProperty "$pol\Explorer").$v) "$v resté au niveau 3" }
+    foreach ($v in 'NoDesktop', 'NoControlPanel', 'NoStartMenuMorePrograms', 'TaskbarNoPinnedList', 'RestrictRun') { Vrai ($null -eq (Get-ItemProperty "$pol\Explorer").$v) "$v resté au niveau 3" }
+    Vrai (-not (Test-Path "$pol\Explorer\RestrictRun")) 'liste blanche restée au niveau 3'
     $dr = & $liste "$pol\Explorer\DisallowRun"
     Vrai (-not ($dr -contains 'msedge.exe')) 'Edge encore interdit au niveau 3'
     Vrai ($dr -contains 'chrome.exe') 'Chrome autorisé au niveau 3'

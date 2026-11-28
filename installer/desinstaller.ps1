@@ -11,7 +11,8 @@ try { $config = Get-Content (Join-Path $Donnees 'config.json') -Raw -Encoding UT
 
 Write-Host ''; Write-Host '  Désinstallation de Flocon' -ForegroundColor Cyan
 Unregister-ScheduledTask -TaskPath '\Flocon\' -TaskName 'Flocon Gardien' -Confirm:$false -ErrorAction SilentlyContinue
-Get-ScheduledTask -TaskPath '\Flocon\' -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -like 'Flocon Session*' } | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue
+Get-ScheduledTask -TaskPath '\Flocon\' -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue
+Get-NetFirewallRule -DisplayName 'Flocon - tableau parent' -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue
 Get-Process Flocon -ErrorAction SilentlyContinue | Stop-Process -Force
 Remove-Item -Recurse -Force $Dest -ErrorAction SilentlyContinue
 Write-Host '  [ok] Application et tâches planifiées retirées.' -ForegroundColor Green
@@ -31,8 +32,9 @@ foreach ($enfant in $liste) {
     reg delete "$ruche\Software\Policies\Microsoft\Windows\System" /v DisableCMD /f 2>$null | Out-Null
     reg delete "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v DisallowRun /f 2>$null | Out-Null
     reg delete "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\DisallowRun" /f 2>$null | Out-Null
-    foreach ($v in 'NoDesktop', 'NoControlPanel', 'NoStartMenuMorePrograms') { reg delete "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v $v /f 2>$null | Out-Null }
+    foreach ($v in 'NoDesktop', 'NoControlPanel', 'NoStartMenuMorePrograms', 'TaskbarNoPinnedList', 'RestrictRun') { reg delete "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v $v /f 2>$null | Out-Null }
     reg delete "$ruche\Software\Policies\Microsoft\Edge" /f 2>$null | Out-Null
+    reg delete "$ruche\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\RestrictRun" /f 2>$null | Out-Null
     if (-not $charge) { [GC]::Collect(); Start-Sleep -Milliseconds 500; reg unload 'HKU\FloconEnfant' | Out-Null }
     Write-Host "  [ok] Verrous retirés pour $($enfant.prenom)." -ForegroundColor Green
   }

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14183C">
+<title>Flocon · Parent</title>
+<style>
+  :root{--fond:#F3F5FA;--carte:#fff;--encre:#14183C;--douce:#5A6380;--bleu:#1F5FA8;--vert:#2FA36B;--rouge:#C0392B;--trait:#E3E8F2}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fond);color:var(--encre);padding:max(16px,env(safe-area-inset-top)) 16px 32px}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  h1{font-size:20px;margin:0;letter-spacing:-.01em}
+  .muet{color:var(--douce);font-size:14px}
+  .carte{background:var(--carte);border-radius:18px;padding:16px;box-shadow:0 1px 3px rgba(20,24,60,.08);margin-bottom:14px}
+  .carte h2{margin:0 0 2px;font-size:19px}
+  .chiffres{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+  .chiffres div{background:var(--fond);border-radius:12px;padding:10px;text-align:center}
+  .chiffres b{display:block;font-size:22px}
+  .seance{border-left:4px solid var(--vert);padding:8px 12px;background:#EEF9F2;border-radius:10px;margin:8px 0}
+  .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  button{font:inherit;border:0;border-radius:12px;padding:10px 14px;background:var(--bleu);color:#fff;font-weight:700;cursor:pointer}
+  button.doux{background:#E8EEF8;color:var(--bleu)}
+  button.danger{background:#FCECEA;color:var(--rouge)}
+  button:disabled{opacity:.5}
+  select{font:inherit;padding:9px;border-radius:12px;border:1px solid var(--trait);background:#fff}
+  .code{display:flex;gap:10px;justify-content:center;margin:18px 0}
+  .code span{width:44px;height:52px;border-radius:12px;background:#fff;border:2px solid var(--trait);display:grid;place-items:center;font-size:26px}
+  .pave{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:300px;margin:0 auto}
+  .pave button{padding:16px;font-size:22px;background:#fff;color:var(--encre);box-shadow:0 1px 3px rgba(20,24,60,.1)}
+  .erreur{color:var(--rouge);text-align:center;min-height:22px}
+  .toast{position:fixed;left:16px;right:16px;bottom:20px;background:var(--encre);color:#fff;padding:12px 16px;border-radius:14px;opacity:0;transition:opacity .3s;pointer-events:none}
+  .toast.on{opacity:1}
+  ul{margin:6px 0 0;padding-left:18px}
+</style>
+</head>
+<body>
+<header><h1>❄ Flocon · Parent</h1><span class="muet" id="maj"></span></header>
+<main id="app"></main>
+<div class="toast" id="toast"></div>
+<script>
+'use strict';
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let jeton = sessionStorage.getItem('flocon-jeton') || '';
+let saisie = ''; let erreur = ''; let donnees = null; let minuterie = null;
+
+function toast(t) { const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3500); }
+async function api(chemin, corps) {
+  const r = await fetch(chemin, { method: corps ? 'POST' : 'GET', headers: Object.assign({ 'Content-Type': 'application/json' }, jeton ? { Authorization: 'Bearer ' + jeton } : {}), body: corps ? JSON.stringify(corps) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401 && chemin !== '/api/connexion') { jeton = ''; sessionStorage.removeItem('flocon-jeton'); vueCode(); throw new Error('connexion'); }
+  return { statut: r.status, ...j };
+}
+
+function vueCode() {
+  clearInterval(minuterie);
+  $('#app').innerHTML = `<div class="carte"><h2>Code parent</h2><p class="muet">Le même code que sur l’ordinateur. Ce tableau ne fonctionne que sur le Wi-Fi de la maison.</p>
+    <div class="code">${[0, 1, 2, 3].map((i) => `<span>${saisie[i] ? '•' : ''}</span>`).join('')}</div>
+    <div class="erreur">${esc(erreur)}</div>
+    <div class="pave">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((k) => `<button data-k="${k}">${k}</button>`).join('')}<span></span><button data-k="0">0</button><button data-k="x" aria-label="Effacer">⌫</button></div></div>`;
+  document.querySelectorAll('.pave button').forEach((b) => b.onclick = () => touche(b.dataset.k));
+}
+async function touche(k) {
+  if (k === 'x') { saisie = saisie.slice(0, -1); return vueCode(); }
+  if (saisie.length >= 4) return;
+  saisie += k; erreur = '';
+  if (saisie.length < 4) return vueCode();
+  const r = await api('/api/connexion', { pin: saisie });
+  saisie = '';
+  if (r.jeton) { jeton = r.jeton; sessionStorage.setItem('flocon-jeton', jeton); return charger(); }
+  erreur = r.statut === 429 ? `Trop d’essais : réessayez dans ${r.attente} minute${r.attente > 1 ? 's' : ''}.` : `Ce n’est pas le bon code (${r.restants} essai${r.restants > 1 ? 's' : ''} avant blocage).`;
+  vueCode();
+}
+
+const duree = (m) => m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}` : `${m} min`;
+function vueTableau() {
+  const d = donnees;
+  $('#maj').textContent = 'À jour : ' + new Date(d.le).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  $('#app').innerHTML = d.enfants.map((e) => {
+    const s = e.seance;
+    const seance = s ? `<div class="seance"><b>En séance${s.aDeux ? ' à deux' : ''}</b> depuis ${duree(s.minutes)}${s.aDeux ? '' : ` · ${s.pris} jeton${s.pris > 1 ? 's' : ''} pris`}${typeof s.resteMinutes === 'number' ? ` · reste ${duree(s.resteMinutes)}` : ''}</div>` : '<p class="muet">Pas de séance en cours.</p>';
+    const histo = e.dernieres.length ? `<ul class="muet">${e.dernieres.map((j) => `<li>${new Date(j.debut).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric' })} : ${duree(j.minutes || 0)}${j.aDeux ? ' (à deux)' : ''}</li>`).join('')}</ul>` : '';
+    return `<section class="carte"><h2>${esc(e.prenom || e.compte)}</h2><span class="muet">Permis niveau ${e.niveau}</span>
+      <div class="chiffres"><div><b>${e.jetonsRestants ?? '—'}</b><span class="muet">jetons restants</span></div><div><b>${duree(e.minutesSemaine)}</b><span class="muet">cette semaine</span></div><div><b>${e.seancesSemaine}</b><span class="muet">séance${e.seancesSemaine > 1 ? 's' : ''}</span></div></div>
+      ${seance}${histo}
+      <div class="actions">
+        <button data-a="ajouter" data-c="${esc(e.compte)}" data-v="1">+1 jeton</button>
+        <button data-a="ajouter" data-c="${esc(e.compte)}" data-v="2" class="doux">+2 jetons</button>
+        <select data-a="niveau" data-c="${esc(e.compte)}" aria-label="Niveau du permis">${[1, 2, 3, 4].map((n) => `<option value="${n}" ${n === e.niveau ? 'selected' : ''}>Niveau ${n}</option>`).join('')}</select>
+        ${s ? `<button data-a="terminer" data-c="${esc(e.compte)}" class="danger">Terminer la séance</button>` : ''}
+      </div></section>`;
+  }).join('') + '<p class="muet">Les changements arrivent sur l’ordinateur dans la minute.</p>';
+  document.querySelectorAll('button[data-a]').forEach((b) => b.onclick = () => agir(b.dataset.a, b.dataset.c, b.dataset.v));
+  document.querySelectorAll('select[data-a]').forEach((s) => s.onchange = () => agir('niveau', s.dataset.c, s.value));
+}
+async function agir(action, compte, valeur) {
+  if (action === 'terminer' && !confirm('Terminer la séance maintenant ? Les jetons non commencés lui seront rendus.')) return;
+  const r = await api('/api/action', { action, compte, valeur });
+  toast(r.ok ? 'C’est noté : appliqué dans la minute.' : 'Ça n’a pas marché.');
+}
+async function charger() {
+  try { const r = await api('/api/etat'); if (r.enfants) { donnees = r; vueTableau(); } } catch (e) { return; }
+  clearInterval(minuterie); minuterie = setInterval(() => api('/api/etat').then((r) => { if (r.enfants) { donnees = r; vueTableau(); } }).catch(() => {}), 20000);
+}
+if (jeton) charger(); else vueCode();
+</script>
+</body>
+</html>
