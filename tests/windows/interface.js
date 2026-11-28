@@ -421,6 +421,28 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.strictEqual(a.planches.length, 2); assert.strictEqual(a.planches[1].cases[0].bulles[0].texte, 'On part !');
     await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
   });
+  await etape('Ma BD : recadrer une image, orienter une bulle, taille du texte, bruitage', async () => {
+    await rubrique('J’écris'); await tuile('Ma BD');
+    await page.fill('[data-in="bdNouveau"]', 'Robot BD'); await clic('[data-a="bdCreer"]'); await pause(400);
+    await clic('[data-a="bdAjouter"][data-g="g4"]'); await pause(300);
+    await clic('[data-a="bdImages"]'); await pause(800); await clic('[data-a="bdChoisirImage"] >> nth=0'); await pause(300);
+    await clic('[data-a="bdZoom"][data-d="1"]'); await clic('[data-a="bdZoom"][data-d="1"]');
+    const im = await page.locator('[data-cadrer="0"]').boundingBox();
+    await page.mouse.move(im.x + im.width / 2, im.y + im.height / 2); await page.mouse.down();
+    await page.mouse.move(im.x + im.width / 2 + 50, im.y + im.height / 2 + 30, { steps: 5 }); await page.mouse.up(); await pause(300);
+    await clic('[data-a="bdCase"][data-i="0"]');
+    await clic('[data-a="bdBulle"][data-t="parole"]'); await page.fill('[data-in="bdTexteBulle"]', 'Salut');
+    await clic('[data-a="bdPointe"][data-q="hd"]'); await clic('[data-a="bdTaille"][data-t="g"]');
+    await clic('[data-a="bdEffets"]'); await clic('[data-a="bdEffet"][data-k="0"]');
+    const c0 = await page.evaluate(() => album().planches[0].cases[0]);
+    assert.ok(c0.cadrage && c0.cadrage.z === 1.5, 'cadrage enregistré : ' + JSON.stringify(c0.cadrage));
+    assert.strictEqual(c0.bulles[0].queue, 'hd'); assert.strictEqual(c0.bulles[0].taille, 'g'); assert.strictEqual(c0.bulles[1].type, 'effet');
+    await clic('[data-a="bdRecentrer"]');
+    assert.strictEqual(await page.evaluate(() => album().planches[0].cases[0].cadrage.z), 1, 'recentrer');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="bdImprimerAlbum"]'); await pause(4000);
+    assert.ok(creationsAvec(/^Robot BD\.pdf$/).length, 'album PDF avec cadrage et bruitage');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
   await etape('Coloriages : mandala imprimé, coloriage magique vérifié', async () => {
     await rubrique('Je crée'); await tuile('Coloriages');
     await clic('[data-a="colMode"][data-m="mandala"]'); await clic('#col-svg path >> nth=0'); await clic('[data-a="colImprimer"]'); await pause(3000);
