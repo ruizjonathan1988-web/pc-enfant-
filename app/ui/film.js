@@ -495,8 +495,7 @@ function basHtml() {
       <button class="puce ${FILM.pipette ? 'on' : ''}" data-a="filmPipette">🎯 ${FILM.pipette ? 'Touche le fond sur l’écran' : 'Choisir la couleur du fond'}</button><span class="pastille" style="background:rgb(${p.vert.couleur.join(',')})"></span>
       <span class="reglage-ligne"><b>Tolérance</b><input type="range" min="0" max="100" value="${Math.round(p.vert.tolerance * 100)}" data-in="filmTolerance"></span></div>
       <p class="muet" style="margin:0">Mets un tissu vert derrière ton personnage, bien éclairé. Tout ce qui est vert est remplacé par le décor.</p>
-      <div class="decors">${Object.entries(DECORS_DESSINES).map(([ref, x]) => `<button class="${d.type === 'dessine' && d.ref === ref ? 'on' : ''}" data-a="filmDecor" data-t="dessine" data-r="${ref}"><img src="${apercuDecor(ref)}" alt=""><span>${esc(x.nom)}</span></button>`).join('')}
-      ${l.map((f) => `<button class="${d.type === 'fichier' && d.chemin === f.chemin ? 'on' : ''}" data-a="filmDecor" data-t="fichier" data-r="${esc(f.chemin)}"><img src="${esc(f.url)}" alt="" loading="lazy"><span>${esc(f.nom)}</span></button>`).join('')}</div>
+      ${decorsHtml(d, l)}
       <p class="muet" style="margin:0">Tes propres décors : mets des images dans Images, « Mes décors ». Tes dessins de « Mes créations » sont là aussi.</p>`;
   } else if (FILM.onglet === 'filtre') corps = `<div class="choix-gros">${FILTRES.map((f) => `<button class="${p.filtre === f.id ? 'on' : ''}" data-a="filmFiltre" data-f="${f.id}"><span class="e">${f.e}</span>${esc(f.nom)}</button>`).join('')}</div>`;
   else if (FILM.onglet === 'musique') corps = `<div class="choix-gros">${Object.entries(MUSIQUES).map(([id, m]) => `<button class="${p.musique === id ? 'on' : ''}" data-a="filmMusique" data-m="${id}"><span class="e">${m.e}</span>${esc(m.nom)}</button>`).join('')}</div><p class="muet" style="margin:0">Des musiques composées par Flocon : tu peux les mettre dans tous tes films. Appuie sur une musique pour l’écouter.</p>`;
@@ -510,6 +509,12 @@ function basHtml() {
   return `<div class="panneau bas-film">${frise}</div>
     <div class="panneau"><div class="onglets-film">${ong.map(([id, nom]) => `<button class="${FILM.onglet === id ? 'on' : ''}" data-a="filmOnglet" data-o="${id}">${nom}</button>`).join('')}</div>${corps}</div>
     <div class="rang entre"><span class="muet">Tout est enregistré au fur et à mesure.</span><button class="btn grand faire-film" data-a="filmFaire" ${n < 2 ? 'disabled' : ''}>🎞️ Faire mon film</button></div>`;
+}
+function decorsHtml(d, l) {
+  const bouton = (f) => `<button class="${d.type === 'fichier' && d.chemin === f.chemin ? 'on' : ''}" data-a="filmDecor" data-t="fichier" data-r="${esc(f.chemin)}"><img src="${esc(f.url)}" alt="" loading="lazy"><span>${esc(f.nom)}</span></button>`;
+  const dessines = Object.entries(DECORS_DESSINES).map(([ref, x]) => `<button class="${d.type === 'dessine' && d.ref === ref ? 'on' : ''}" data-a="filmDecor" data-t="dessine" data-r="${ref}"><img src="${apercuDecor(ref)}" alt=""><span>${esc(x.nom)}</span></button>`).join('');
+  const groupe = (titre, html) => (html ? `<b class="titre-decors">${titre}</b><div class="decors">${html}</div>` : '');
+  return `<div class="tous-decors">${groupe('Les décors de Flocon', l.filter((f) => f.origine === 'flocon').map(bouton).join('') + dessines)}${groupe('Mes décors', l.filter((f) => f.origine === 'mes').map(bouton).join(''))}${groupe('Mes dessins', l.filter((f) => f.origine === 'creations').map(bouton).join(''))}</div>`;
 }
 const apercus = {};
 function apercuDecor(ref) { if (!apercus[ref]) { const c = document.createElement('canvas'); c.width = 160; c.height = 120; c.getContext('2d').drawImage(toileDessinee(ref), 0, 0, 160, 120); apercus[ref] = c.toDataURL('image/jpeg', 0.8); } return apercus[ref]; }
@@ -586,7 +591,11 @@ Object.assign(A, {
   filmEffacer: () => { const p = FILM.p, i = FILM.sel; if (i < 0) return; const nom = p.images.splice(i, 1)[0]; if (!p.images.includes(nom)) F.animEffacer(FILM.id, nom); FILM.sel = Math.min(i, p.images.length - 1); if (!p.images.length) FILM.sel = -1; filmSauver(); majBas(true); majEcran(); },
   filmAnnuler: () => { const p = FILM.p; const nom = p.images.pop(); if (nom && !p.images.includes(nom)) F.animEffacer(FILM.id, nom); filmSauver(); majBas(true); majEcran(); },
   filmOnglet: (d) => { FILM.onglet = d.o; FILM.pipette = false; majBas(); majEcran(); if (d.o === 'vert') rafraichirDecors(); },
-  filmVert: () => { rafraichirDecors(); FILM.p.vert.actif = !FILM.p.vert.actif; FILM.cache = null; filmSauver(); if (FILM.p.vert.actif) toast('Fond vert activé ! Choisis ton décor en dessous.'); majBas(); majEcran(); },
+  filmVert: async () => {
+    FILM.p.vert.actif = !FILM.p.vert.actif;
+    const dec = FILM.p.vert.decor; const illus = (FILM.decors || []).find((f) => f.origine === 'flocon');
+    if (FILM.p.vert.actif && illus && (!dec || (dec.type === 'dessine' && dec.ref === 'espace'))) { FILM.p.vert.decor = { type: 'fichier', chemin: illus.chemin }; await chargerDecor(); }
+    rafraichirDecors(); FILM.cache = null; filmSauver(); if (FILM.p.vert.actif) toast('Fond vert activé ! Choisis ton décor en dessous.'); majBas(); majEcran(); },
   filmPipette: () => { FILM.pipette = !FILM.pipette; if (FILM.pipette) toast('Touche le fond vert sur l’image de la caméra.'); majBas(); majEcran(); },
   filmDecor: async (d) => { FILM.p.vert.decor = d.t === 'dessine' ? { type: 'dessine', ref: d.r } : { type: 'fichier', chemin: d.r }; FILM.p.vert.actif = true; FILM.cache = null; await chargerDecor(); filmSauver(); majBas(); majEcran(); },
   filmFiltre: (d) => { FILM.p.filtre = d.f; FILM.cache = null; filmSauver(); majBas(); majEcran(); },

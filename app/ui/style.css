@@ -262,3 +262,6 @@ audio,video{width:100%;border-radius:14px}
 .astuce-film{margin:0;color:var(--douce)}
 @media (max-width:900px){.studio-haut{grid-template-columns:1fr}}
 @media (prefers-reduced-motion: reduce){.clap,.compte.bat,.flash.on,.rec{animation:none}}
+.tous-decors{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;padding-right:4px}
+.tous-decors .decors{max-height:none;overflow:visible}
+.titre-decors{font-size:14px;margin-top:4px}

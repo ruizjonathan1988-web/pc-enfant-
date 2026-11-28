@@ -470,7 +470,7 @@ poser('lireOctets', (chemin) => {
 poser('animDecors', () => {
   try { fs.mkdirSync(dossiers().decors, { recursive: true }); } catch (e) { /* rien */ }
   const tag = (l, origine) => l.map((f) => Object.assign(f, { origine }));
-  return tag(listerRecursif(DECORS_FLOCON, EXT_IMG, 60), 'flocon').concat(tag(listerRecursif(dossiers().decors, EXT_IMG, 120), 'mes'), tag(listerRecursif(dossiers().creations, EXT_IMG, 120), 'creations'));
+  return tag(listerRecursif(DECORS_FLOCON, EXT_IMG, 60).sort((a, b) => a.nom.localeCompare(b.nom, 'fr')), 'flocon').concat(tag(listerRecursif(dossiers().decors, EXT_IMG, 120), 'mes'), tag(listerRecursif(dossiers().creations, EXT_IMG, 120), 'creations'));
 });
 poser('animProjet', (id, projet) => { const d = dossierAnim(id); fs.mkdirSync(d, { recursive: true }); ecrireJson(path.join(d, 'film.json'), projet); return true; });
 poser('animEcrire', (id, nom, donnees) => {

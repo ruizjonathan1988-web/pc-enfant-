@@ -322,8 +322,8 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     fs.copyFileSync(path.join(os.homedir(), 'Pictures', 'Mes photos', '2026-11-28', 'PICT0001.JPG'), path.join(decors, 'chateau.jpg'));
     await clic('[data-a="filmOnglet"][data-o="vert"]'); await clic('[data-a="filmVert"]');
     await clic('[data-a="filmDecor"][data-r="mer"]');
-    await page.waitForSelector('[data-a="filmDecor"][data-t="fichier"]', { timeout: 10000 });
-    await clic('[data-a="filmDecor"][data-t="fichier"]');
+    await page.waitForSelector('[data-a="filmDecor"][data-r$="chateau.jpg"]', { timeout: 10000 });
+    await clic('[data-a="filmDecor"][data-r$="chateau.jpg"]');
     await page.waitForFunction(() => FILM.decor && FILM.decor.bmp, null, { timeout: 10000 });
     // la caméra simulée filme sur fond vert : le vert doit disparaître
     const transparent = await page.evaluate(() => { const v = document.getElementById('anim-video'); const c = document.createElement('canvas'); c.width = 64; c.height = 48; const x = c.getContext('2d'); x.drawImage(v, 0, 0, 64, 48); const im = x.getImageData(0, 0, 64, 48); detourer(im, FILM.p.vert.couleur, FILM.p.vert.tolerance); let z = 0; for (let i = 3; i < im.data.length; i += 4) if (im.data[i] < 128) z++; return z / (64 * 48); });
