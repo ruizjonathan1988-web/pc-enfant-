@@ -314,7 +314,7 @@ Object.assign(A, {
     C3.aSupprimer = null; await F.effacerDoc('cubes', d.f); S.docs.cubes = await F.listerDocs('cubes'); render();
   },
   cMode: (d) => { C3.mode = d.m; C3.coin = null; render(); },
-  cVue2d: () => { C3.vue2d = !C3.vue2d; if (C3.vue2d) { C3.haut = 1.1; } render(); },
+  cVue2d: () => { C3.vue2d = !C3.vue2d; if (C3.vue2d) { C3.haut = 1.1; } render(); if (C3.vue2d) setTimeout(() => { const g = document.getElementById('cubes-2d'); if (g) g.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 50); },
   cEtage: (d) => { C3.etage = Math.max(0, Math.min(N - 1, C3.etage + Number(d.d))); render(); },
   cCouleur: (d) => { C3.couleur = Number(d.i); if (C3.mode === 'enlever') C3.mode = 'poser'; render(); },
   cMiroir: () => { C3.miroir = !C3.miroir; render(); },

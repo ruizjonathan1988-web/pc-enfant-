@@ -527,8 +527,8 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await page.keyboard.press('Control+z'); await pause(250);
     assert.strictEqual(await page.evaluate(() => C3.cubes.size), 0, 'Ctrl+Z annule tout le rectangle');
     await clic('[data-a="cMode"][data-m="poser"]'); await clic('[data-a="cVue2d"]');
-    await page.waitForSelector('#cubes-2d');
-    const g = await page.locator('#cubes-2d').boundingBox(); const t = g.width / 20;
+    await page.waitForSelector('#cubes-2d'); await pause(600); await page.locator('#cubes-2d').scrollIntoViewIfNeeded();
+    let g = await page.locator('#cubes-2d').boundingBox(); const t = g.width / 20;
     await page.mouse.move(g.x + 2.5 * t, g.y + 2.5 * t); await page.mouse.down();
     for (let i = 3; i <= 8; i++) { await page.mouse.move(g.x + i * t + t / 2, g.y + 2.5 * t); await pause(40); }
     await page.mouse.up(); await pause(300);
@@ -540,9 +540,11 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     assert.strictEqual(await page.evaluate(() => C3.cubes.size), 0, 'Annuler enlève tout le geste');
     const br = await page.evaluate(() => { const c = []; for (let x = 0; x < 4; x++) for (let z = 0; z < 2; z++) c.push([x + ',' + z, 10]); return briquesEtage(c).map((b) => b.nom); });
     assert.deepStrictEqual(br, ['2×4'], 'un bloc 4×2 devient une brique 2×4');
+    await page.locator('#cubes-2d').scrollIntoViewIfNeeded(); await pause(300); const g2 = await page.locator('#cubes-2d').boundingBox(); g.x = g2.x; g.y = g2.y;
     await page.mouse.move(g.x + 2.5 * t, g.y + 2.5 * t); await page.mouse.down();
     for (let i = 3; i <= 6; i++) { await page.mouse.move(g.x + i * t + t / 2, g.y + 2.5 * t); await pause(40); }
     await page.mouse.up(); await pause(300);
+    assert.ok(await page.evaluate(() => C3.cubes.size) > 0, 'une rangée pour le plan');
     await clic('[data-a="cVue2d"]'); await clic('[data-a="cPlan"]'); await pause(3000);
     assert.ok(creationsAvec(/^Plan de montage Mon mur\.pdf$/).length, 'le plan en briques est dans Mes créations');
     await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
@@ -563,6 +565,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     for (let i = 0; i < 3; i++) await clic('.declencheur');
     await page.waitForFunction(() => FILM.p.images.length === 3, null, { timeout: 10000 });
     const avant = await page.evaluate(() => FILM.p.images[0]);
+    await page.locator('#anim-frise').scrollIntoViewIfNeeded(); await pause(300);
     const a = await page.locator('#anim-frise .vignette >> nth=0').boundingBox(); const b = await page.locator('#anim-frise .vignette >> nth=2').boundingBox();
     await page.mouse.move(a.x + 20, a.y + 20); await page.mouse.down(); await page.mouse.move(b.x + b.width - 5, b.y + 20, { steps: 10 }); await page.mouse.up(); await pause(300);
     assert.notStrictEqual(await page.evaluate(() => FILM.p.images[0]), avant, 'image déplacée dans la frise');
