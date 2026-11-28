@@ -265,7 +265,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await clic('[data-a="fermerVue"]');
   });
   await etape('Mon cahier : écrire un texte, enregistré tout seul', async () => {
-    await rubrique('Je crée'); await tuile('Mon cahier');
+    await rubrique('J’écris'); await tuile('Mon cahier');
     await page.fill('[data-in="nouveauTexte"]', 'Le renard des neiges'); await clic('[data-a="creerTexte"]');
     await page.fill('[data-in="texteCorps"]', 'Il était une fois un renard tout blanc.\nIl aimait la neige.'); await pause(1200);
     assert.strictEqual(await page.textContent('.cahier .entete .etiquette'), '12 mots');
@@ -391,7 +391,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
   const docs = (d) => path.join(os.homedir(), 'Documents', d);
   const creationsAvec = (re) => fs.readdirSync(docs('Mes créations')).filter((f) => re.test(f));
   await etape('Histoire à choix : pages reliées, partie jouée, livret imprimé', async () => {
-    await rubrique('Je crée'); await tuile('Histoire à choix');
+    await rubrique('J’écris'); await tuile('Histoire à choix');
     await page.fill('[data-in="hNouveau"]', 'Le grenier secret'); await clic('[data-a="hCreer"]');
     await page.fill('[data-in="hTexte"]', 'Dans le grenier, une petite porte.');
     await clic('[data-a="hAjouterChoix"]'); await page.fill('[data-in="hChoixTexte"][data-i="0"]', 'Ouvrir la porte');
@@ -408,7 +408,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
   });
   await etape('Ma BD : planches vides imprimées, planche dessinée photographiée, bulles, album', async () => {
-    await rubrique('Je crée'); await tuile('Ma BD');
+    await rubrique('J’écris'); await tuile('Ma BD');
     await clic('[data-a="bdVidesDirect"]'); await clic('[data-a="bdImprimerVides"]'); await pause(3000);
     assert.ok(creationsAvec(/^Planches de BD vides\.pdf$/).length, 'planches vides');
     await page.fill('[data-in="bdNouveau"]', 'Les aventures de Givre'); await clic('[data-a="bdCreer"]');
@@ -452,6 +452,38 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
     for (let i = 0; i < 2; i++) { const b = await page.locator('#fd-trait').boundingBox(); await page.mouse.move(b.x + 100 + i * 30, b.y + 120); await page.mouse.down(); await page.mouse.move(b.x + 200 + i * 30, b.y + 220, { steps: 6 }); await page.mouse.up(); await clic('#film-dessin [data-d="ajouter"]'); await pause(600); }
     await clic('#film-dessin [data-d="fermer"]');
     assert.strictEqual(await page.evaluate(() => FILM.p.images.length), 2, 'deux images dessinées dans la frise');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  // ---------- Apprendre à se servir de l'ordinateur ----------
+  await etape('L’école de l’ordinateur : clic, double-clic, glisser, clic droit, accents, Ctrl+Z', async () => {
+    await rubrique('Mes outils'); await tuile('L’école de l’ordi');
+    await clic('[data-a="ecoleJeu"][data-id="clic"]'); for (let i = 0; i < 10; i++) { await page.click('#eco-flocon', { force: true }); await pause(60); }
+    await page.waitForSelector('.bravo-ecole');
+    await clic('[data-a="ecoleJeu"][data-id="double"]'); for (let k = 0; k < 5; k++) await page.dblclick(`.cadeau[data-k="${k}"]`); await page.waitForSelector('.bravo-ecole');
+    await clic('[data-a="ecoleJeu"][data-id="glisser"]');
+    for (let k = 0; k < 6; k++) { const b = await page.getAttribute(`.objet[data-k="${k}"]`, 'data-b'); const o = await page.locator(`.objet[data-k="${k}"]`).boundingBox(); const c = await page.locator(`.boite[data-b="${b}"]`).boundingBox();
+      await page.mouse.move(o.x + o.width / 2, o.y + o.height / 2); await page.mouse.down(); await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2, { steps: 6 }); await page.mouse.up(); await pause(80); }
+    await page.waitForSelector('.bravo-ecole');
+    await clic('[data-a="ecoleJeu"][data-id="droit"]'); await page.click('.fichier.cible', { button: 'right' }); await clic('#eco-menu [data-m="renommer"]'); await page.fill('#eco-saisie', 'mon chat'); await page.press('#eco-saisie', 'Enter'); await page.waitForSelector('.bravo-ecole');
+    await clic('[data-a="ecoleJeu"][data-id="accents"]'); for (const m of ['été', 'très', 'garçon', 'là']) { await page.fill('#eco-saisie', m); await pause(150); } await page.waitForSelector('.bravo-ecole');
+    await clic('[data-a="ecoleJeu"][data-id="annuler"]'); await page.type('#eco-saisie', 'flocon'); await clic('#eco-oups'); await page.keyboard.press('Control+z'); await page.waitForSelector('.bravo-ecole');
+    const p = lire(path.join(os.homedir(), 'AppData', 'Roaming', 'Flocon', 'profil.json'));
+    assert.strictEqual(Object.keys(p.ecole || {}).length, 6, 'six étoiles');
+    await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
+  });
+  await etape('Permis : « Montre-moi » et le dossier d’entraînement', async () => {
+    await rubrique('Mes outils'); await tuile('Mon permis');
+    assert.ok((await page.textContent('.affiche-ecole')).includes('6 sur 10'), 'étoiles de l’école sur le permis');
+    await clic('[data-a="guideMission"][data-k="2-1"]'); await page.waitForSelector('.guide-mission');
+    await clic('[data-a="entrainement"]'); await pause(1500);
+    const d = path.join(os.homedir(), 'Documents', 'Entraînement'); assert.ok(fs.existsSync(path.join(d, 'dessin à renommer.jpg')), 'fichiers d’entraînement');
+    await clic('[data-a="fermerVue"]');
+  });
+  await etape('Visite guidée : Givre montre les boutons du studio, et « ? » la relance', async () => {
+    await rubrique('Je crée'); await tuile('Mon film'); await clic('[data-a="filmOuvrir"] >> nth=0');
+    await clic('[data-a="revoirVisite"]'); await page.waitForSelector('#visite .visite-bulle');
+    let n = 0; while (await page.locator('#visite').count() && n < 10) { await page.click('#visite [data-v="suivant"]'); n++; await pause(150); }
+    assert.ok(n >= 4, 'plusieurs étapes (' + n + ')');
     await clic('[data-a="fermerVue"]'); await clic('[data-a="fermerVue"]');
   });
   await etape('Badges : un site utilisé donne « Je découvre »', async () => {

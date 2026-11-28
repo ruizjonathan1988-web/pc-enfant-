@@ -105,16 +105,18 @@ const RUBRIQUES = [
     { type: 'interne', ref: 'cubes', nom: 'Atelier 3D', sous: 'Des cubes, puis en vrai', icone: I.cube, couleur: '#2FA36B', niveau: 2 },
     { type: 'site', ref: 'arcade', nom: 'Mes jeux vidéo', sous: 'MakeCode Arcade, après Scratch', icone: I.code, couleur: '#3949AB', niveau: 3 },
     { type: 'interne', ref: 'mains', nom: 'Mes mains', sous: 'Des défis loin de l\u2019écran', icone: I.ciseaux, couleur: '#F28C28' },
-    { type: 'interne', ref: 'histoires', nom: 'Histoire à choix', sous: 'Le lecteur décide de la suite', icone: I.carte, couleur: '#7C5CFA' },
-    { type: 'interne', ref: 'bd', nom: 'Ma BD', sous: 'Au crayon, puis en album', icone: I.bulle, couleur: '#E0457B' },
-    { type: 'interne', ref: 'cahier', nom: 'Mon cahier', sous: 'Histoires et lettres', icone: I.texte, couleur: '#1F5FA8' },
-    { type: 'logiciel', ref: 'writer', nom: 'Mise en page', sous: 'LibreOffice Writer', icone: I.texte, couleur: '#174A85', niveau: 2 },
     { type: 'logiciel', ref: 'magneto', nom: 'Ma voix', sous: 'Le Magnétophone', icone: I.micro, couleur: '#5B3FD6' },
     { type: 'logiciel', ref: 'audacity', nom: 'Studio son', sous: 'Audacity, pour monter', icone: I.micro, couleur: '#3F2BA8', niveau: 3 },
     { type: 'logiciel', ref: 'camera', nom: 'Photomaton', sous: 'La caméra', icone: I.camera, couleur: '#13A39F' },
     { type: 'projet', ref: 'radio', nom: 'Ma radio', sous: 'Une émission à faire écouter', icone: I.micro, couleur: '#B0471B' },
     { type: 'projet', ref: 'livre', nom: 'Mon livre', sous: 'Écrire, illustrer, imprimer', icone: I.livre, couleur: '#2FA36B' },
     { type: 'projet', ref: 'papier', nom: 'Du papier à l\u2019écran', sous: 'Mes dessins prennent vie', icone: I.pinceau, couleur: '#7C5CFA' }
+  ] },
+  { id: 'ecrire', nom: 'J\u2019écris', tuiles: [
+    { type: 'interne', ref: 'histoires', nom: 'Histoire à choix', sous: 'Le lecteur décide de la suite', icone: I.carte, couleur: '#7C5CFA' },
+    { type: 'interne', ref: 'bd', nom: 'Ma BD', sous: 'Au crayon, puis en album', icone: I.bulle, couleur: '#E0457B' },
+    { type: 'interne', ref: 'cahier', nom: 'Mon cahier', sous: 'Histoires et lettres', icone: I.texte, couleur: '#1F5FA8' },
+    { type: 'logiciel', ref: 'writer', nom: 'Mise en page', sous: 'LibreOffice Writer', icone: I.texte, couleur: '#174A85', niveau: 2 }
   ] },
   { id: 'lire', nom: 'Mes lectures', tuiles: [
     { type: 'interne', ref: 'carnetLecture', nom: 'Mon carnet de lecture', sous: 'Les livres que j’ai lus', icone: I.livre, couleur: '#B0471B' },

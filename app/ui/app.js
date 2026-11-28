@@ -287,9 +287,19 @@ function noterBadge(t) {
   sauverProfil();
   if (apres > avant) toast(`Nouveau badge : « ${PALIERS[apres - 1].nom} » en ${t.nom} ${'★'.repeat(apres)}`, 6000);
 }
+// « Nouveau » : les tuiles arrivées avec une mise à jour, tant qu'elle ne les a pas ouvertes.
+const NOUVEAUTES = ['interne:animation', 'interne:mains', 'interne:histoires', 'interne:bd', 'interne:coloriages', 'interne:cubes', 'site:arcade', 'interne:ecole', 'interne:fiches', 'interne:ecrans'];
+function tuilesConnues() {
+  if (!S.profil.tuilesConnues) {
+    const toutes = D.catalogue.RUBRIQUES.flatMap((r) => r.tuiles).map(cleBadge);
+    S.profil.tuilesConnues = S.profil.atelierFait ? toutes.filter((k) => !NOUVEAUTES.includes(k)) : toutes; sauverProfil();
+  }
+  return S.profil.tuilesConnues;
+}
+function noterTuileVue(t) { const k = cleBadge(t); const l = tuilesConnues(); if (!l.includes(k)) { l.push(k); sauverProfil(); } }
 function tuileHtml(t, i) {
   const p = palier(t);
-  const badge = p ? `<span class="badge-tuile" title="${esc(PALIERS[p - 1].nom)}">${'★'.repeat(p)}</span>` : '';
+  const badge = p ? `<span class="badge-tuile" title="${esc(PALIERS[p - 1].nom)}">${'★'.repeat(p)}</span>` : !tuilesConnues().includes(cleBadge(t)) ? '<span class="badge-nouveau">Nouveau</span>' : '';
   return `<button class="tuile" data-a="tuile" data-i="${i}">${badge}<span class="ic" style="background:${t.couleur}">${ic(t.icone)}</span><span><span class="n">${esc(t.nom)}</span><br><span class="s">${esc(t.sous || '')}</span></span></button>`;
 }
 function vueBadges() {
@@ -671,6 +681,13 @@ function poseCompa() {
 function vueMascotte() {
   if (S.ecran !== 'bureau' || !S.profil || !S.profil.floconVisible) return '';
   const texte = S.bulle || CONSEILS[S.conseil % CONSEILS.length]();
+  // Les conseils ne restent pas collés sur l'écran : ils s'effacent au bout de 12 s (un clic sur le compagnon les rappelle).
+  let cache = false;
+  if (!S.bulle) {
+    if (S.conseilAffiche !== S.conseil) { S.conseilAffiche = S.conseil; S.conseilDepuis = Date.now(); clearTimeout(vueMascotte.t); vueMascotte.t = setTimeout(() => { const m = $('#mascotte'); if (S.ecran === 'bureau' && m) m.innerHTML = vueMascotte(); }, 12500); }
+    cache = Date.now() - (S.conseilDepuis || 0) > 12000;
+  }
+  if (cache) return `<div class="mascotte"><button class="compagnon" data-a="conseilSuivant" aria-label="${esc(nomCompa())}, ton compagnon"><img src="${imgCompa(poseCompa())}" alt=""></button></div>`;
   return `<div class="mascotte"><div class="dire"><span>${esc(texte)}</span><button class="btn doux petit" style="align-self:flex-end;height:28px" data-a="taire">Chut, ${esc(nomCompa())}</button></div><button class="compagnon" data-a="conseilSuivant" aria-label="${esc(nomCompa())}, ton compagnon"><img src="${imgCompa(poseCompa())}" alt=""></button></div>`;
 }
 function dire(t) { S.bulle = t; clearTimeout(dire.t); dire.t = setTimeout(() => { S.bulle = null; if (S.ecran === 'bureau') $('#mascotte').innerHTML = vueMascotte(); }, 8000); }
@@ -749,6 +766,7 @@ async function ouvrirVue(ref) {
 }
 
 async function lancer(t, sansPas) {
+  noterTuileVue(t);
   if (t.type === 'projet') { S.vue = { ref: 'projet', id: t.ref }; render(); return; }
   if (t.type === 'logiciel' && !sansPas && D.catalogue.PREMIERS_PAS[t.ref] && !((S.profil.vus || {})[t.ref])) { S.voile = { type: 'premiersPas', t }; render(); return; }
   if (t.type === 'site') { noterBadge(t); return ouvrirSite(D.catalogue.SITES[t.ref].url, D.catalogue.SITES[t.ref].nom); }
