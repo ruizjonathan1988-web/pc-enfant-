@@ -484,3 +484,14 @@ button.on .case{border-color:#2FA36B;background:#fff}
 .bravo-ecole{position:relative;text-align:center;overflow:hidden;width:100%;padding:30px}
 .centre{text-align:center}
 @media (prefers-reduced-motion:reduce){.touche.brille,.cible-flocon.pop{animation:none}.cible-flocon{transition:none}}
+.mission-ligne{display:flex;gap:8px;align-items:center}
+.guide-mission{background:#F4F8FF;border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;margin:-2px 0 6px}
+.guide-mission .etapes-pause li{opacity:1;transform:none;box-shadow:none;font-size:15px;background:#fff}
+
+/* ---------- Visites guidées ---------- */
+#visite{position:fixed;inset:0;z-index:950}
+.visite-trou{position:fixed;border-radius:16px;box-shadow:0 0 0 9999px rgba(20,24,60,.55),0 0 0 4px #FFD54F inset;pointer-events:none;transition:all .25s}
+.visite-bulle{position:fixed;width:360px;background:#fff;border-radius:18px;padding:14px 16px;box-shadow:0 16px 40px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:10px;animation:popF .25s}
+.visite-bulle p{margin:0;font:700 16px/1.4 'Outfit',sans-serif}.visite-bulle .givre{font-size:34px;line-height:1}
+.aide-visite{margin-left:auto;width:34px;height:34px;border-radius:50%;padding:0;font-weight:900}
+.entete .aide-visite+*{margin-left:8px}

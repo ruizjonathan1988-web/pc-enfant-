@@ -461,7 +461,9 @@ function vuePermis() {
   if (suivant) {
     const faites = suivant.missions.filter((_, i) => m[suivant.n + '-' + i]).length;
     missions = `<div class="panneau"><h3>Pour passer au niveau ${suivant.n} : ${esc(suivant.nom)}</h3><p class="muet" style="margin:0">Coche ce que tu sais faire, puis montre-le à un adulte. C’est lui qui valide le passage avec son code.</p>
-      <div class="section" style="gap:8px">${suivant.missions.map((t, i) => { const k = suivant.n + '-' + i; return `<button class="coche ${m[k] ? 'on' : ''}" data-a="mission" data-k="${k}"><span class="case">${m[k] ? '✓' : ''}</span>${esc(t)}</button>`; }).join('')}</div>
+      <div class="section" style="gap:8px">${suivant.missions.map((t, i) => { const k = suivant.n + '-' + i; const g = (suivant.guides || [])[i]; const ouvert = S.vue && S.vue.guide === k;
+        return `<div class="mission-ligne"><button class="coche grow ${m[k] ? 'on' : ''}" data-a="mission" data-k="${k}"><span class="case">${m[k] ? '✓' : ''}</span>${esc(t)}</button>${g ? `<button class="btn doux petit" data-a="guideMission" data-k="${k}">${ouvert ? 'Fermer' : '👀 Montre-moi'}</button>` : ''}</div>
+        ${g && ouvert ? `<div class="guide-mission"><ol class="etapes-pause">${g.etapes.map((e, j) => `<li class="on"><span class="num">${j + 1}</span><span>${esc(e)}</span></li>`).join('')}</ol><p class="pouce">💡 ${esc(g.astuce)}</p>${g.entrainement ? '<div class="rang"><button class="btn" style="background:#2FA36B" data-a="entrainement">📂 Ouvrir mon dossier d’entraînement</button><span class="muet">Tu peux tout y essayer : rien de grave ne peut arriver.</span></div>' : ''}</div>` : ''}`; }).join('')}</div>
       <div class="rang entre"><span class="etiquette">${faites} sur ${suivant.missions.length}</span><button class="btn" data-a="passerNiveau" ${faites === suivant.missions.length ? '' : 'disabled'}>Je le montre à un adulte</button></div></div>`;
   } else missions = '<div class="panneau"><b>Tu as ton permis complet.</b><span class="muet">Bravo : tu sais te servir d’un ordinateur, et t’arrêter quand tu as fini.</span></div>';
   const ne = typeof nbEcole === 'function' ? nbEcole() : 0; const te = typeof ECOLE !== 'undefined' ? ECOLE.length : 10;
@@ -701,6 +703,7 @@ function apresRendu() {
   if (typeof bdApresRendu === 'function') bdApresRendu();
   if (typeof ecoleApresRendu === 'function') ecoleApresRendu();
   if (window.cubesApresRendu) window.cubesApresRendu();
+  if (typeof visitesApresRendu === 'function') visitesApresRendu();
 }
 function sauverToile(id) {
   const c = document.getElementById(id); if (!c) return;
@@ -878,6 +881,8 @@ const A = {
   rubrique: (d) => { S.rubrique = d.id; S.vue = null; render(); },
   tuile: (d) => lancer(S.tuilesAffichees[Number(d.i)]),
   ouvrirEcole: () => ouvrirVue('ecole'),
+  guideMission: (d) => { S.vue.guide = S.vue.guide === d.k ? null : d.k; render(); },
+  entrainement: async () => { const r = await F.entrainement(); toast(r && r.ok ? 'Ton dossier d’entraînement s’ouvre : essaie tout ce que tu veux !' : 'Je n’ai pas pu ouvrir le dossier.'); },
   finOuverture: () => finOuverture(),
   pasOuvrir: async () => { const t = S.voile.t; S.profil.vus = Object.assign({}, S.profil.vus, { [t.ref]: true }); await sauverProfil(); S.voile = null; render(); lancer(t, true); },
   pasDebrouille: async () => { const t = S.voile.t; S.profil.vus = Object.assign({}, S.profil.vus, { [t.ref]: true }); await sauverProfil(); S.voile = null; render(); dire('D’accord ! Si tu bloques, clique sur moi.'); lancer(t, true); },

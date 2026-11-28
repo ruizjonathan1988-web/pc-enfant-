@@ -370,6 +370,7 @@ poser('init', () => {
   }
   return {
     dev: C.DEV, plateforme: process.platform,
+    test: process.env.FLOCON_CAMERA_FACTICE === '1',
     catalogue: { PERMIS: CAT.PERMIS, PREMIERS_PAS: CAT.PREMIERS_PAS, IDEES: CAT.IDEES, PROJETS: CAT.PROJETS, RUBRIQUES: CAT.RUBRIQUES, SITES: CAT.SITES, EXPOSE_ETAPES: CAT.EXPOSE_ETAPES, INTENTIONS: CAT.INTENTIONS, ICONES: CAT.ICONES, ...require('./lib/fiches'), DEFIS: require('./lib/defis').DEFIS, PLACARD: require('./lib/defis').PLACARD, CATEGORIES_DEFIS: require('./lib/defis').CATEGORIES, METHODE: require('./lib/defis').METHODE, METHODE_ARTISTE: require('./lib/defis').METHODE_ARTISTE, COUPS_DE_POUCE: require('./lib/defis').COUPS_DE_POUCE },
     config: configPublique(), etat: lireJson(fichiers().etat, null), profil: lireJson(FICHIER_PROFIL, null), compagnons
   };
@@ -527,6 +528,18 @@ poser('fairePdf', async (titre, html, options) => {
 poser('jeuxSteam', () => jeuxSteam());
 poser('lireDoc', (dossier, fichier) => { const { p } = sur(dossier, fichier); return lireJson(p, null); });
 poser('ecrireDoc', (dossier, fichier, contenu) => { const { p } = sur(dossier, fichier); ecrireJson(p, contenu); return true; });
+// Permis niveau 2 : un dossier où l'on peut tout essayer (renommer, copier, créer des dossiers) sans risque.
+// Il est remis à neuf à chaque fois qu'on l'ouvre depuis « Montre-moi ».
+poser('entrainement', async () => {
+  const d = path.join(app.getPath('documents'), 'Entraînement');
+  try { fs.rmSync(d, { recursive: true, force: true }); } catch (e) { /* rien */ }
+  fs.mkdirSync(path.join(d, 'Un dossier rangé'), { recursive: true });
+  const decors = path.join(__dirname, 'ui', 'img', 'decors');
+  [['La plage.jpg', 'plage.jpg'], ['Le château fort.jpg', 'dessin à renommer.jpg'], ['Sous la mer.jpg', path.join('Un dossier rangé', 'poisson.jpg')]].forEach(([a, b]) => { try { fs.copyFileSync(path.join(decors, a), path.join(d, b)); } catch (e) { /* rien */ } });
+  fs.writeFileSync(path.join(d, 'mon texte.txt'), 'Ceci est un fichier pour s’entraîner. Tu peux le renommer, le copier ou le déplacer !\r\n', 'utf8');
+  if (process.platform === 'win32') await shell.openPath(d);
+  return { ok: true, chemin: d };
+});
 poser('effacerDoc', (dossier, fichier) => { if (!['histoires', 'bd', 'cubes'].includes(dossier) || !/\.json$/.test(String(fichier))) return false; const { p } = sur(dossier, fichier); try { fs.unlinkSync(p); } catch (e) { /* déjà parti */ } return true; });
 poser('listerDocs', (dossier) => { const { d } = sur(dossier, ''); try { return fs.readdirSync(d).filter((f) => f.endsWith('.json')).map((f) => ({ fichier: f, ...(lireJson(path.join(d, f), {}) || {}) })); } catch (e) { return []; } });
 poser('ouvrirDossier', (dossier) => { const { d } = sur(dossier, ''); fs.mkdirSync(d, { recursive: true }); return shell.openPath(d); });
