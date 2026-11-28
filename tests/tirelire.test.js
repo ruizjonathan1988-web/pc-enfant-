@@ -194,3 +194,15 @@ console.log('grâce après fin du temps : ok');
   }
   console.log('fiches (' + FICHES.length + ') et leçons écrans (' + ECRANS.length + ') : ok');
 }
+
+// Le parent termine la séance depuis son téléphone : jetons non commencés rendus, grâce courte ensuite.
+{
+  const assert = require('assert');
+  let e = T.tic(null, cfg, { sessionId: 'p', jetons: 3 }, lundi, true).etat;
+  for (let i = 1; i <= 10; i++) e = T.tic(e, cfg, { sessionId: 'p', jetons: 3 }, min(lundi, i), true).etat;
+  const r = T.appliquerParent(cfg, e, { pin: '1234', changements: { terminer: true }, maintenant: min(lundi, 10).toISOString() });
+  assert.ok(r.ok && r.etat.session.fermee && r.etat.session.raison === 'parent', 'séance terminée par le parent');
+  assert.strictEqual(r.etat.session.rendus, 2, '10 minutes utilisées : un jeton entamé, deux rendus');
+  assert.ok(!T.appliquerParent(cfg, e, { pin: '0000', changements: { terminer: true } }).ok, 'mauvais code refusé');
+  console.log('terminer depuis le téléphone : ok');
+}

@@ -11,7 +11,8 @@ try { $config = Get-Content (Join-Path $Donnees 'config.json') -Raw -Encoding UT
 
 Write-Host ''; Write-Host '  Désinstallation de Flocon' -ForegroundColor Cyan
 Unregister-ScheduledTask -TaskPath '\Flocon\' -TaskName 'Flocon Gardien' -Confirm:$false -ErrorAction SilentlyContinue
-Get-ScheduledTask -TaskPath '\Flocon\' -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -like 'Flocon Session*' } | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue
+Get-ScheduledTask -TaskPath '\Flocon\' -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue
+Get-NetFirewallRule -DisplayName 'Flocon - tableau parent' -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue
 Get-Process Flocon -ErrorAction SilentlyContinue | Stop-Process -Force
 Remove-Item -Recurse -Force $Dest -ErrorAction SilentlyContinue
 Write-Host '  [ok] Application et tâches planifiées retirées.' -ForegroundColor Green

@@ -100,6 +100,14 @@ Etape 'Le gardien tourne sous SYSTEM et tient la tirelire' {
   Vrai (-not ((Get-Content $log -Raw -ErrorAction SilentlyContinue) -match 'erreur')) 'le journal du gardien contient une erreur'
 }
 
+Etape 'Tableau parent sur le téléphone (serveur, code, jetons, blocage)' {
+  Vrai ((Taches) -contains 'Flocon Parent') 'tâche Flocon Parent absente'
+  $r = Get-NetFirewallRule -DisplayName 'Flocon - tableau parent' -ErrorAction SilentlyContinue
+  Vrai ($r -and $r.Profile -eq 'Private') 'règle de pare-feu absente ou pas limitée au réseau privé'
+  & node (Join-Path $Ici 'telephone.js') Brune 1234
+  Vrai ($LASTEXITCODE -eq 0) 'le téléphone n''a pas pu piloter Flocon'
+}
+
 Etape 'Le gardien lancé à la main ne plante pas' {
   # Flocon.exe est une application graphique : le « | Out-String » oblige PowerShell à attendre sa fin et son code.
   $env:ELECTRON_RUN_AS_NODE = '1'

@@ -109,7 +109,7 @@ function tic(etatEntree, config, demande, maintenant, actif) {
       const graceTemps = (config.niveau || 1) >= 4 ? 5 : 1;
       // La grâce courte ne vaut que juste après la fin du temps : à la connexion suivante (même un peu plus tard),
       // elle retrouve le temps normal pour choisir ses jetons.
-      const justeApres = s && s.raison === 'temps' && s.fermeeLe && (maintenant - new Date(s.fermeeLe)) <= (graceTemps + 2) * 60000;
+      const justeApres = s && (s.raison === 'temps' || s.raison === 'parent') && s.fermeeLe && (maintenant - new Date(s.fermeeLe)) <= (graceTemps + 2) * 60000;
       const grace = premiere ? 30 : justeApres ? graceTemps : (config.graceMinutes || 5);
       if (etat.attente > grace) { deconnecter = true; etat.attente = 0; }
     }
@@ -133,6 +133,8 @@ function appliquerParent(config, etat, requete) {
   c.maxParSeance = Math.max(1, Math.min(8, Math.floor(Number(c.maxParSeance) || 1)));
   c.niveau = Math.max(1, Math.min(4, Math.floor(Number(c.niveau) || 1)));
   if (ch.ajouterJetons && e) e.jetonsRestants = Math.max(0, e.jetonsRestants + Math.floor(Number(ch.ajouterJetons)));
+  // Depuis le téléphone : terminer la séance en cours (les jetons non commencés sont rendus, comme toujours).
+  if (ch.terminer && e && e.session && !e.session.fermee) fermerSession(e, c, 'parent', requete.maintenant ? new Date(requete.maintenant) : new Date());
   if (ch.nouveauPin && String(ch.nouveauPin).length >= 4) {
     c.pinSel = crypto.randomBytes(8).toString('hex');
     c.pinHash = hacherPin(ch.nouveauPin, c.pinSel);

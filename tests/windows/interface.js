@@ -337,6 +337,7 @@ const fenetre = () => appli.evaluate(({ BrowserWindow, screen }) => { const w = 
   });
   await etape('Espace parent : jetons, niveau 3 et un site', async () => {
     await code('1234'); await page.waitForSelector('[data-in="pJetons"]');
+    await page.waitForSelector('.adresse-parent:has-text(":4747")', { timeout: 10000 });
     await page.fill('[data-in="pJetons"]', '6');
     await clic('[data-a="pNiveau"][data-n="3"]');
     const sites = await page.inputValue('[data-in="pSites"]');

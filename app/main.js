@@ -425,6 +425,11 @@ poser('lancer', async (t) => {
   return { ok: false };
 });
 poser('urlAutorisee', (u) => CAT.urlAutorisee(u, domaines()));
+// Les adresses où le téléphone joint le tableau parent : celles de cet ordinateur sur le réseau de la maison.
+poser('adresseParent', () => {
+  const ips = Object.values(os.networkInterfaces()).flat().filter((i) => i && i.family === 'IPv4' && !i.internal && !/^169\.254\./.test(i.address)).map((i) => i.address);
+  return { adresses: ips.map((ip) => 'http://' + ip + ':4747'), nom: 'http://' + os.hostname().toLowerCase() + ':4747' };
+});
 poser('jeuxSteam', () => jeuxSteam());
 poser('lireDoc', (dossier, fichier) => { const { p } = sur(dossier, fichier); return lireJson(p, null); });
 poser('ecrireDoc', (dossier, fichier, contenu) => { const { p } = sur(dossier, fichier); ecrireJson(p, contenu); return true; });
