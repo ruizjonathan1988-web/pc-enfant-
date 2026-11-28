@@ -197,7 +197,8 @@ const APPLIS_STORE_PERMISES = /^(Minecraft\.Windows|CalculatorApp|WindowsCamera|
 let veilleur = null;
 function veillerApplisStore() {
   if (process.platform !== 'win32' || veilleur || C.DEV) return;
-  const cmd = "while ($true) { Get-Process | Where-Object { $_.MainWindowHandle -ne 0 -and $_.Path -like '*\\WindowsApps\\*' } | ForEach-Object { '' + $_.Id + '|' + $_.ProcessName + '|' + $_.MainWindowTitle }; '--'; Start-Sleep -Seconds 3 }";
+  // La boucle s'arrête d'elle-même quand Flocon n'est plus là (fermé, ou arrêté brutalement).
+  const cmd = "while (Get-Process -Id " + process.pid + " -ErrorAction SilentlyContinue) { Get-Process | Where-Object { $_.MainWindowHandle -ne 0 -and $_.Path -like '*\\WindowsApps\\*' } | ForEach-Object { '' + $_.Id + '|' + $_.ProcessName + '|' + $_.MainWindowTitle }; '--'; Start-Sleep -Seconds 3 }";
   veilleur = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
   let reste = ''; const dejaDit = new Set();
   veilleur.stdout.on('data', (b) => {
@@ -210,7 +211,7 @@ function veillerApplisStore() {
       if (!dejaDit.has(nom)) { dejaDit.add(nom); setTimeout(() => dejaDit.delete(nom), 60000); if (fen) fen.webContents.send('appli-fermee', { nom: lisible }); }
     }
   });
-  veilleur.on('exit', () => { veilleur = null; setTimeout(veillerApplisStore, 10000); });
+  veilleur.on('exit', () => { veilleur = null; if (!quitter) setTimeout(veillerApplisStore, 10000); });
 }
 app.on('will-quit', () => { if (veilleur) { veilleur.removeAllListeners('exit'); try { veilleur.kill(); } catch (e) { /* rien */ } } });
 
